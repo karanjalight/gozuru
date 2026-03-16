@@ -1,6 +1,4 @@
 "use client";
-
-import { button } from "framer-motion/client";
 import { ArrowBigDown, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";

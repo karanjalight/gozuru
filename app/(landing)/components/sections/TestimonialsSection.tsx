@@ -36,14 +36,14 @@ export function TestimonialsSection() {
             >
               <Card className="h-full overflow-hidden rounded-2xl border-2 border-border bg-card shadow-md">
                 <CardContent className="p-6 sm:p-8">
-                  <Quote className="size-10 text-primary/20" />
+                  <Quote className="size-10 text-orange-500/20" />
                   <blockquote className="mt-4 text-foreground leading-relaxed">
                     &ldquo;{t.quote}&rdquo;
                   </blockquote>
                   <div className="mt-6 flex items-center gap-3">
                     <Avatar className="size-12 rounded-xl border-2 border-border">
                       <AvatarImage src={t.avatar} alt={t.author} />
-                      <AvatarFallback className="rounded-xl bg-primary/15 text-primary font-medium">
+                      <AvatarFallback className="rounded-xl bg-orange-500/15 text-orange-500 font-medium">
                         {t.author.slice(0, 2)}
                       </AvatarFallback>
                     </Avatar>

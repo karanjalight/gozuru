@@ -9,7 +9,7 @@ export function CTASection() {
   return (
     <Section>
       <motion.div
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary/90 px-6 py-16 text-center shadow-xl shadow-primary/20 sm:px-12 lg:px-20"
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-600 to-orange-900/90 px-6 py-16 text-center shadow-xl shadow-orange-500/20 sm:px-12 lg:px-20"
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -31,7 +31,7 @@ export function CTASection() {
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
               <Link
                 href="/sign-up"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-8 text-base font-semibold text-primary shadow-lg transition hover:bg-white/95 hover:shadow-xl"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-8 text-base font-semibold text-orange-500 shadow-lg transition hover:bg-white/95 hover:shadow-xl"
               >
                 Get started
                 <ArrowRight className="size-4" aria-hidden />

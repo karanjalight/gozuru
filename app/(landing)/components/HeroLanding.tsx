@@ -56,10 +56,10 @@ export function LandingHero() {
           </div>
         ))}
         <div
-          className={`absolute inset-0  transition-colors ${
+          className={`absolute inset-0 bg-gradient-to-b transition-colors ${
             isDark
-              ? "from-black/90 via-black/40 to-black/80"
-              : "from-gray-800/60 via-white/20 to-gray/40"
+              ? "from-black/90 via-black/65 to-black/90"
+              : "from-black/80 via-black/40 to-black/70"
           }`}
         />
       </div>
@@ -67,7 +67,7 @@ export function LandingHero() {
       <div className="relative z-10 mx-auto flex    lg:w-[1040px] flex-col items-center gap-8 px-4 pt-16 text-center md:items-start md:text-left">
         <div
           className={`inline-flex items-center gap-2 rounded-full px-4 py-1 text-xs font-medium backdrop-blur transition-colors ${
-            isDark ? "bg-white/10 text-white" : "bg-zinc-900/5 text-zinc-900"
+            isDark ? "bg-white/10 text-white" : "bg-zinc-900/5 text-zinc-200"
           }`}
         >
           <span className="h-2 w-2 rounded-full bg-emerald-400" />
@@ -75,12 +75,12 @@ export function LandingHero() {
         </div>
 
         <div className="space-y-4">
-          <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
+          <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl text-white">
             Travel. Taste. Connect.
           </h1>
           <p
             className={`max-w-xl text-balance text-sm sm:text-base transition-colors ${
-              isDark ? "text-zinc-100/90" : "text-zinc-700"
+              isDark ? "text-zinc-100/90" : "text-zinc-100"
             }`}
           >
             Gozuru connects you with unique local experiences curated by real
