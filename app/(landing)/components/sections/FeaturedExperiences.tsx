@@ -82,9 +82,9 @@ export function FeaturedExperiences() {
                     <p className="mt-2 text-sm font-medium text-primary">
                       with {exp.expertName}
                     </p>
-                    <div className="mt-4 flex">
-                      <span className="inline-flex items-center justify-center rounded-full bg-orange-500 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-md shadow-orange-500/30 transition hover:bg-orange-600">
-                        View experience
+                    <div className="mt-4  flex">
+                      <span className="inline-flex w-full items-center justify-center rounded-full bg-orange-500 px-4 py-2 text-xs font-semibold   tracking-wide text-white shadow-md shadow-orange-500/30 transition hover:bg-orange-600">
+                        View Experience
                       </span>
                     </div>
                   </CardContent>

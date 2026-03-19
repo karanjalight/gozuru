@@ -8,3 +8,4 @@ export { CategorySection } from "./CategorySection";
 export { FeaturedExperiences } from "./FeaturedExperiences";
 export { TestimonialsSection } from "./TestimonialsSection";
 export { CTASection } from "./CTASection";
+export { HostsSection } from "./HostsSection";

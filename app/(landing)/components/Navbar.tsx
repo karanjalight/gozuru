@@ -62,13 +62,16 @@ export function Navbar() {
         <div className="flex items-center gap-3 font-medium">
           {/* desktop links */}
           <div className="hidden items-center gap-6 lg:flex">
-            <Link href="#experiences" className="hover:text-orange-500">
+          <Link href="/" className="hover:text-orange-500">
+              Home
+            </Link>
+            <Link href="/experiences" className="hover:text-orange-500">
               Experiences
             </Link>
-            <Link href="/how-it-works" className="hover:text-orange-500">
+            <Link href="/about" className="hover:text-orange-500">
               How it works
             </Link>
-            <Link href="#hosts" className="hover:text-orange-500">
+            <Link href="/hosts" className="hover:text-orange-500">
               Become a host
             </Link>
           </div>
@@ -100,12 +103,18 @@ export function Navbar() {
           )}
 
           {/* desktop auth buttons */}
-          <button className="hidden rounded-full border border-orange-400 px-6 py-2 text-sm shadow-sm transition hover:border-orange-500 hover:text-orange-500 dark:text-orange-500 bg-white dark:border-orange-700 lg:inline-block">
+          <Link
+            href="/auth/login"
+            className="hidden rounded-full border border-orange-400 bg-white px-6 py-2 text-sm text-orange-600 shadow-sm transition hover:border-orange-500 hover:text-orange-500 dark:bg-black/40 dark:text-orange-300 dark:border-orange-700 lg:inline-block"
+          >
             Log in
-          </button>
-          <button className="hidden rounded-full bg-orange-500 px-6 py-2 text-sm text-white shadow-sm transition hover:bg-orange-600 lg:inline-block">
+          </Link>
+          <Link
+            href="/auth/signup"
+            className="hidden rounded-full bg-orange-500 px-6 py-2 text-sm text-white shadow-sm transition hover:bg-orange-600 lg:inline-block"
+          >
             Sign up
-          </button>
+          </Link>
 
           {/* mobile menu button */}
           <button
