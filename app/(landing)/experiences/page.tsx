@@ -12,11 +12,12 @@ import { LandingHero } from "../components/HeroLanding";
 import { ExperiencesGrid } from "../components/sections/ExperiencesSection";
 import { AboutHero } from "../components/HeroAbout";
 import { ExperienceHero } from "../components/HeroExperience copy";
+import { Navbar } from "../components/Navbar";
 
 export const metadata: Metadata = {
   title: "Gozuru – Reward Your Curiosity",
   description:
-    "The Airbnb of curious travelers. Connect with local experts, discover hidden gems, and experience the world through human connection and knowledge sharing.",
+    "The Gozuru of curious travelers. Connect with local experts, discover hidden gems, and experience the world through human connection and knowledge sharing.",
   openGraph: {
     title: "Gozuru – Reward Your Curiosity",
     description:
@@ -27,10 +28,12 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <>
-    <ExperienceHero /> 
+      <Navbar />
+      <div className="pt-20">
+        <ExperienceHero />
+      </div>
       <FeaturedExperiences />
       <CategorySection />
- 
     </>
   );
 }

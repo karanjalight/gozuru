@@ -141,36 +141,35 @@ export const experiences: Experience[] = [
 ];
 
 export const categories: Category[] = [
-  { id: "1", name: "Culture & History", description: "Local historians and culture keepers", icon: "Landmark", expertCount: 124 },
-  { id: "2", name: "Food & Markets", description: "Chefs, foodies, and market insiders", icon: "UtensilsCrossed", expertCount: 98 },
-  { id: "3", name: "Nature & Wildlife", description: "Guides and conservationists", icon: "TreePine", expertCount: 67 },
-  { id: "4", name: "Art & Craft", description: "Artists and traditional craftspeople", icon: "Palette", expertCount: 83 },
-  { id: "5", name: "City & Neighborhood", description: "Urban explorers and local residents", icon: "MapPin", expertCount: 156 },
-  { id: "5", name: "Tech and IT", description: "Interact with techies", icon: "sun", expertCount: 156 },
+  { id: "1", name: "Tech & Startups", description: "Talk to builders, operators, and insiders shaping local ecosystems", icon: "Landmark", expertCount: 124 },
+  { id: "2", name: "Agriculture & Farming", description: "Visit farms, understand supply chains, and learn from producers", icon: "UtensilsCrossed", expertCount: 98 },
+  { id: "3", name: "Business & FMCG", description: "Get real insights into distribution, pricing, and market dynamics", icon: "TreePine", expertCount: 67 },
+  { id: "4", name: "Culture & Lifestyle", description: "Explore food, traditions, and everyday life with locals", icon: "Palette", expertCount: 83 },
+  { id: "5", name: "Career & Industry Insights", description: "Learn from professionals across sectors", icon: "MapPin", expertCount: 156 },
 ];
 
 export const testimonials: Testimonial[] = [
   {
     id: "1",
-    quote: "I didn’t just see Kyoto — I felt it. Yuki’s tea ceremony was the highlight of our trip.",
-    author: "Rachel M.",
-    role: "Traveler",
+    quote: "Ratings & reviews from real users",
+    author: "Verified users",
+    role: "Community",
     avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=face",
     location: "San Francisco",
   },
   {
     id: "2",
-    quote: "Like having a brilliant friend in every city. Gozuru turned our vacation into a real journey.",
-    author: "David K.",
-    role: "Traveler",
+    quote: "Verified profiles",
+    author: "Trusted hosts",
+    role: "Community",
     avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face",
     location: "London",
   },
   {
     id: "3",
-    quote: "The local experts made all the difference. We discovered places we’d never find on our own.",
-    author: "Priya S.",
-    role: "Traveler",
+    quote: "Secure payments and a growing global community",
+    author: "Global members",
+    role: "Community",
     avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
     location: "Mumbai",
   },

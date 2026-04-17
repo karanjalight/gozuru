@@ -19,10 +19,11 @@ export function TestimonialsSection() {
       >
         <div className="text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl [font-family:var(--font-heading)]">
-            What travelers say
+            More Than Travel. Real Understanding.
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Real stories from people who chose curiosity.
+            Gozuru goes beyond sightseeing. It connects you to people who live
+            the reality you&apos;re curious about.
           </p>
         </div>
         <div className="mt-10 grid gap-6 md:grid-cols-3">

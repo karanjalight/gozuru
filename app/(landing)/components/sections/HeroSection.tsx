@@ -69,7 +69,7 @@ export function HeroSection() {
               }`}
             >
               <Compass className="size-4" aria-hidden />
-              <span>The Airbnb of curious travelers</span>
+              <span>The Gozuru of curious travelers</span>
             </motion.div>
             <motion.h1
               variants={item}

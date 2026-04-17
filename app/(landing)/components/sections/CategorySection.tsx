@@ -33,7 +33,7 @@ export function CategorySection() {
       >
         <div className="text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl [font-family:var(--font-heading)]">
-            Browse by interest
+            Explore by Interest
           </h2>
           <p className="mt-3 text-muted-foreground">
             Find experts and experiences that match what you care about.

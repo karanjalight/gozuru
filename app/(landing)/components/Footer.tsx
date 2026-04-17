@@ -42,7 +42,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              Reward Your Curiosity. The Airbnb of curious travelers — connect
+              Reward Your Curiosity. The Gozuru of curious travelers — connect
               with local experts and discover the world through human connection.
             </p>
             <div className="mt-6 flex gap-4">

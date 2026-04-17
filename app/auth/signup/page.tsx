@@ -2,17 +2,31 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, type FormEvent } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 const sideImage =
   "https://images.pexels.com/photos/3771110/pexels-photo-3771110.jpeg?auto=compress&cs=tinysrgb&w=1600";
 
 export default function SignupPage() {
+  const router = useRouter();
+  const { signup } = useAuth();
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const GoogleIcon = (
     <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
@@ -35,40 +49,48 @@ export default function SignupPage() {
     </svg>
   );
 
-  const MicrosoftIcon = (
-    <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-      <path fill="#F35325" d="M3 3h8v8H3V3Z" />
-      <path fill="#81BC06" d="M13 3h8v8h-8V3Z" />
-      <path fill="#05A6F0" d="M3 13h8v8H3v-8Z" />
-      <path fill="#FFBA08" d="M13 13h8v8h-8v-8Z" />
-    </svg>
-  );
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setSuccessMessage(null);
 
-  const FacebookIcon = (
-    <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-      <path
-        fill="#1877F2"
-        d="M24 12.1C24 5.4 18.6 0 12 0S0 5.4 0 12.1C0 18 3.9 22.9 9.1 24v-8.5H6V12h3.1V9.3c0-3.1 1.8-4.9 4.7-4.9 1.4 0 2.8.3 2.8.3v3H15.9c-1.5 0-2 .9-2 1.9V12H17l-.5 3.5h-2.6V24C20.1 22.9 24 18 24 12.1Z"
-      />
-      <path
-        fill="#fff"
-        d="M16.5 15.5 17 12h-3.1V9.6c0-1 .5-1.9 2-1.9h1.5v-3s-1.4-.3-2.8-.3c-2.9 0-4.7 1.8-4.7 4.9V12H6v3.5h3.1V24c1 .2 2 .3 2.9.3 1 0 2-.1 2.9-.3v-8.5h2.6Z"
-      />
-    </svg>
-  );
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("Please provide your first and last name.");
+      return;
+    }
 
-  const AppleIcon = (
-    <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M16.7 13.2c0-2 1.6-3 1.6-3-.9-1.3-2.3-1.5-2.8-1.5-1.2-.1-2.3.7-2.9.7-.6 0-1.5-.7-2.5-.7-1.3 0-2.5.8-3.2 1.9-1.3 2.3-.3 5.7.9 7.6.6.9 1.3 1.9 2.3 1.9.9 0 1.2-.6 2.3-.6 1.1 0 1.4.6 2.3.6 1 0 1.7-1 2.3-1.9.7-1.1 1-2.1 1-2.2-.1 0-2-.8-2-3Z"
-      />
-      <path
-        fill="currentColor"
-        d="M14.9 6.8c.5-.7.9-1.7.8-2.7-1 .1-2 .7-2.6 1.4-.6.7-.9 1.7-.8 2.6 1 0 2-.6 2.6-1.3Z"
-      />
-    </svg>
-  );
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    if (!acceptTerms) {
+      setError("You must accept the terms to continue.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const result = await signup(email, password, {
+        firstName,
+        lastName,
+      });
+      if (result.needsEmailVerification) {
+        setSuccessMessage("Account created. Check your email to verify your account.");
+      } else {
+        router.push("/account/experiences");
+      }
+    } catch (signupError) {
+      setError(signupError instanceof Error ? signupError.message : "Sign up failed.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -91,19 +113,29 @@ export default function SignupPage() {
               Sign up to book experts—or host experiences on GOZURU.
             </p>
 
-            <form className="mt-8 space-y-4">
+            <form className="mt-8 space-y-4" onSubmit={onSubmit}>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-muted-foreground">
                     First name <span className="text-orange-500">*</span>
                   </label>
-                  <Input className="h-10 rounded-xl" />
+                  <Input
+                    className="h-10 rounded-xl"
+                    value={firstName}
+                    onChange={(event) => setFirstName(event.target.value)}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-muted-foreground">
                     Last name <span className="text-orange-500">*</span>
                   </label>
-                  <Input className="h-10 rounded-xl" />
+                  <Input
+                    className="h-10 rounded-xl"
+                    value={lastName}
+                    onChange={(event) => setLastName(event.target.value)}
+                    required
+                  />
                 </div>
               </div>
 
@@ -111,7 +143,13 @@ export default function SignupPage() {
                 <label className="text-xs font-semibold text-muted-foreground">
                   Email <span className="text-orange-500">*</span>
                 </label>
-                <Input type="email" className="h-10 rounded-xl" />
+                <Input
+                  type="email"
+                  className="h-10 rounded-xl"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                />
               </div>
 
               <div className="space-y-2">
@@ -122,6 +160,9 @@ export default function SignupPage() {
                   <Input
                     type={showPassword ? "text" : "password"}
                     className="h-10 rounded-xl pr-10"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    required
                   />
                   <button
                     type="button"
@@ -146,6 +187,9 @@ export default function SignupPage() {
                   <Input
                     type={showConfirmPassword ? "text" : "password"}
                     className="h-10 rounded-xl pr-10"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    required
                   />
                   <button
                     type="button"
@@ -169,6 +213,9 @@ export default function SignupPage() {
                   id="terms"
                   type="checkbox"
                   className="mt-0.5 size-4 rounded border border-input bg-transparent"
+                  checked={acceptTerms}
+                  onChange={(event) => setAcceptTerms(event.target.checked)}
+                  required
                 />
                 <label htmlFor="terms" className="text-xs text-muted-foreground">
                   I agree to the{" "}
@@ -183,9 +230,18 @@ export default function SignupPage() {
                 </label>
               </div>
 
-              <Button className="h-10 w-full rounded-full bg-orange-500 text-white hover:bg-orange-600">
-                Sign up
+              <Button
+                type="submit"
+                className="h-10 w-full rounded-full bg-orange-500 text-white hover:bg-orange-600"
+                disabled={submitting}
+              >
+                {submitting ? "Creating account..." : "Sign up"}
               </Button>
+
+              {error ? <p className="text-center text-xs text-red-500">{error}</p> : null}
+              {successMessage ? (
+                <p className="text-center text-xs text-green-600">{successMessage}</p>
+              ) : null}
 
               <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center">

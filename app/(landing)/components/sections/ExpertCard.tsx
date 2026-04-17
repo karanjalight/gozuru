@@ -18,9 +18,11 @@ import { cn } from "@/lib/utils";
 interface ExpertCardProps {
   expert: Expert;
   index?: number;
+  /** When set, card links here (e.g. public host profile). Otherwise `/experts/:id`. */
+  linkHref?: string;
 }
 
-export function ExpertCard({ expert, index = 0 }: ExpertCardProps) {
+export function ExpertCard({ expert, index = 0, linkHref }: ExpertCardProps) {
   const initials = expert.name
     .split(" ")
     .map((n) => n[0])
@@ -36,7 +38,7 @@ export function ExpertCard({ expert, index = 0 }: ExpertCardProps) {
       whileHover={{ y: -6 }}
       className="h-full"
     >
-      <Link href={`/experts/${expert.id}`} className="block h-full">
+      <Link href={linkHref ?? `/experts/${expert.id}`} className="block h-full">
         <Card
           className={cn(
             "h-full overflow-hidden rounded-2xl border-2 border-border bg-card shadow-md transition-all duration-300",

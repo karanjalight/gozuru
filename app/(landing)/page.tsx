@@ -14,7 +14,7 @@ import { ExperiencesGrid } from "./components/sections/ExperiencesSection";
 export const metadata: Metadata = {
   title: "Gozuru – Reward Your Curiosity",
   description:
-    "The Airbnb of curious travelers. Connect with local experts, discover hidden gems, and experience the world through human connection and knowledge sharing.",
+    "The Gozuru of curious travelers. Connect with local experts, discover hidden gems, and experience the world through human connection and knowledge sharing.",
   openGraph: {
     title: "Gozuru – Reward Your Curiosity",
     description:
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <>
-    <LandingHero />
+      <LandingHero />
       {/* <HeroSection /> */}
       {/* <SearchSection /> */}
       <ExperiencesGrid />

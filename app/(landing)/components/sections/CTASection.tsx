@@ -21,11 +21,10 @@ export function CTASection() {
             <Compass className="size-7 text-white" />
           </div>
           <h2 className="mt-6 text-3xl font-bold tracking-tight text-white sm:text-4xl [font-family:var(--font-heading)]">
-            Connect With Local Gurus
+            Start Exploring Differently
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-lg text-white/90">
-            Stop following the crowd. Start following curiosity. Book a
-            one-on-one or small group experience with someone who lives there.
+            Discover people. Book experiences. Learn from those who live it.
           </p>
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
@@ -33,7 +32,7 @@ export function CTASection() {
                 href="/sign-up"
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-8 text-base font-semibold text-orange-500 shadow-lg transition hover:bg-white/95 hover:shadow-xl"
               >
-                Get started
+                Become a Host
                 <ArrowRight className="size-4" aria-hidden />
               </Link>
             </motion.div>
@@ -42,7 +41,7 @@ export function CTASection() {
                 href="#experts"
                 className="inline-flex h-12 items-center justify-center rounded-full border-2 border-white/50 px-8 text-base font-medium text-white transition hover:bg-white/15"
               >
-                Explore experts
+                Explore Experts
               </Link>
             </motion.div>
           </div>

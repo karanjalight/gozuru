@@ -76,16 +76,15 @@ export function LandingHero() {
 
         <div className="space-y-4">
           <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl text-white">
-            Travel. Taste. Connect.
+            Access People Who Know. Anywhere.
           </h1>
           <p
             className={`max-w-xl text-balance text-sm sm:text-base transition-colors ${
               isDark ? "text-zinc-100/90" : "text-zinc-100"
             }`}
           >
-            Gozuru connects you with unique local experiences curated by real
-            people. Share meals, stories, and memories in the cities you visit
-            and the neighborhoods you love.
+            Book time with local experts for real conversations and immersive
+            experiences, in person or virtual.
           </p>
         </div>
 
@@ -96,10 +95,10 @@ export function LandingHero() {
           className="mt-4 flex w-full max-w-xl items-stretch gap-2 rounded-full border border-gray-400/80 bg-white/90 px-3 py-2 text-left text-orange-700 shadow-md shadow-black/20 outline-none ring-0 transition hover:bg-white hover:shadow-lg focus-visible:ring-2 focus-visible:ring-orange-400 dark:bg-zinc-900/90 dark:text-orange-200 dark:border-orange-300/60"
         >
           <span className="flex-1 rounded-full border border-gray-400/80 bg-transparent px-4 py-2 text-xs font-medium text-gray-800 dark:text-gray-100 sm:text-sm">
-            find city, date
+            Find experts by topic, industry, or location
           </span>
           <span className="inline-flex items-center justify-center rounded-full border border-orange-400/80 bg-orange-500 text-white px-4 py-2 text-xs font-semibold uppercase tracking-wide sm:text-sm">
-            search
+            Explore Experts
           </span>
         </button>
 

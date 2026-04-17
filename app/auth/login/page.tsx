@@ -2,13 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-const sideImage =
-  "https://images.pexels.com/photos/3184431/pexels-photo-3184431.jpeg?auto=compress&cs=tinysrgb&w=1600";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 const GoogleIcon = (
   <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
@@ -31,43 +30,50 @@ const GoogleIcon = (
   </svg>
 );
 
-const MicrosoftIcon = (
-  <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-    <path fill="#F35325" d="M3 3h8v8H3V3Z" />
-    <path fill="#81BC06" d="M13 3h8v8h-8V3Z" />
-    <path fill="#05A6F0" d="M3 13h8v8H3v-8Z" />
-    <path fill="#FFBA08" d="M13 13h8v8h-8v-8Z" />
-  </svg>
-);
-
-const FacebookIcon = (
-  <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-    <path
-      fill="#1877F2"
-      d="M24 12.1C24 5.4 18.6 0 12 0S0 5.4 0 12.1C0 18 3.9 22.9 9.1 24v-8.5H6V12h3.1V9.3c0-3.1 1.8-4.9 4.7-4.9 1.4 0 2.8.3 2.8.3v3H15.9c-1.5 0-2 .9-2 1.9V12H17l-.5 3.5h-2.6V24C20.1 22.9 24 18 24 12.1Z"
-    />
-    <path
-      fill="#fff"
-      d="M16.5 15.5 17 12h-3.1V9.6c0-1 .5-1.9 2-1.9h1.5v-3s-1.4-.3-2.8-.3c-2.9 0-4.7 1.8-4.7 4.9V12H6v3.5h3.1V24c1 .2 2 .3 2.9.3 1 0 2-.1 2.9-.3v-8.5h2.6Z"
-    />
-  </svg>
-);
-
-const AppleIcon = (
-  <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-    <path
-      fill="currentColor"
-      d="M16.7 13.2c0-2 1.6-3 1.6-3-.9-1.3-2.3-1.5-2.8-1.5-1.2-.1-2.3.7-2.9.7-.6 0-1.5-.7-2.5-.7-1.3 0-2.5.8-3.2 1.9-1.3 2.3-.3 5.7.9 7.6.6.9 1.3 1.9 2.3 1.9.9 0 1.2-.6 2.3-.6 1.1 0 1.4.6 2.3.6 1 0 1.7-1 2.3-1.9.7-1.1 1-2.1 1-2.2-.1 0-2-.8-2-3Z"
-    />
-    <path
-      fill="currentColor"
-      d="M14.9 6.8c.5-.7.9-1.7.8-2.7-1 .1-2 .7-2.6 1.4-.6.7-.9 1.7-.8 2.6 1 0 2-.6 2.6-1.3Z"
-    />
-  </svg>
-);
-
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const router = useRouter();
+  const { login, user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/account/experiences");
+    }
+  }, [loading, router, user]);
+
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!email.trim()) {
+      setError("Please enter your email.");
+      return;
+    }
+    if (!password) {
+      setError("Please enter your password.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await login(email, password);
+      router.push("/account/experiences");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Login failed.";
+      setError(
+        message.includes("Invalid login credentials")
+          ? "Invalid email or password."
+          : message,
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -88,7 +94,7 @@ export default function LoginPage() {
               Log in to access your account
             </p>
 
-            <form className="mt-8 space-y-4">
+            <form className="mt-8 space-y-4" onSubmit={onSubmit}>
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-muted-foreground">
                   Email <span className="text-orange-500">*</span>
@@ -97,6 +103,9 @@ export default function LoginPage() {
                   type="email"
                   placeholder="merchant@mailinator.com"
                   className="h-10 rounded-xl bg-background"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
 
@@ -116,6 +125,9 @@ export default function LoginPage() {
                   <Input
                     type={showPassword ? "text" : "password"}
                     className="h-10 rounded-xl pr-10"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
                   />
                   <button
                     type="button"
@@ -144,11 +156,17 @@ export default function LoginPage() {
               </div>
 
               <Button
+                type="submit"
                 className="h-10 w-full rounded-full bg-transparent text-foreground border border-input hover:bg-muted"
                 variant="outline"
+                disabled={submitting}
               >
-                Log in
+                {submitting ? "Logging in..." : "Log in"}
               </Button>
+
+              {error ? (
+                <p className="text-center text-xs text-red-500">{error}</p>
+              ) : null}
 
               <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center">
