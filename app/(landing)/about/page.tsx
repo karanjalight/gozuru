@@ -1,15 +1,5 @@
 import type { Metadata } from "next";
-import {
-  HeroSection,
-  SearchSection,
-  ExpertGrid,
-  CategorySection,
-  FeaturedExperiences,
-  TestimonialsSection,
-  CTASection,
-} from "../components/sections";
-import { LandingHero } from "../components/HeroLanding";
-import { ExperiencesGrid } from "../components/sections/ExperiencesSection";
+import { TestimonialsSection } from "../components/sections";
 import { AboutHero } from "../components/HeroAbout";
 import { KochiApp } from "../components/sections/AboutSection";
 

@@ -63,17 +63,16 @@ export default function HostProfilePage() {
   const hostId = params?.hostId ?? "";
 
   const [loading, setLoading] = useState(true);
-  const [invalid, setInvalid] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [headline, setHeadline] = useState<string | null>(null);
   const [expertise, setExpertise] = useState<string | null>(null);
   const [experiences, setExperiences] = useState<ExperienceListRow[]>([]);
   const [coverByExperienceId, setCoverByExperienceId] = useState<Record<string, string>>({});
 
+  const isInvalidHost = useMemo(() => !hostId || !UUID_RE.test(hostId), [hostId]);
+
   useEffect(() => {
-    if (!hostId || !UUID_RE.test(hostId)) {
-      setInvalid(true);
-      setLoading(false);
+    if (isInvalidHost) {
       return;
     }
 
@@ -81,7 +80,6 @@ export default function HostProfilePage() {
 
     const load = async () => {
       setLoading(true);
-      setInvalid(false);
       setNotFound(false);
 
       const [{ data: expRows, error: expError }, { data: hostRow }] = await Promise.all([
@@ -141,7 +139,7 @@ export default function HostProfilePage() {
     return () => {
       mounted = false;
     };
-  }, [hostId]);
+  }, [hostId, isInvalidHost]);
 
   const heroCover = useMemo(() => {
     const first = experiences[0];
@@ -149,7 +147,7 @@ export default function HostProfilePage() {
     return coverByExperienceId[first.id] ?? null;
   }, [coverByExperienceId, experiences]);
 
-  if (invalid) {
+  if (isInvalidHost) {
     return (
       <>
         <Navbar />

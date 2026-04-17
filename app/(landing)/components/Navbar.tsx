@@ -13,7 +13,7 @@ export function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -40,7 +40,6 @@ export function Navbar() {
 
   const closeMobile = () => setMobileOpen(false);
   const isHome = pathname === "/";
-  const isDark = mounted && resolvedTheme === "dark";
 
   return (
     <header

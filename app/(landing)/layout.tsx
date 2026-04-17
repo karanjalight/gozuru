@@ -1,4 +1,4 @@
-import { Footer, Nav } from "./components";
+import { Footer } from "./components";
 
 export default function LandingLayout({
   children,

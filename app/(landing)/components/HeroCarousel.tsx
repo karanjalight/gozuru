@@ -60,12 +60,9 @@ export function HeroCarousel({
 
   const goTo = useCallback(
     (i: number) => {
-      setIndex((prev) => {
-        const next = i < 0 ? slides.length - 1 : i % slides.length;
-        return next;
-      });
+      setIndex(i < 0 ? slides.length - 1 : i % slides.length);
     },
-    [slides.length]
+    [slides.length],
   );
 
   useEffect(() => {

@@ -15,7 +15,6 @@ const HERO_IMAGES = [
 
 export function AboutHero() {
   const [index, setIndex] = useState(0);
-  const [searchOpen, setSearchOpen] = useState(false);
   const { theme, resolvedTheme } = useTheme();
 
   const currentTheme = theme === "system" ? resolvedTheme : theme;

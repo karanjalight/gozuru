@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import {
-  HeroSection,
-  SearchSection,
   ExpertGrid,
   CategorySection,
   FeaturedExperiences,

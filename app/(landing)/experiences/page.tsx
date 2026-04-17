@@ -1,16 +1,5 @@
 import type { Metadata } from "next";
-import {
-  HeroSection,
-  SearchSection,
-  ExpertGrid,
-  CategorySection,
-  FeaturedExperiences,
-  TestimonialsSection,
-  CTASection,
-} from "../components/sections";
-import { LandingHero } from "../components/HeroLanding";
-import { ExperiencesGrid } from "../components/sections/ExperiencesSection";
-import { AboutHero } from "../components/HeroAbout";
+import { CategorySection, FeaturedExperiences } from "../components/sections";
 import { ExperienceHero } from "../components/HeroExperience copy";
 import { Navbar } from "../components/Navbar";
 
