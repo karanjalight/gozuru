@@ -102,6 +102,8 @@ const DETAIL_HERO_WIDTH = 1400;
 const DETAIL_HERO_HEIGHT = 900;
 const DETAIL_GRID_WIDTH = 900;
 const DETAIL_GRID_HEIGHT = 700;
+const paystackPublicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY;
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function formatMoney(amount: number | null, currency: string) {
   if (!amount || amount <= 0) return "Price on request";
@@ -495,19 +497,34 @@ export default function ExperienceDetailPage() {
 
   async function beginPaystackCheckout(slot: ExperienceAvailabilityRow) {
     if (!experience) return;
-    if (!user?.email) {
+    const normalizedEmail = user?.email?.trim().toLowerCase() ?? "";
+    if (!normalizedEmail) {
       setBookingError("Please log in with a valid email before checkout.");
+      return;
+    }
+    if (!emailPattern.test(normalizedEmail)) {
+      setBookingError("Your account email format is invalid for Paystack. Update your email and try again.");
+      return;
+    }
+    if (!paystackPublicKey) {
+      setBookingError("Paystack public key is missing. Set NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY.");
       return;
     }
     setBookingSubmittingSlotId(slot.id);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        throw new Error("Your session expired. Please log in again.");
+      }
+
       const response = await fetch("/api/paystack/initialize", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          email: user.email,
           experienceId: experience.id,
           availabilityId: slot.id,
           guestsCount,
@@ -519,12 +536,17 @@ export default function ExperienceDetailPage() {
         authorizationUrl?: string;
         accessCode?: string | null;
         reference?: string;
+        amountMinor?: number;
+        currency?: string;
       };
       if (!response.ok || !payload.reference) {
         throw new Error(payload.error || "Unable to start Paystack checkout.");
       }
       if (!payload.accessCode) {
         throw new Error("Paystack checkout token missing. Please try again.");
+      }
+      if (!payload.amountMinor || payload.amountMinor <= 0) {
+        throw new Error("Checkout amount is missing for this availability.");
       }
 
       if (!window.PaystackPop) {
@@ -567,6 +589,11 @@ export default function ExperienceDetailPage() {
       };
 
       const handler = window.PaystackPop.setup({
+        key: paystackPublicKey,
+        email: normalizedEmail,
+        amount: payload.amountMinor,
+        currency: payload.currency ?? "KES",
+        ref: payload.reference,
         access_code: payload.accessCode,
         callback: handlePaystackCallback,
         onClose: () => {

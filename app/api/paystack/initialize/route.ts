@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 type InitializePayload = {
-  email: string;
   experienceId: string;
   availabilityId: string;
   guestsCount: number;
@@ -22,6 +21,8 @@ type AvailabilityRow = {
   currency: string | null;
 };
 
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
@@ -32,6 +33,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 const supabase = createClient(supabaseUrl as string, supabaseAnonKey as string);
+function getSupabaseWithAuth(accessToken: string) {
+  return createClient(supabaseUrl as string, supabaseAnonKey as string, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  });
+}
 
 export async function GET() {
   return NextResponse.json({ ok: true, message: "Use POST to initialize Paystack checkout." });
@@ -43,16 +53,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "PAYSTACK_SECRET_KEY is not configured." }, { status: 500 });
     }
 
+    const authHeader = request.headers.get("authorization");
+    const accessToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!accessToken) {
+      return NextResponse.json({ error: "Missing auth token. Please log in again." }, { status: 401 });
+    }
+
+    const authSupabase = getSupabaseWithAuth(accessToken);
+    const { data: authData, error: authError } = await authSupabase.auth.getUser();
+    const normalizedEmail = authData.user?.email?.trim().toLowerCase() ?? "";
+
+    if (authError || !normalizedEmail) {
+      return NextResponse.json(
+        { error: "Could not read logged-in user email. Please sign in again." },
+        { status: 401 },
+      );
+    }
+
     const body = (await request.json()) as InitializePayload;
     const guestsCount = Number(body.guestsCount);
     if (
-      !body.email ||
+      !normalizedEmail ||
       !body.experienceId ||
       !body.availabilityId ||
       !Number.isFinite(guestsCount) ||
       guestsCount < 1
     ) {
       return NextResponse.json({ error: "Invalid booking payload." }, { status: 400 });
+    }
+    if (!emailPattern.test(normalizedEmail)) {
+      return NextResponse.json(
+        { error: "Invalid email address for Paystack checkout. Update your account email and retry." },
+        { status: 400 },
+      );
     }
 
     const [{ data: experience, error: experienceError }, { data: slot, error: slotError }] = await Promise.all([
@@ -92,10 +125,10 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json({ error: reason }, { status: 400 });
     }
-    const unitPrice = availability.price_amount ?? exp.price_amount ?? 0;
+    const unitPrice = Number(availability.price_amount);
     const chargeAmountMajor = unitPrice * guestsCount;
     if (!Number.isFinite(chargeAmountMajor) || chargeAmountMajor <= 0) {
-      const reason = "Invalid amount for checkout. Set a slot/experience price above 0.";
+      const reason = "Invalid slot amount for checkout. Set a price above 0 on this availability.";
       console.error("Paystack init failed: invalid amount", {
         experienceId: body.experienceId,
         availabilityId: body.availabilityId,
@@ -127,7 +160,7 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        email: body.email,
+        email: normalizedEmail,
         amount: amountMinor,
         currency,
         callback_url: callbackUrl,
@@ -158,6 +191,8 @@ export async function POST(request: NextRequest) {
       authorizationUrl: initJson.data.authorization_url,
       reference: initJson.data.reference,
       accessCode: initJson.data.access_code ?? null,
+      amountMinor,
+      currency,
     });
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {

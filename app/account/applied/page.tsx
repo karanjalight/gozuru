@@ -17,28 +17,17 @@ type ApplicationRow = {
   guests_count: number;
   availability_id: string | null;
   host_note: string | null;
-  experience_availability:
-    | {
-      starts_at: string;
-      ends_at: string;
-    }
-    | {
-      starts_at: string;
-      ends_at: string;
-    }[]
-    | null;
-  experiences: {
-    id: string;
-    title: string;
-  } | {
-    id: string;
-    title: string;
-  }[] | null;
+  experience_id: string | null;
+  experience_title: string | null;
+  slot_starts_at: string | null;
+  slot_ends_at: string | null;
 };
 
 export default function AppliedExperiencesPage() {
   const searchParams = useSearchParams();
   const experienceIdFilter = searchParams.get("experienceId");
+  const requestedView = searchParams.get("view");
+  const activeView: "incoming" | "sent" = requestedView === "sent" ? "sent" : "incoming";
   const { user } = useAuth();
   const [applications, setApplications] = useState<ApplicationRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,23 +45,17 @@ export default function AppliedExperiencesPage() {
       return;
     }
     void loadApplications();
-  }, [experienceIdFilter, user]);
+  }, [activeView, experienceIdFilter, user]);
 
   const rows = useMemo(() => {
     return applications.slice(0, 50).map((application) => ({
       id: application.id,
-      title: Array.isArray(application.experiences)
-        ? application.experiences[0]?.title ?? "Untitled experience"
-        : application.experiences?.title ?? "Untitled experience",
+      title: application.experience_title ?? "Untitled experience",
       status: application.status.replaceAll("_", " "),
       guestsCount: application.guests_count,
       createdAt: new Date(application.booked_at).toLocaleDateString(),
-      startsAt: Array.isArray(application.experience_availability)
-        ? application.experience_availability[0]?.starts_at ?? null
-        : application.experience_availability?.starts_at ?? null,
-      endsAt: Array.isArray(application.experience_availability)
-        ? application.experience_availability[0]?.ends_at ?? null
-        : application.experience_availability?.ends_at ?? null,
+      startsAt: application.slot_starts_at ?? null,
+      endsAt: application.slot_ends_at ?? null,
       hostNote: application.host_note,
     }));
   }, [applications]);
@@ -81,26 +64,19 @@ export default function AppliedExperiencesPage() {
     if (!user) return;
     setLoading(true);
     setError(null);
-    let query = supabase
-      .from("bookings")
-      .select("id,booked_at,status,guests_count,availability_id,host_note,experiences(id,title),experience_availability(starts_at,ends_at)")
-      .eq("host_user_id", user.id)
-      .order("booked_at", { ascending: false });
-
-    if (experienceIdFilter) {
-      query = query.eq("experience_id", experienceIdFilter);
-    }
-    const { data, error: queryError } = await query;
+    setActionMessage(null);
+    const { data, error: queryError } = await supabase.rpc("get_account_applications", {
+      p_view: activeView,
+      p_experience_id: experienceIdFilter,
+      p_limit: 50,
+    });
     if (queryError) {
       setError(queryError.message);
       setApplications([]);
     } else {
       const nextRows = (data ?? []) as unknown as ApplicationRow[];
       setApplications(nextRows);
-      const firstExperience = nextRows[0]?.experiences;
-      const firstTitle = Array.isArray(firstExperience)
-        ? firstExperience[0]?.title
-        : firstExperience?.title;
+      const firstTitle = nextRows[0]?.experience_title ?? null;
       setSelectedExperienceTitle(firstTitle ?? null);
     }
     setLoading(false);
@@ -138,12 +114,42 @@ export default function AppliedExperiencesPage() {
         </p>
       ) : (
         <p className="mt-1 text-sm text-muted-foreground">
-          Applications received across your experiences.
+          {activeView === "incoming"
+            ? "Applications received across your experiences."
+            : "Applications you have made across experiences."}
         </p>
       )}
+      <div className="mt-3 inline-flex rounded-full border border-border bg-muted/20 p-1">
+        <Link
+          href={experienceIdFilter ? `/account/applied?experienceId=${experienceIdFilter}` : "/account/applied"}
+          className={cn(
+            "rounded-full px-4 py-1.5 text-xs font-semibold transition-colors",
+            activeView === "incoming"
+              ? "bg-orange-500 text-white"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          Incoming
+        </Link>
+        <Link
+          href={
+            experienceIdFilter
+              ? `/account/applied?view=sent&experienceId=${experienceIdFilter}`
+              : "/account/applied?view=sent"
+          }
+          className={cn(
+            "rounded-full px-4 py-1.5 text-xs font-semibold transition-colors",
+            activeView === "sent"
+              ? "bg-orange-500 text-white"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          Sent
+        </Link>
+      </div>
       {experienceIdFilter ? (
         <Link
-          href="/account/applied"
+          href={activeView === "sent" ? "/account/applied?view=sent" : "/account/applied"}
           className={cn(buttonVariants({ variant: "outline" }), "mt-3 rounded-full")}
         >
           View all applications
@@ -156,10 +162,10 @@ export default function AppliedExperiencesPage() {
             <FileText className="size-4 text-muted-foreground" />
             <h2 className="text-sm font-semibold">Applications</h2>
           </div>
-
           {actionMessage ? (
             <p className="mt-3 text-xs text-emerald-700">{actionMessage}</p>
           ) : null}
+
           <div className="mt-4">
             <div className="max-h-64 overflow-auto">
               <table className="w-full border-separate border-spacing-y-1">
@@ -170,14 +176,14 @@ export default function AppliedExperiencesPage() {
                     <th className="pb-2 pr-2">Requested</th>
                     <th className="pb-2 pr-2">Slot</th>
                     <th className="pb-2">Status</th>
-                    <th className="pb-2">Action</th>
+                    {activeView === "incoming" ? <th className="pb-2">Action</th> : null}
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={activeView === "incoming" ? 6 : 5}
                         className="py-4 text-center text-xs text-muted-foreground"
                       >
                         Loading applications...
@@ -186,7 +192,7 @@ export default function AppliedExperiencesPage() {
                   ) : error ? (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={activeView === "incoming" ? 6 : 5}
                         className="py-4 text-center text-xs text-red-500"
                       >
                         Failed to load applications: {error}
@@ -195,7 +201,7 @@ export default function AppliedExperiencesPage() {
                   ) : rows.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={activeView === "incoming" ? 6 : 5}
                         className="py-4 text-center text-xs text-muted-foreground"
                       >
                         No applications yet for this selection.
@@ -230,32 +236,34 @@ export default function AppliedExperiencesPage() {
                             {r.status}
                           </span>
                         </td>
-                        <td>
-                          {r.status === "requested" ? (
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                disabled={updatingBookingId === r.id}
-                                onClick={() => updateBookingStatus(r.id, "confirmed")}
-                                className="rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-semibold text-white disabled:opacity-60"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                type="button"
-                                disabled={updatingBookingId === r.id}
-                                onClick={() => updateBookingStatus(r.id, "cancelled_by_host")}
-                                className="rounded-full bg-zinc-700 px-3 py-1 text-[11px] font-semibold text-white disabled:opacity-60"
-                              >
-                                Decline
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-[11px] text-muted-foreground">
-                              {r.hostNote || "No action required"}
-                            </span>
-                          )}
-                        </td>
+                        {activeView === "incoming" ? (
+                          <td>
+                            {r.status === "requested" ? (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  disabled={updatingBookingId === r.id}
+                                  onClick={() => updateBookingStatus(r.id, "confirmed")}
+                                  className="rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-semibold text-white disabled:opacity-60"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={updatingBookingId === r.id}
+                                  onClick={() => updateBookingStatus(r.id, "cancelled_by_host")}
+                                  className="rounded-full bg-zinc-700 px-3 py-1 text-[11px] font-semibold text-white disabled:opacity-60"
+                                >
+                                  Decline
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground">
+                                {r.hostNote || "No action required"}
+                              </span>
+                            )}
+                          </td>
+                        ) : null}
                       </tr>
                     ))
                   )}
