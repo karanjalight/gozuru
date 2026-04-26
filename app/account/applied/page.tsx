@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { FileText } from "lucide-react";
+import { CalendarClock, CircleCheckBig, FileText, Inbox, Send } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -60,6 +60,23 @@ export default function AppliedExperiencesPage() {
     }));
   }, [applications]);
 
+  const stats = useMemo(() => {
+    const requested = rows.filter((row) => row.status === "requested").length;
+    const confirmed = rows.filter((row) => row.status === "confirmed").length;
+    return {
+      total: rows.length,
+      requested,
+      confirmed,
+    };
+  }, [rows]);
+
+  const getStatusClassName = (status: string) => {
+    if (status === "confirmed") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    if (status === "requested") return "border-amber-200 bg-amber-50 text-amber-800";
+    if (status.includes("cancelled")) return "border-rose-200 bg-rose-50 text-rose-700";
+    return "border-slate-200 bg-slate-50 text-slate-700";
+  };
+
   async function loadApplications() {
     if (!user) return;
     setLoading(true);
@@ -103,7 +120,12 @@ export default function AppliedExperiencesPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="text-2xl font-bold tracking-tight">Applied experiences</h1>
+      <div className="rounded-3xl border border-orange-100 bg-gradient-to-br from-orange-50 via-background to-background p-6 shadow-sm">
+        <h1 className="text-3xl font-bold tracking-tight">Applications</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Manage booking requests with a clear overview of status, schedule, and next actions.
+        </p>
+      </div>
       {experienceIdFilter ? (
         <p className="mt-1 text-sm text-muted-foreground">
           Showing applications for{" "}
@@ -113,13 +135,13 @@ export default function AppliedExperiencesPage() {
           .
         </p>
       ) : (
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-4 text-sm text-muted-foreground">
           {activeView === "incoming"
             ? "Applications received across your experiences."
             : "Applications you have made across experiences."}
         </p>
       )}
-      <div className="mt-3 inline-flex rounded-full border border-border bg-muted/20 p-1">
+      <div className="mt-4 inline-flex rounded-full border border-border bg-muted/20 p-1">
         <Link
           href={experienceIdFilter ? `/account/applied?experienceId=${experienceIdFilter}` : "/account/applied"}
           className={cn(
@@ -129,6 +151,7 @@ export default function AppliedExperiencesPage() {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
+          <Inbox className="mr-1 inline-flex size-3.5" />
           Incoming
         </Link>
         <Link
@@ -144,6 +167,7 @@ export default function AppliedExperiencesPage() {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
+          <Send className="mr-1 inline-flex size-3.5" />
           Sent
         </Link>
       </div>
@@ -156,7 +180,28 @@ export default function AppliedExperiencesPage() {
         </Link>
       ) : null}
 
-      <div className="mt-8">
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <Card className="rounded-2xl border-border bg-card p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total</p>
+          <p className="mt-2 text-2xl font-bold">{stats.total}</p>
+        </Card>
+        <Card className="rounded-2xl border-border bg-card p-4">
+          <p className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <CalendarClock className="size-3.5" />
+            Requested
+          </p>
+          <p className="mt-2 text-2xl font-bold">{stats.requested}</p>
+        </Card>
+        <Card className="rounded-2xl border-border bg-card p-4">
+          <p className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <CircleCheckBig className="size-3.5" />
+            Confirmed
+          </p>
+          <p className="mt-2 text-2xl font-bold">{stats.confirmed}</p>
+        </Card>
+      </div>
+
+      <div className="mt-6">
         <Card className="rounded-2xl border-border bg-card p-6">
           <div className="flex items-center gap-2">
             <FileText className="size-4 text-muted-foreground" />
@@ -167,84 +212,73 @@ export default function AppliedExperiencesPage() {
           ) : null}
 
           <div className="mt-4">
-            <div className="max-h-64 overflow-auto">
-              <table className="w-full border-separate border-spacing-y-1">
-                <thead>
-                  <tr className="text-left text-[11px] font-semibold text-muted-foreground">
-                    <th className="pb-2 pr-2">Experience</th>
-                    <th className="pb-2 pr-2">Guests</th>
-                    <th className="pb-2 pr-2">Requested</th>
-                    <th className="pb-2 pr-2">Slot</th>
-                    <th className="pb-2">Status</th>
-                    {activeView === "incoming" ? <th className="pb-2">Action</th> : null}
-                  </tr>
-                </thead>
-                <tbody>
+            <div className="hidden md:block">
+              <div className="rounded-2xl border border-border/80 bg-muted/20 p-3">
+                <div
+                  className={cn(
+                    "grid items-center rounded-xl bg-background px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground",
+                    activeView === "incoming"
+                      ? "grid-cols-[2fr_0.7fr_0.9fr_1.5fr_0.8fr_1.2fr]"
+                      : "grid-cols-[2fr_0.7fr_0.9fr_1.5fr_0.8fr]",
+                  )}
+                >
+                  <span>Experience</span>
+                  <span>Guests</span>
+                  <span>Requested</span>
+                  <span>Slot</span>
+                  <span>Status</span>
+                  {activeView === "incoming" ? <span>Action</span> : null}
+                </div>
+
+                <div className="mt-2 max-h-[420px] space-y-2 overflow-auto pr-1">
                   {loading ? (
-                    <tr>
-                      <td
-                        colSpan={activeView === "incoming" ? 6 : 5}
-                        className="py-4 text-center text-xs text-muted-foreground"
-                      >
-                        Loading applications...
-                      </td>
-                    </tr>
+                    <div className="rounded-xl border border-dashed border-border bg-background px-4 py-8 text-center text-xs text-muted-foreground">
+                      Loading applications...
+                    </div>
                   ) : error ? (
-                    <tr>
-                      <td
-                        colSpan={activeView === "incoming" ? 6 : 5}
-                        className="py-4 text-center text-xs text-red-500"
-                      >
-                        Failed to load applications: {error}
-                      </td>
-                    </tr>
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-8 text-center text-xs text-rose-700">
+                      Failed to load applications: {error}
+                    </div>
                   ) : rows.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={activeView === "incoming" ? 6 : 5}
-                        className="py-4 text-center text-xs text-muted-foreground"
-                      >
-                        No applications yet for this selection.
-                      </td>
-                    </tr>
+                    <div className="rounded-xl border border-dashed border-border bg-background px-4 py-8 text-center text-xs text-muted-foreground">
+                      No applications yet for this selection.
+                    </div>
                   ) : (
-                    rows.map((r, idx) => (
-                      <tr key={r.id} className="text-sm">
-                        <td className="pr-2">
-                          <span className="block max-w-[260px] truncate font-medium">
-                            {r.title}
-                          </span>
-                        </td>
-                        <td className="pr-2">{r.guestsCount}</td>
-                        <td className="pr-2">{r.createdAt}</td>
-                        <td className="pr-2 text-xs text-muted-foreground">
+                    rows.map((r) => (
+                      <div
+                        key={r.id}
+                        className={cn(
+                          "grid items-center rounded-xl border border-border/70 bg-background px-4 py-3 shadow-sm transition hover:border-orange-200 hover:shadow",
+                          activeView === "incoming"
+                            ? "grid-cols-[2fr_0.7fr_0.9fr_1.5fr_0.8fr_1.2fr]"
+                            : "grid-cols-[2fr_0.7fr_0.9fr_1.5fr_0.8fr]",
+                        )}
+                      >
+                        <span className="truncate pr-3 text-sm font-semibold text-foreground">{r.title}</span>
+                        <span className="text-sm font-medium text-foreground">{r.guestsCount}</span>
+                        <span className="text-xs text-muted-foreground">{r.createdAt}</span>
+                        <span className="truncate pr-2 text-xs text-muted-foreground">
                           {r.startsAt && r.endsAt
                             ? `${new Date(r.startsAt).toLocaleString()} - ${new Date(r.endsAt).toLocaleString()}`
                             : "No slot linked"}
-                        </td>
-                        <td>
-                          <span
-                            className={[
-                              "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-                              idx % 3 === 0
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                : idx % 3 === 1
-                                  ? "border-amber-200 bg-amber-50 text-amber-800"
-                                  : "border-slate-200 bg-slate-50 text-slate-700",
-                            ].join(" ")}
-                          >
-                            {r.status}
-                          </span>
-                        </td>
+                        </span>
+                        <span
+                          className={cn(
+                            "inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                            getStatusClassName(r.status),
+                          )}
+                        >
+                          {r.status}
+                        </span>
                         {activeView === "incoming" ? (
-                          <td>
+                          <div className="flex items-center justify-end gap-2">
                             {r.status === "requested" ? (
-                              <div className="flex items-center gap-2">
+                              <>
                                 <button
                                   type="button"
                                   disabled={updatingBookingId === r.id}
                                   onClick={() => updateBookingStatus(r.id, "confirmed")}
-                                  className="rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-semibold text-white disabled:opacity-60"
+                                  className="rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
                                 >
                                   Approve
                                 </button>
@@ -252,23 +286,72 @@ export default function AppliedExperiencesPage() {
                                   type="button"
                                   disabled={updatingBookingId === r.id}
                                   onClick={() => updateBookingStatus(r.id, "cancelled_by_host")}
-                                  className="rounded-full bg-zinc-700 px-3 py-1 text-[11px] font-semibold text-white disabled:opacity-60"
+                                  className="rounded-full bg-zinc-700 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60"
                                 >
                                   Decline
                                 </button>
-                              </div>
+                              </>
                             ) : (
                               <span className="text-[11px] text-muted-foreground">
                                 {r.hostNote || "No action required"}
                               </span>
                             )}
-                          </td>
+                          </div>
                         ) : null}
-                      </tr>
+                      </div>
                     ))
                   )}
-                </tbody>
-              </table>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3 md:hidden">
+              {loading ? (
+                <p className="py-4 text-center text-xs text-muted-foreground">Loading applications...</p>
+              ) : error ? (
+                <p className="py-4 text-center text-xs text-red-500">Failed to load applications: {error}</p>
+              ) : rows.length === 0 ? (
+                <p className="py-4 text-center text-xs text-muted-foreground">No applications yet for this selection.</p>
+              ) : (
+                rows.map((r) => (
+                  <div key={r.id} className="rounded-xl border border-border/70 bg-muted/20 p-4">
+                    <p className="line-clamp-1 text-sm font-semibold">{r.title}</p>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <p>Guests: <span className="font-medium text-foreground">{r.guestsCount}</span></p>
+                      <p>Requested: <span className="font-medium text-foreground">{r.createdAt}</span></p>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {r.startsAt && r.endsAt
+                        ? `${new Date(r.startsAt).toLocaleString()} - ${new Date(r.endsAt).toLocaleString()}`
+                        : "No slot linked"}
+                    </p>
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                      <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold", getStatusClassName(r.status))}>
+                        {r.status}
+                      </span>
+                      {activeView === "incoming" && r.status === "requested" ? (
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            disabled={updatingBookingId === r.id}
+                            onClick={() => updateBookingStatus(r.id, "confirmed")}
+                            className="rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-semibold text-white disabled:opacity-60"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            disabled={updatingBookingId === r.id}
+                            onClick={() => updateBookingStatus(r.id, "cancelled_by_host")}
+                            className="rounded-full bg-zinc-700 px-3 py-1 text-[11px] font-semibold text-white disabled:opacity-60"
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </Card>
