@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, CalendarPlus, MapPin, Trash2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -27,6 +27,45 @@ type ExperienceDetail = {
   categories: { name: string } | { name: string }[] | null;
 };
 
+type AvailabilitySlot = {
+  id: string;
+  starts_at: string;
+  ends_at: string;
+  capacity: number;
+  price_amount: number | null;
+  currency: string | null;
+  is_cancelled: boolean;
+};
+
+function toDateTimeLocalValue(date: Date): string {
+  const pad = (num: number) => String(num).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function defaultStartValue(): string {
+  const nextHour = new Date();
+  nextHour.setSeconds(0, 0);
+  nextHour.setHours(nextHour.getHours() + 1, 0, 0, 0);
+  return toDateTimeLocalValue(nextHour);
+}
+
+function defaultEndValue(): string {
+  const end = new Date();
+  end.setSeconds(0, 0);
+  end.setHours(end.getHours() + 2, 0, 0, 0);
+  return toDateTimeLocalValue(end);
+}
+
+function formatSlotDate(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function ExperienceDetailPage() {
   const router = useRouter();
   const params = useParams<{ experienceId: string }>();
@@ -35,6 +74,107 @@ export default function ExperienceDetailPage() {
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotError, setSlotError] = useState<string | null>(null);
+  const [slotSuccess, setSlotSuccess] = useState<string | null>(null);
+  const [slotStart, setSlotStart] = useState(defaultStartValue);
+  const [slotEnd, setSlotEnd] = useState(defaultEndValue);
+  const [slotCapacity, setSlotCapacity] = useState("1");
+  const [slotPrice, setSlotPrice] = useState("");
+  const [slotCurrency, setSlotCurrency] = useState("USD");
+  const [creatingSlot, setCreatingSlot] = useState(false);
+  const [cancellingSlotId, setCancellingSlotId] = useState<string | null>(null);
+
+  async function loadSlots(experienceId: string) {
+    setSlotsLoading(true);
+    const { data, error: slotsError } = await supabase
+      .from("experience_availability")
+      .select("id,starts_at,ends_at,capacity,price_amount,currency,is_cancelled")
+      .eq("experience_id", experienceId)
+      .order("starts_at", { ascending: true });
+
+    if (slotsError) {
+      setSlotError(slotsError.message);
+      setSlots([]);
+    } else {
+      setSlots((data ?? []) as AvailabilitySlot[]);
+    }
+    setSlotsLoading(false);
+  }
+
+  async function createSlot() {
+    if (!experience) return;
+    setSlotError(null);
+    setSlotSuccess(null);
+
+    const startsAt = new Date(slotStart);
+    const endsAt = new Date(slotEnd);
+    const capacityNum = Number.parseInt(slotCapacity, 10);
+    const parsedPrice = slotPrice.trim() ? Number.parseFloat(slotPrice) : null;
+
+    if (!Number.isFinite(startsAt.getTime()) || !Number.isFinite(endsAt.getTime())) {
+      setSlotError("Please provide valid start and end date/time.");
+      return;
+    }
+
+    if (endsAt <= startsAt) {
+      setSlotError("End time must be after start time.");
+      return;
+    }
+
+    if (!Number.isFinite(capacityNum) || capacityNum <= 0) {
+      setSlotError("Capacity must be greater than zero.");
+      return;
+    }
+
+    if (parsedPrice !== null && (!Number.isFinite(parsedPrice) || parsedPrice < 0)) {
+      setSlotError("Price must be a positive number.");
+      return;
+    }
+
+    setCreatingSlot(true);
+    const { error: rpcError } = await supabase.rpc("create_host_availability_slot", {
+      p_experience_id: experience.id,
+      p_starts_at: startsAt.toISOString(),
+      p_ends_at: endsAt.toISOString(),
+      p_capacity: capacityNum,
+      p_price_amount: parsedPrice,
+      p_currency: slotCurrency,
+    });
+
+    if (rpcError) {
+      setSlotError(rpcError.message);
+    } else {
+      setSlotSuccess("Slot created.");
+      setSlotStart(defaultStartValue());
+      setSlotEnd(defaultEndValue());
+      setSlotCapacity("1");
+      setSlotPrice("");
+      await loadSlots(experience.id);
+    }
+    setCreatingSlot(false);
+  }
+
+  async function cancelSlot(slotId: string) {
+    if (!experience) return;
+    setSlotError(null);
+    setSlotSuccess(null);
+    setCancellingSlotId(slotId);
+    const { error: cancelError } = await supabase
+      .from("experience_availability")
+      .update({ is_cancelled: true })
+      .eq("id", slotId)
+      .eq("experience_id", experience.id);
+
+    if (cancelError) {
+      setSlotError(cancelError.message);
+    } else {
+      setSlotSuccess("Slot cancelled.");
+      await loadSlots(experience.id);
+    }
+    setCancellingSlotId(null);
+  }
 
   useEffect(() => {
     if (!user || !params?.experienceId) return;
@@ -85,6 +225,7 @@ export default function ExperienceDetailPage() {
         return publicUrl;
       });
       setMediaUrls(urls);
+      await loadSlots(params.experienceId);
       setLoading(false);
     };
 
@@ -228,6 +369,128 @@ export default function ExperienceDetailPage() {
           ))
         )}
       </div>
+
+      <Card className="mt-8 rounded-2xl border-border bg-card p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Availability slots</h2>
+            <p className="text-sm text-muted-foreground">
+              Add slots guests can request. Overlapping host slots are blocked automatically.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <label className="space-y-1 text-sm">
+            <span className="text-muted-foreground">Start</span>
+            <input
+              type="datetime-local"
+              value={slotStart}
+              onChange={(event) => setSlotStart(event.target.value)}
+              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+            />
+          </label>
+          <label className="space-y-1 text-sm">
+            <span className="text-muted-foreground">End</span>
+            <input
+              type="datetime-local"
+              value={slotEnd}
+              onChange={(event) => setSlotEnd(event.target.value)}
+              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+            />
+          </label>
+          <label className="space-y-1 text-sm">
+            <span className="text-muted-foreground">Capacity</span>
+            <input
+              type="number"
+              min={1}
+              value={slotCapacity}
+              onChange={(event) => setSlotCapacity(event.target.value)}
+              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+            />
+          </label>
+          <div className="grid grid-cols-[1fr_120px] gap-2">
+            <label className="space-y-1 text-sm">
+              <span className="text-muted-foreground">Price override (optional)</span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={slotPrice}
+                onChange={(event) => setSlotPrice(event.target.value)}
+                placeholder="Use default"
+                className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-muted-foreground">Currency</span>
+              <select
+                value={slotCurrency}
+                onChange={(event) => setSlotCurrency(event.target.value)}
+                className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+              >
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+                <option value="CAD">CAD</option>
+                <option value="KES">KES</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center gap-2">
+          <Button
+            type="button"
+            className="rounded-full bg-orange-500 text-white hover:bg-orange-600"
+            disabled={creatingSlot}
+            onClick={createSlot}
+          >
+            <CalendarPlus className="mr-2 size-4" />
+            {creatingSlot ? "Creating..." : "Add slot"}
+          </Button>
+        </div>
+
+        {slotError ? <p className="mt-3 text-sm text-red-500">{slotError}</p> : null}
+        {slotSuccess ? <p className="mt-3 text-sm text-emerald-600">{slotSuccess}</p> : null}
+
+        <div className="mt-6 space-y-3">
+          {slotsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading slots...</p>
+          ) : slots.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No slots yet. Add your first date/time window above.
+            </p>
+          ) : (
+            slots.map((slot) => (
+              <div key={slot.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3">
+                <div className="text-sm">
+                  <p className="font-medium text-foreground">
+                    {formatSlotDate(slot.starts_at)} - {formatSlotDate(slot.ends_at)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Capacity {slot.capacity}
+                    {slot.price_amount !== null
+                      ? ` • ${slot.currency ?? experience.currency} ${Number(slot.price_amount).toFixed(2)}`
+                      : " • Uses experience default price"}
+                    {slot.is_cancelled ? " • Cancelled" : ""}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={slot.is_cancelled || cancellingSlotId === slot.id}
+                  onClick={() => cancelSlot(slot.id)}
+                  className="rounded-full"
+                >
+                  <Trash2 className="mr-2 size-4" />
+                  {cancellingSlotId === slot.id ? "Cancelling..." : "Cancel slot"}
+                </Button>
+              </div>
+            ))
+          )}
+        </div>
+      </Card>
     </div>
   );
 }

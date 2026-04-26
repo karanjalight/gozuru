@@ -19,6 +19,7 @@ export function AccountNavbar() {
     () => [
       { href: "/account/experiences", label: "Experiences" },
       { href: "/account/experiences/create", label: "Create" },
+      { href: "/account/calendar", label: "Calendar" },
     ],
     [],
   );

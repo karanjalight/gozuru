@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { CalendarDays, Clock3, MapPin, ShieldCheck, Star, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { Navbar } from "../../components/Navbar";
 
 type ExperienceDetailRow = {
@@ -47,6 +48,7 @@ type ExperienceAvailabilityRow = {
   capacity: number;
   price_amount: number | null;
   currency: string | null;
+  meeting_place_name: string | null;
 };
 
 type ReviewRow = {
@@ -79,6 +81,28 @@ type ReviewerCardView = {
   avatarUrl: string | null;
 };
 
+declare global {
+  interface Window {
+    PaystackPop?: {
+      setup: (config: {
+        access_code?: string;
+        key?: string;
+        email?: string;
+        amount?: number;
+        currency?: string;
+        ref?: string;
+        callback?: (response: { reference: string }) => void;
+        onClose?: () => void;
+      }) => { openIframe: () => void };
+    };
+  }
+}
+
+const DETAIL_HERO_WIDTH = 1400;
+const DETAIL_HERO_HEIGHT = 900;
+const DETAIL_GRID_WIDTH = 900;
+const DETAIL_GRID_HEIGHT = 700;
+
 function formatMoney(amount: number | null, currency: string) {
   if (!amount || amount <= 0) return "Price on request";
   return new Intl.NumberFormat("en-US", {
@@ -100,90 +124,126 @@ function formatDayTime(iso: string) {
 }
 
 export default function ExperienceDetailPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const params = useParams<{ experienceId: string }>();
   const experienceId = params?.experienceId;
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [experience, setExperience] = useState<ExperienceDetailRow | null>(null);
   const [location, setLocation] = useState<ExperienceLocationRow | null>(null);
-  const [images, setImages] = useState<{ url: string; alt: string }[]>([]);
+  const [images, setImages] = useState<{ heroUrl: string; gridUrl: string; alt: string }[]>([]);
   const [availability, setAvailability] = useState<ExperienceAvailabilityRow[]>([]);
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [hostProfile, setHostProfile] = useState<HostProfileRow | null>(null);
   const [hostUser, setHostUser] = useState<ProfileRow | null>(null);
   const [reviewerProfiles, setReviewerProfiles] = useState<Record<string, ProfileRow>>({});
   const [reviewerFallbackImages, setReviewerFallbackImages] = useState<Record<string, string>>({});
+  const [guestsCount, setGuestsCount] = useState(1);
+  const [guestNote, setGuestNote] = useState("");
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [bookingMessage, setBookingMessage] = useState<string | null>(null);
+  const [bookingSubmittingSlotId, setBookingSubmittingSlotId] = useState<string | null>(null);
+  const [confirmedGuestsBySlotId, setConfirmedGuestsBySlotId] = useState<Record<string, number>>({});
+  const [paymentPromptSlot, setPaymentPromptSlot] = useState<ExperienceAvailabilityRow | null>(null);
+  const [verifyingReference, setVerifyingReference] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || window.PaystackPop) return;
+    const script = document.createElement("script");
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   useEffect(() => {
     if (!experienceId) return;
     let mounted = true;
 
+    const loadUpcomingAvailability = async () => {
+      const rpcResult = await supabase.rpc("get_public_upcoming_slots", {
+        p_experience_id: experienceId,
+        p_limit: 6,
+      });
+      if (rpcResult.error) {
+        throw new Error(rpcResult.error.message);
+      }
+      return (rpcResult.data ?? []) as ExperienceAvailabilityRow[];
+    };
+
     const loadDetail = async () => {
       setLoading(true);
       setNotFound(false);
+      setBookingError(null);
 
-      const { data: expData } = await supabase
-        .from("experiences")
-        .select(
-          "id,host_user_id,title,subtitle,description,meeting_point_name,duration_minutes,max_guests,min_age,price_amount,currency,includes,requirements,cancellation_policy",
-        )
-        .eq("id", experienceId)
-        .single();
+      try {
+        const { data: expData } = await supabase
+          .from("experiences")
+          .select(
+            "id,host_user_id,title,subtitle,description,meeting_point_name,duration_minutes,max_guests,min_age,price_amount,currency,includes,requirements,cancellation_policy",
+          )
+          .eq("id", experienceId)
+          .single();
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      if (!expData) {
-        setNotFound(true);
-        setLoading(false);
-        return;
-      }
+        if (!expData) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
 
-      const experienceRow = expData as ExperienceDetailRow;
-      setExperience(experienceRow);
+        const experienceRow = expData as ExperienceDetailRow;
+        setExperience(experienceRow);
 
-      const [{ data: locationData }, { data: mediaRows }, { data: slots }, { data: reviewRows }, { data: hostData }, { data: hostUserData }] =
-        await Promise.all([
-          supabase
-            .from("experience_locations")
-            .select("city,country_region,street_address")
-            .eq("experience_id", experienceId)
-            .maybeSingle(),
-          supabase
-            .from("experience_media")
-            .select("storage_path,alt_text,sort_order")
-            .eq("experience_id", experienceId)
-            .order("sort_order", { ascending: true }),
-          supabase
-            .from("experience_availability")
-            .select("id,starts_at,ends_at,capacity,price_amount,currency")
-            .eq("experience_id", experienceId)
-            .eq("is_cancelled", false)
-            .gte("starts_at", new Date().toISOString())
-            .order("starts_at", { ascending: true })
-            .limit(6),
-          supabase
-            .from("reviews")
-            .select("id,reviewer_user_id,rating,review_text,created_at")
-            .eq("experience_id", experienceId)
-            .order("created_at", { ascending: false })
-            .limit(6),
-          supabase
-            .from("host_profiles")
-            .select("headline,expertise,highlight_story")
-            .eq("user_id", experienceRow.host_user_id)
-            .maybeSingle(),
-          supabase
-            .from("profiles")
-            .select("user_id,first_name,last_name,avatar_path")
-            .eq("user_id", experienceRow.host_user_id)
-            .maybeSingle(),
-        ]);
+        const [
+          { data: locationData },
+          { data: mediaRows },
+          slots,
+          { data: reviewRows },
+          { data: hostData },
+          { data: hostUserData },
+        ] =
+          await Promise.all([
+            supabase
+              .from("experience_locations")
+              .select("city,country_region,street_address")
+              .eq("experience_id", experienceId)
+              .maybeSingle(),
+            supabase
+              .from("experience_media")
+              .select("storage_path,alt_text,sort_order")
+              .eq("experience_id", experienceId)
+              .order("sort_order", { ascending: true }),
+            loadUpcomingAvailability(),
+            supabase
+              .from("reviews")
+              .select("id,reviewer_user_id,rating,review_text,created_at")
+              .eq("experience_id", experienceId)
+              .order("created_at", { ascending: false })
+              .limit(6),
+            supabase
+              .from("host_profiles")
+              .select("headline,expertise,highlight_story")
+              .eq("user_id", experienceRow.host_user_id)
+              .maybeSingle(),
+            supabase
+              .from("profiles")
+              .select("user_id,first_name,last_name,avatar_path")
+              .eq("user_id", experienceRow.host_user_id)
+              .maybeSingle(),
+          ]);
 
-      if (!mounted) return;
+        if (!mounted) return;
 
       setLocation((locationData as ExperienceLocationRow | null) ?? null);
-      setAvailability((slots ?? []) as ExperienceAvailabilityRow[]);
+      const nextAvailability = slots ?? [];
+      setAvailability(nextAvailability);
       const nextReviews = (reviewRows ?? []) as ReviewRow[];
       setReviews(nextReviews);
       setHostProfile((hostData as HostProfileRow | null) ?? null);
@@ -191,14 +251,49 @@ export default function ExperienceDetailPage() {
 
       const mappedImages = ((mediaRows ?? []) as ExperienceMediaRow[]).map((media) => {
         const {
-          data: { publicUrl },
-        } = supabase.storage.from("experience-media").getPublicUrl(media.storage_path);
+          data: { publicUrl: heroUrl },
+        } = supabase.storage.from("experience-media").getPublicUrl(media.storage_path, {
+          transform: {
+            width: DETAIL_HERO_WIDTH,
+            height: DETAIL_HERO_HEIGHT,
+            quality: 74,
+          },
+        });
+        const {
+          data: { publicUrl: gridUrl },
+        } = supabase.storage.from("experience-media").getPublicUrl(media.storage_path, {
+          transform: {
+            width: DETAIL_GRID_WIDTH,
+            height: DETAIL_GRID_HEIGHT,
+            quality: 70,
+          },
+        });
         return {
-          url: publicUrl,
+          heroUrl,
+          gridUrl,
           alt: media.alt_text || experienceRow.title,
         };
       });
       setImages(mappedImages);
+
+      const slotIds = nextAvailability.map((slot) => slot.id);
+      if (slotIds.length > 0) {
+        const { data: bookingRows } = await supabase
+          .from("bookings")
+          .select("availability_id,guests_count,status")
+          .in("availability_id", slotIds)
+          .in("status", ["confirmed", "completed", "no_show"]);
+        if (mounted && bookingRows) {
+          const nextCounts: Record<string, number> = {};
+          for (const row of bookingRows as Array<{ availability_id: string | null; guests_count: number }>) {
+            if (!row.availability_id) continue;
+            nextCounts[row.availability_id] = (nextCounts[row.availability_id] ?? 0) + (row.guests_count ?? 0);
+          }
+          setConfirmedGuestsBySlotId(nextCounts);
+        }
+      } else {
+        setConfirmedGuestsBySlotId({});
+      }
 
       const reviewerIds = [...new Set(nextReviews.map((item) => item.reviewer_user_id))];
       if (reviewerIds.length > 0) {
@@ -267,7 +362,17 @@ export default function ExperienceDetailPage() {
         setReviewerFallbackImages({});
       }
 
-      setLoading(false);
+        setLoading(false);
+      } catch (error) {
+        if (!mounted) return;
+        setAvailability([]);
+        setLoading(false);
+        setBookingError(
+          error instanceof Error
+            ? `Unable to load upcoming availability right now: ${error.message}`
+            : "Unable to load upcoming availability right now.",
+        );
+      }
     };
 
     void loadDetail();
@@ -305,7 +410,7 @@ export default function ExperienceDetailPage() {
       } = supabase.storage.from("avatars").getPublicUrl(hostUser.avatar_path);
       return publicUrl;
     }
-    return images[0]?.url || null;
+    return images[0]?.gridUrl || null;
   }, [hostUser, images]);
 
   const reviewerCards = useMemo<ReviewerCardView[]>(() => {
@@ -333,6 +438,181 @@ export default function ExperienceDetailPage() {
       };
     });
   }, [reviewerFallbackImages, reviewerProfiles, reviews]);
+
+  useEffect(() => {
+    const reference = searchParams.get("reference") || searchParams.get("trxref");
+    if (!reference || !user || verifyingReference === reference) return;
+
+    let cancelled = false;
+    const verifyAndCreateBooking = async () => {
+      setVerifyingReference(reference);
+      setBookingError(null);
+      setBookingMessage("Verifying payment and creating your application...");
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) {
+          throw new Error("Please log in again to complete payment verification.");
+        }
+
+        const response = await fetch("/api/paystack/verify", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ reference }),
+        });
+        const payload = (await response.json()) as { error?: string; alreadyExists?: boolean };
+
+        if (!response.ok) {
+          throw new Error(payload.error || "Payment verification failed.");
+        }
+        if (cancelled) return;
+
+        setBookingMessage(
+          payload.alreadyExists
+            ? "Payment verified. You already have an application for this slot."
+            : "Payment verified. Your application has been created.",
+        );
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.delete("reference");
+        nextUrl.searchParams.delete("trxref");
+        nextUrl.searchParams.delete("paystack");
+        window.history.replaceState({}, "", nextUrl.toString());
+      } catch (error) {
+        if (cancelled) return;
+        setBookingError(error instanceof Error ? error.message : "Failed to verify payment.");
+      }
+    };
+
+    void verifyAndCreateBooking();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, user, verifyingReference]);
+
+  async function beginPaystackCheckout(slot: ExperienceAvailabilityRow) {
+    if (!experience) return;
+    if (!user?.email) {
+      setBookingError("Please log in with a valid email before checkout.");
+      return;
+    }
+    setBookingSubmittingSlotId(slot.id);
+    try {
+      const response = await fetch("/api/paystack/initialize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: user.email,
+          experienceId: experience.id,
+          availabilityId: slot.id,
+          guestsCount,
+          guestNote: guestNote.trim() || null,
+        }),
+      });
+      const payload = (await response.json()) as {
+        error?: string;
+        authorizationUrl?: string;
+        accessCode?: string | null;
+        reference?: string;
+      };
+      if (!response.ok || !payload.reference) {
+        throw new Error(payload.error || "Unable to start Paystack checkout.");
+      }
+      if (!payload.accessCode) {
+        throw new Error("Paystack checkout token missing. Please try again.");
+      }
+
+      if (!window.PaystackPop) {
+        throw new Error("Paystack modal failed to load. Please refresh and try again.");
+      }
+
+      setGuestNote("");
+      const handlePaystackCallback = (paystackResponse: { reference: string }) => {
+        void (async () => {
+          try {
+            setBookingMessage("Verifying payment and creating your application...");
+            setBookingError(null);
+            const { data: sessionData } = await supabase.auth.getSession();
+            const token = sessionData.session?.access_token;
+            if (!token) {
+              throw new Error("Please log in again to complete payment verification.");
+            }
+
+            const verifyResponse = await fetch("/api/paystack/verify", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ reference: paystackResponse.reference }),
+            });
+            const verifyPayload = (await verifyResponse.json()) as { error?: string; alreadyExists?: boolean };
+            if (!verifyResponse.ok) {
+              throw new Error(verifyPayload.error || "Payment verification failed.");
+            }
+            setBookingMessage(
+              verifyPayload.alreadyExists
+                ? "Payment verified. You already have an application for this slot."
+                : "Payment verified. Your application has been created.",
+            );
+          } catch (error) {
+            setBookingError(error instanceof Error ? error.message : "Failed to verify payment.");
+          }
+        })();
+      };
+
+      const handler = window.PaystackPop.setup({
+        access_code: payload.accessCode,
+        callback: handlePaystackCallback,
+        onClose: () => {
+          setBookingMessage((prev) => prev ?? "Payment window closed before confirmation.");
+        },
+      });
+      handler.openIframe();
+    } catch (error) {
+      setBookingError(error instanceof Error ? error.message : "Failed to start payment.");
+    }
+    setBookingSubmittingSlotId(null);
+  }
+
+  function handleRequestBooking(slot: ExperienceAvailabilityRow) {
+    if (!experience) return;
+    setBookingError(null);
+    setBookingMessage(null);
+
+    if (!user) {
+      router.push("/auth/login");
+      return;
+    }
+
+    if (user.id === experience.host_user_id) {
+      setBookingError("You cannot book your own experience.");
+      return;
+    }
+
+    const remainingSpots = slot.capacity - (confirmedGuestsBySlotId[slot.id] ?? 0);
+    if (remainingSpots <= 0) {
+      setBookingError("This slot is fully booked.");
+      return;
+    }
+
+    if (!Number.isFinite(guestsCount) || guestsCount < 1) {
+      setBookingError("Please select at least 1 guest.");
+      return;
+    }
+
+    if (guestsCount > remainingSpots) {
+      setBookingError(`Only ${remainingSpots} spot(s) remaining for this slot.`);
+      return;
+    }
+
+    setPaymentPromptSlot(slot);
+  }
 
   if (loading) {
     return (
@@ -406,13 +686,27 @@ export default function ExperienceDetailPage() {
         </section>
 
         <section className="mt-8 grid gap-4 md:grid-cols-2">
-        {(images.length ? images : [{ url: "", alt: experience.title }]).slice(0, 4).map((image, index) => (
+        {(images.length ? images : [{ heroUrl: "", gridUrl: "", alt: experience.title }]).slice(0, 4).map((image, index) => (
           <div
-            key={`${image.url}-${index}`}
+            key={`${image.heroUrl}-${index}`}
             className={`relative overflow-hidden rounded-2xl bg-muted ${index === 0 ? "md:col-span-2 md:h-[420px] h-64" : "h-52 md:h-64"}`}
           >
-            {image.url ? (
-              <Image src={image.url} alt={image.alt} fill className="object-cover" />
+            {image.heroUrl ? (
+              <Image
+                src={index === 0 ? image.heroUrl : image.gridUrl}
+                alt={image.alt}
+                fill
+                unoptimized
+                className="object-cover"
+                priority={index === 0}
+                loading={index === 0 ? "eager" : "lazy"}
+                quality={index === 0 ? 74 : 70}
+                sizes={
+                  index === 0
+                    ? "(max-width: 768px) 100vw, (max-width: 1280px) 100vw, 1400px"
+                    : "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 900px"
+                }
+              />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
                 No media uploaded yet
@@ -479,7 +773,7 @@ export default function ExperienceDetailPage() {
                       <div className="flex items-center gap-2">
                         <div className="relative size-9 overflow-hidden rounded-full border bg-muted">
                           {review.avatarUrl ? (
-                            <Image src={review.avatarUrl} alt={review.name} fill className="object-cover" />
+                            <Image src={review.avatarUrl} alt={review.name} fill unoptimized className="object-cover" />
                           ) : (
                             <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-muted-foreground">
                               {review.name.charAt(0).toUpperCase()}
@@ -517,7 +811,31 @@ export default function ExperienceDetailPage() {
               <p className="text-xs text-muted-foreground">per guest</p>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full rounded-full bg-orange-500 hover:bg-orange-600">Show dates</Button>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-muted-foreground">Guests</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={experience.max_guests ?? 20}
+                  value={guestsCount}
+                  onChange={(event) => {
+                    const next = Number.parseInt(event.target.value, 10);
+                    setGuestsCount(Number.isFinite(next) ? next : 1);
+                  }}
+                  className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-muted-foreground">Note to host (optional)</label>
+                <textarea
+                  value={guestNote}
+                  onChange={(event) => setGuestNote(event.target.value)}
+                  className="min-h-[84px] w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
+                  placeholder="Any preferences or questions?"
+                />
+              </div>
+              {bookingError ? <p className="text-xs text-red-500">{bookingError}</p> : null}
+              {bookingMessage ? <p className="text-xs text-emerald-700">{bookingMessage}</p> : null}
               <p className="text-xs text-muted-foreground">
                 {experience.cancellation_policy || "Free cancellation up to 24 hours before start time."}
               </p>
@@ -539,9 +857,22 @@ export default function ExperienceDetailPage() {
                     <p className="mt-1 text-xs text-muted-foreground">
                       Ends {formatDayTime(slot.ends_at)} • {slot.capacity} spots
                     </p>
+                    {slot.meeting_place_name ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Meeting place: {slot.meeting_place_name}
+                      </p>
+                    ) : null}
                     <p className="mt-1 text-xs font-medium text-foreground">
                       {formatMoney(slot.price_amount ?? experience.price_amount, slot.currency ?? experience.currency)}
                     </p>
+                    <Button
+                      type="button"
+                      className="mt-3 h-8 w-full rounded-full bg-orange-500 text-xs text-white hover:bg-orange-600"
+                      onClick={() => handleRequestBooking(slot)}
+                      disabled={bookingSubmittingSlotId === slot.id}
+                    >
+                      {bookingSubmittingSlotId === slot.id ? "Sending request..." : "Request booking"}
+                    </Button>
                   </div>
                 ))
               ) : (
@@ -558,7 +889,7 @@ export default function ExperienceDetailPage() {
               <div className="flex items-center gap-3">
                 <div className="relative size-12 overflow-hidden rounded-full border bg-muted">
                   {hostAvatarUrl ? (
-                    <Image src={hostAvatarUrl} alt={hostName} fill className="object-cover" />
+                    <Image src={hostAvatarUrl} alt={hostName} fill unoptimized className="object-cover" />
                   ) : (
                     <span className="flex h-full w-full items-center justify-center font-semibold text-muted-foreground">
                       {hostName.charAt(0).toUpperCase()}
@@ -587,6 +918,45 @@ export default function ExperienceDetailPage() {
         </aside>
         </section>
       </main>
+      {paymentPromptSlot ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-background p-5 shadow-xl">
+            <h3 className="text-lg font-semibold">Pay first to confirm</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              To confirm this application, complete payment first in the secure Paystack modal.
+            </p>
+            <p className="mt-3 text-sm font-medium text-foreground">
+              Estimated total:{" "}
+              {formatMoney(
+                (paymentPromptSlot.price_amount ?? experience.price_amount ?? 0) * guestsCount,
+                paymentPromptSlot.currency ?? experience.currency,
+              )}
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-full"
+                onClick={() => setPaymentPromptSlot(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="rounded-full bg-orange-500 text-white hover:bg-orange-600"
+                disabled={bookingSubmittingSlotId === paymentPromptSlot.id}
+                onClick={async () => {
+                  const currentSlot = paymentPromptSlot;
+                  setPaymentPromptSlot(null);
+                  await beginPaystackCheckout(currentSlot);
+                }}
+              >
+                {bookingSubmittingSlotId === paymentPromptSlot.id ? "Redirecting..." : "Continue to Paystack"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

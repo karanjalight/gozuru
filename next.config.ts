@@ -18,6 +18,11 @@ const nextConfig: NextConfig = {
         hostname: "omeztanuxcfpmnpenicd.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      {
+        protocol: "https",
+        hostname: "omeztanuxcfpmnpenicd.supabase.co",
+        pathname: "/storage/v1/render/image/public/**",
+      },
     ],
   },
 };

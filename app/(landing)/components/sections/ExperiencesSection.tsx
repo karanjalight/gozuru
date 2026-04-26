@@ -1,9 +1,10 @@
 "use client";
 import { ArrowRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { fetchLandingExperiences, listImageTransform } from "@/lib/queries/experiences";
 
 type WhenFilter =
   | "all"
@@ -13,105 +14,23 @@ type WhenFilter =
   | "cooking-classes"
   | "food-tours";
 
-type ExperienceRow = {
-  id: string;
-  title: string;
-  subtitle: string | null;
-  duration_minutes: number | null;
-  price_amount: number | null;
-  currency: string;
-  meeting_point_name: string | null;
-  created_at: string;
-};
-
-type ExperienceMediaRow = {
-  experience_id: string;
-  storage_path: string;
-  sort_order: number;
-};
-
-type ExperienceLocationRow = {
-  experience_id: string;
-  city: string | null;
-  country_region: string | null;
-};
-
 export function ExperiencesGrid() {
-  const [activeFilter, setActiveFilter] = useState<WhenFilter>("tomorrow");
-  const [experiences, setExperiences] = useState<ExperienceRow[]>([]);
-  const [coverByExperienceId, setCoverByExperienceId] = useState<Record<string, string>>({});
-  const [locationByExperienceId, setLocationByExperienceId] = useState<Record<string, string>>({});
+  const [activeFilter, setActiveFilter] = useState<WhenFilter>("all");
   const [currentTimestamp, setCurrentTimestamp] = useState(0);
+  const { data } = useQuery({
+    queryKey: ["landing", "experiences-grid"],
+    queryFn: () => fetchLandingExperiences(24, listImageTransform),
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const experiences = useMemo(() => data?.experiences ?? [], [data?.experiences]);
+  const coverByExperienceId = useMemo(() => data?.coverByExperienceId ?? {}, [data?.coverByExperienceId]);
+  const locationByExperienceId = useMemo(() => data?.locationByExperienceId ?? {}, [data?.locationByExperienceId]);
 
   useEffect(() => {
-    let mounted = true;
     queueMicrotask(() => {
-      if (mounted) {
-        setCurrentTimestamp(Date.now());
-      }
+      setCurrentTimestamp(Date.now());
     });
-
-    const loadExperiences = async () => {
-      const { data: rows } = await supabase
-        .from("experiences")
-        .select("id,title,subtitle,duration_minutes,price_amount,currency,meeting_point_name,created_at")
-        .order("created_at", { ascending: false })
-        .limit(24);
-
-      if (!mounted) return;
-      const experienceRows = (rows ?? []) as ExperienceRow[];
-      setExperiences(experienceRows);
-
-      if (experienceRows.length === 0) {
-        setCoverByExperienceId({});
-        setLocationByExperienceId({});
-        return;
-      }
-
-      const ids = experienceRows.map((row) => row.id);
-      const { data: mediaRows } = await supabase
-        .from("experience_media")
-        .select("experience_id,storage_path,sort_order")
-        .in("experience_id", ids)
-        .order("sort_order", { ascending: true });
-
-      if (mounted) {
-        const nextCoverMap: Record<string, string> = {};
-        for (const mediaRow of (mediaRows ?? []) as ExperienceMediaRow[]) {
-          if (nextCoverMap[mediaRow.experience_id]) continue;
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from("experience-media").getPublicUrl(mediaRow.storage_path);
-          nextCoverMap[mediaRow.experience_id] = publicUrl;
-        }
-        setCoverByExperienceId(nextCoverMap);
-      }
-
-      const { data: locationRows } = await supabase
-        .from("experience_locations")
-        .select("experience_id,city,country_region")
-        .in("experience_id", ids);
-
-      if (mounted) {
-        const nextLocationMap: Record<string, string> = {};
-        for (const location of (locationRows ?? []) as ExperienceLocationRow[]) {
-          if (location.city && location.country_region) {
-            nextLocationMap[location.experience_id] = `${location.city}, ${location.country_region}`;
-          } else if (location.city) {
-            nextLocationMap[location.experience_id] = location.city;
-          } else if (location.country_region) {
-            nextLocationMap[location.experience_id] = location.country_region;
-          }
-        }
-        setLocationByExperienceId(nextLocationMap);
-      }
-    };
-
-    void loadExperiences();
-
-    return () => {
-      mounted = false;
-    };
   }, []);
 
   const normalizedExperiences = useMemo(
@@ -238,7 +157,7 @@ export function ExperiencesGrid() {
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredExperiences.map((exp) => (
+        {filteredExperiences.map((exp, idx) => (
           <article
             key={exp.id}
             className="overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm transition hover:-translate-y-1.5 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
@@ -250,6 +169,9 @@ export function ExperiencesGrid() {
                   alt={exp.title}
                   fill
                   className="object-cover"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  quality={70}
+                  loading={idx < 4 ? "eager" : "lazy"}
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
@@ -295,6 +217,14 @@ export function ExperiencesGrid() {
             </div>
           </article>
         ))}
+        {filteredExperiences.length === 0 ? (
+          <div className="sm:col-span-2 lg:col-span-3 rounded-2xl border border-dashed border-border bg-muted/30 px-6 py-12 text-center">
+            <p className="text-sm font-medium text-foreground">No experiences available yet</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Try another filter, or check back when hosts publish new experiences.
+            </p>
+          </div>
+        ) : null}
       </div>
     </section>
   );

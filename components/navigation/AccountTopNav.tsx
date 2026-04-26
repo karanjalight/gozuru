@@ -12,6 +12,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 const primaryNavLinks = [
   { href: "/account/experiences", label: "Explore" },
   { href: "/account/experiences/create", label: "Host" },
+  { href: "/account/calendar", label: "Calendar" },
   { href: "/account/applied", label: "Applied" },
   { href: "/account/payments", label: "Payments" },
 ];

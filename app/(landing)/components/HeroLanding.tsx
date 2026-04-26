@@ -1,9 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
+import { useQuery } from "@tanstack/react-query";
 import { Navbar } from "@/app/(landing)/components/Navbar"
+import { fetchLandingExperiences, listImageTransform } from "@/lib/queries/experiences";
 
 const HERO_IMAGES = [
   "https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg",
@@ -15,11 +19,40 @@ const HERO_IMAGES = [
 
 export function LandingHero() {
   const [index, setIndex] = useState(0);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement | null>(null);
   const { theme, resolvedTheme } = useTheme();
+  const router = useRouter();
 
   const currentTheme = theme === "system" ? resolvedTheme : theme;
   const isDark = currentTheme === "dark";
+  const normalizedQuery = searchValue.trim().toLowerCase();
+
+  const { data } = useQuery({
+    queryKey: ["landing", "hero-search-experiences"],
+    queryFn: () => fetchLandingExperiences(80, listImageTransform),
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const suggestions = useMemo(() => {
+    const experiences = data?.experiences ?? [];
+    const locationByExperienceId = data?.locationByExperienceId ?? {};
+    if (!normalizedQuery) return [];
+
+    return experiences
+      .filter((exp) => {
+        const location = locationByExperienceId[exp.id] || exp.meeting_point_name || "";
+        const description = exp.description || "";
+        return `${exp.title} ${location} ${description}`.toLowerCase().includes(normalizedQuery);
+      })
+      .slice(0, 6)
+      .map((exp) => ({
+        id: exp.id,
+        title: exp.title,
+        location: locationByExperienceId[exp.id] || exp.meeting_point_name || "Location shared after booking",
+      }));
+  }, [data?.experiences, data?.locationByExperienceId, normalizedQuery]);
 
   useEffect(() => {
     const id = setInterval(
@@ -27,6 +60,19 @@ export function LandingHero() {
       6000
     );
     return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      if (!searchContainerRef.current) return;
+      const target = event.target as Node;
+      if (!searchContainerRef.current.contains(target)) {
+        setShowSuggestions(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
   return (
@@ -89,18 +135,64 @@ export function LandingHero() {
         </div>
 
         {/* primary search bar */}
-        <button
-          type="button"
-          onClick={() => setSearchOpen(true)}
-          className="mt-4 flex w-full max-w-xl items-stretch gap-2 rounded-full border border-gray-400/80 bg-white/90 px-3 py-2 text-left text-orange-700 shadow-md shadow-black/20 outline-none ring-0 transition hover:bg-white hover:shadow-lg focus-visible:ring-2 focus-visible:ring-orange-400 dark:bg-zinc-900/90 dark:text-orange-200 dark:border-orange-300/60"
-        >
-          <span className="flex-1 rounded-full border border-gray-400/80 bg-transparent px-4 py-2 text-xs font-medium text-gray-800 dark:text-gray-100 sm:text-sm">
-            Find experts by topic, industry, or location
-          </span>
-          <span className="inline-flex items-center justify-center rounded-full border border-orange-400/80 bg-orange-500 text-white px-4 py-2 text-xs font-semibold uppercase tracking-wide sm:text-sm">
-            Explore Experts
-          </span>
-        </button>
+        <div ref={searchContainerRef} className="relative mt-4 w-full max-w-xl">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!searchValue.trim()) return;
+              router.push(`/experiences?query=${encodeURIComponent(searchValue.trim())}`);
+              setShowSuggestions(false);
+            }}
+            className="flex w-full items-stretch gap-2 rounded-full border border-zinc-300/90 bg-white/95 px-3 py-2 text-left text-zinc-900 shadow-md shadow-black/25 outline-none transition hover:bg-white focus-within:ring-2 focus-within:ring-orange-400 dark:border-zinc-500/80 dark:bg-zinc-900/95 dark:text-zinc-100"
+          >
+            <input
+              value={searchValue}
+              onChange={(event) => {
+                setSearchValue(event.target.value);
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              placeholder="Search experiences by topic, city, or keyword"
+              aria-label="Search experiences"
+              className="flex-1 rounded-full bg-transparent px-4 py-2 text-xs font-medium text-zinc-900 placeholder:text-zinc-600 outline-none sm:text-sm dark:text-zinc-100 dark:placeholder:text-zinc-300"
+            />
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center rounded-full border border-orange-500/80 bg-orange-600 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-orange-700 sm:text-sm"
+            >
+              Search
+            </button>
+          </form>
+
+          {showSuggestions && normalizedQuery && (
+            <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-2xl border border-zinc-200 bg-white text-zinc-900 shadow-xl dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
+              {suggestions.length === 0 ? (
+                <p className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-300">
+                  No matching experiences yet.
+                </p>
+              ) : (
+                <ul className="py-1">
+                  {suggestions.map((suggestion) => (
+                    <li key={suggestion.id}>
+                      <Link
+                        href={`/experiences/${suggestion.id}`}
+                        onClick={() => setShowSuggestions(false)}
+                        className="block px-4 py-2.5 transition hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      >
+                        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                          {suggestion.title}
+                        </p>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-300">
+                          {suggestion.location}
+                        </p>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* dots indicator */}
         <div
@@ -123,68 +215,6 @@ export function LandingHero() {
         </div>
       </div>
 
-      {/* search modal */}
-      {searchOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-5 text-zinc-900 shadow-2xl dark:bg-zinc-950 dark:text-zinc-50">
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <h2 className="text-base font-semibold sm:text-lg">
-                Search experiences
-              </h2>
-              <button
-                type="button"
-                onClick={() => setSearchOpen(false)}
-                className="text-xs font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="space-y-3 text-sm">
-              <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  City
-                </label>
-                <input
-                  type="text"
-                  placeholder="Where do you want to go?"
-                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm outline-none ring-0 transition focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-300 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-orange-400"
-                />
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm outline-none ring-0 transition focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-300 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-orange-400"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                    Guests
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    defaultValue={2}
-                    className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm outline-none ring-0 transition focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-300 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-orange-400"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className="mt-2 w-full rounded-full bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-orange-700"
-              >
-                Search experiences
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 }

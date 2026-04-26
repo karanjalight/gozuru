@@ -8,6 +8,7 @@ import {
 } from "./components/sections";
 import { LandingHero } from "./components/HeroLanding";
 import { ExperiencesGrid } from "./components/sections/ExperiencesSection";
+import { LandingSignupPrompt } from "./components/LandingSignupPrompt";
 
 export const metadata: Metadata = {
   title: "Gozuru – Reward Your Curiosity",
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <>
+      <LandingSignupPrompt />
       <LandingHero />
       {/* <HeroSection /> */}
       {/* <SearchSection /> */}

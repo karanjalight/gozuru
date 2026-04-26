@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 // import { ThemeToggle } from "./ThemeToggle";
@@ -14,6 +16,7 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const { user, loading } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -40,6 +43,7 @@ export function Navbar() {
 
   const closeMobile = () => setMobileOpen(false);
   const isHome = pathname === "/";
+  const userInitial = user?.email?.trim().charAt(0).toUpperCase() || "U";
 
   return (
     <header
@@ -103,18 +107,36 @@ export function Navbar() {
           )}
 
           {/* desktop auth buttons */}
-          <Link
-            href="/auth/login"
-            className="hidden rounded-full border border-orange-400 bg-white px-6 py-2 text-sm text-orange-600 shadow-sm transition hover:border-orange-500 hover:text-orange-500 dark:bg-black/40 dark:text-orange-300 dark:border-orange-700 lg:inline-block"
-          >
-            Log in
-          </Link>
-          <Link
-            href="/auth/signup"
-            className="hidden rounded-full bg-orange-500 px-6 py-2 text-sm text-white shadow-sm transition hover:bg-orange-600 lg:inline-block"
-          >
-            Sign up
-          </Link>
+          {!loading && !user ? (
+            <>
+              <Link
+                href="/auth/login"
+                className="hidden rounded-full border border-orange-400 bg-white px-6 py-2 text-sm text-orange-600 shadow-sm transition hover:border-orange-500 hover:text-orange-500 dark:bg-black/40 dark:text-orange-300 dark:border-orange-700 lg:inline-block"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/auth/signup"
+                className="hidden rounded-full bg-orange-500 px-6 py-2 text-sm text-white shadow-sm transition hover:bg-orange-600 lg:inline-block"
+              >
+                Sign up
+              </Link>
+            </>
+          ) : null}
+
+          {!loading && user ? (
+            <Link
+              href="/account/experiences"
+              className="hidden lg:inline-flex"
+              aria-label="Open account"
+            >
+              <Avatar size="sm" className="ring-1 ring-orange-300/70">
+                <AvatarFallback className="bg-orange-100 font-semibold text-orange-700">
+                  {userInitial}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
+          ) : null}
 
           {/* mobile menu button */}
           <button
@@ -195,18 +217,41 @@ export function Navbar() {
             Become a host
           </Link>
 
-          <div
-            className="mt-6 space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-700"
-          >
-            <button
-              className="w-full rounded-full border border-orange-300 px-4 py-2 text-sm font-medium text-zinc-800 shadow-sm transition hover:border-orange-400 hover:text-orange-500 dark:border-zinc-600 dark:text-orange-100 dark:hover:border-orange-400 dark:hover:text-orange-300"
+          {!loading && !user ? (
+            <div
+              className="mt-6 space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-700"
             >
-              Log in
-            </button>
-            <button className="w-full rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-400">
-              Sign up
-            </button>
-          </div>
+              <Link
+                href="/auth/login"
+                onClick={closeMobile}
+                className="block w-full rounded-full border border-orange-300 px-4 py-2 text-center text-sm font-medium text-zinc-800 shadow-sm transition hover:border-orange-400 hover:text-orange-500 dark:border-zinc-600 dark:text-orange-100 dark:hover:border-orange-400 dark:hover:text-orange-300"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/auth/signup"
+                onClick={closeMobile}
+                className="block w-full rounded-full bg-orange-500 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-orange-400"
+              >
+                Sign up
+              </Link>
+            </div>
+          ) : null}
+
+          {!loading && user ? (
+            <Link
+              href="/account/experiences"
+              onClick={closeMobile}
+              className="mt-6 flex items-center gap-3 rounded-xl border border-zinc-200 px-3 py-2 dark:border-zinc-700"
+            >
+              <Avatar size="sm" className="ring-1 ring-orange-300/70">
+                <AvatarFallback className="bg-orange-100 font-semibold text-orange-700">
+                  {userInitial}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm font-medium">My account</span>
+            </Link>
+          ) : null}
         </nav>
       </div>
     </header>

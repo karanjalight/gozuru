@@ -1,109 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Clock, MapPin } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/lib/supabase/client";
+import { featuredImageTransform, fetchLandingExperiences } from "@/lib/queries/experiences";
 import { Section } from "./Section";
 
-type ExperienceRow = {
-  id: string;
-  title: string;
-  description: string | null;
-  subtitle: string | null;
-  duration_minutes: number | null;
-  price_amount: number | null;
-  currency: string;
-  meeting_point_name: string | null;
-  created_at: string;
-};
-
-type ExperienceMediaRow = {
-  experience_id: string;
-  storage_path: string;
-  sort_order: number;
-};
-
-type ExperienceLocationRow = {
-  experience_id: string;
-  city: string | null;
-  country_region: string | null;
-};
-
 export function FeaturedExperiences() {
-  const [experiences, setExperiences] = useState<ExperienceRow[]>([]);
-  const [coverByExperienceId, setCoverByExperienceId] = useState<Record<string, string>>({});
-  const [locationByExperienceId, setLocationByExperienceId] = useState<Record<string, string>>({});
+  const { data } = useQuery({
+    queryKey: ["landing", "featured-experiences"],
+    queryFn: () => fetchLandingExperiences(6, featuredImageTransform),
+    staleTime: 1000 * 60 * 10,
+  });
 
-  useEffect(() => {
-    let mounted = true;
-
-    const loadExperiences = async () => {
-      const { data: rows } = await supabase
-        .from("experiences")
-        .select("id,title,description,subtitle,duration_minutes,price_amount,currency,meeting_point_name,created_at")
-        .order("created_at", { ascending: false })
-        .limit(6);
-
-      if (!mounted) return;
-      const feedRows = (rows ?? []) as ExperienceRow[];
-      setExperiences(feedRows);
-
-      if (feedRows.length === 0) {
-        setCoverByExperienceId({});
-        setLocationByExperienceId({});
-        return;
-      }
-
-      const experienceIds = feedRows.map((row) => row.id);
-
-      const { data: mediaRows } = await supabase
-        .from("experience_media")
-        .select("experience_id,storage_path,sort_order")
-        .in("experience_id", experienceIds)
-        .order("sort_order", { ascending: true });
-
-      if (mounted) {
-        const coverMap: Record<string, string> = {};
-        for (const mediaRow of (mediaRows ?? []) as ExperienceMediaRow[]) {
-          if (coverMap[mediaRow.experience_id]) continue;
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from("experience-media").getPublicUrl(mediaRow.storage_path);
-          coverMap[mediaRow.experience_id] = publicUrl;
-        }
-        setCoverByExperienceId(coverMap);
-      }
-
-      const { data: locationRows } = await supabase
-        .from("experience_locations")
-        .select("experience_id,city,country_region")
-        .in("experience_id", experienceIds);
-
-      if (mounted) {
-        const nextLocationMap: Record<string, string> = {};
-        for (const location of (locationRows ?? []) as ExperienceLocationRow[]) {
-          if (location.city && location.country_region) {
-            nextLocationMap[location.experience_id] = `${location.city}, ${location.country_region}`;
-          } else if (location.city) {
-            nextLocationMap[location.experience_id] = location.city;
-          } else if (location.country_region) {
-            nextLocationMap[location.experience_id] = location.country_region;
-          }
-        }
-        setLocationByExperienceId(nextLocationMap);
-      }
-    };
-
-    void loadExperiences();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const experiences = useMemo(() => data?.experiences ?? [], [data?.experiences]);
+  const coverByExperienceId = useMemo(() => data?.coverByExperienceId ?? {}, [data?.coverByExperienceId]);
+  const locationByExperienceId = useMemo(() => data?.locationByExperienceId ?? {}, [data?.locationByExperienceId]);
 
   const cards = useMemo(() => {
     return experiences.map((exp) => {
@@ -171,6 +87,8 @@ export function FeaturedExperiences() {
                         fill
                         className="object-cover transition duration-300 group-hover:scale-105"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        quality={72}
+                        loading={i < 3 ? "eager" : "lazy"}
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">

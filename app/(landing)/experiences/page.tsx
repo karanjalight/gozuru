@@ -18,7 +18,7 @@ export default function LandingPage() {
   return (
     <>
       <Navbar />
-      <div className="pt-20">
+      <div className="">
         <ExperienceHero />
       </div>
       <FeaturedExperiences />

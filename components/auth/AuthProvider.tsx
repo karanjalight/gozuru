@@ -15,7 +15,12 @@ type AuthContextValue = {
   signup: (
     email: string,
     password: string,
-    profile?: { firstName?: string; lastName?: string },
+    profile?: {
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+      location?: string;
+    },
   ) => Promise<{ needsEmailVerification: boolean }>;
   logout: () => void;
 };
@@ -86,6 +91,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: {
             first_name: profile?.firstName?.trim() || undefined,
             last_name: profile?.lastName?.trim() || undefined,
+            phone: profile?.phone?.trim() || undefined,
+            location: profile?.location?.trim() || undefined,
+            role: "traveler",
           },
         },
       });
