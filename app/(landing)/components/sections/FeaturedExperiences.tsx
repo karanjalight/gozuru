@@ -7,14 +7,20 @@ import { motion } from "framer-motion";
 import { Clock, MapPin } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { featuredImageTransform, fetchLandingExperiences } from "@/lib/queries/experiences";
+import {
+  featuredImageTransform,
+  fetchLandingExperiences,
+  type LandingExperiencesResult,
+} from "@/lib/queries/experiences";
 import { Section } from "./Section";
 
-export function FeaturedExperiences() {
+export function FeaturedExperiences({ initialData }: { initialData?: LandingExperiencesResult }) {
   const { data } = useQuery({
     queryKey: ["landing", "featured-experiences"],
     queryFn: () => fetchLandingExperiences(6, featuredImageTransform),
     staleTime: 1000 * 60 * 10,
+    refetchOnMount: false,
+    initialData,
   });
 
   const experiences = useMemo(() => data?.experiences ?? [], [data?.experiences]);

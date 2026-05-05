@@ -9,6 +9,11 @@ import {
 import { LandingHero } from "./components/HeroLanding";
 import { ExperiencesGrid } from "./components/sections/ExperiencesSection";
 import { LandingSignupPrompt } from "./components/LandingSignupPrompt";
+import {
+  featuredImageTransform,
+  listImageTransform,
+} from "@/lib/queries/experiences";
+import { fetchLandingExperiencesServer } from "@/lib/queries/experiences-server";
 
 export const metadata: Metadata = {
   title: "Gozuru – Reward Your Curiosity",
@@ -21,17 +26,22 @@ export const metadata: Metadata = {
   },
 };
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const [sharedLandingData, featuredLandingData] = await Promise.all([
+    fetchLandingExperiencesServer(24, listImageTransform),
+    fetchLandingExperiencesServer(6, featuredImageTransform),
+  ]);
+
   return (
     <>
       <LandingSignupPrompt />
-      <LandingHero />
+      <LandingHero initialData={sharedLandingData} />
       {/* <HeroSection /> */}
       {/* <SearchSection /> */}
-      <ExperiencesGrid />
+      <ExperiencesGrid initialData={sharedLandingData} />
       <ExpertGrid />
       <CategorySection />
-      <FeaturedExperiences />
+      <FeaturedExperiences initialData={featuredLandingData} />
       <TestimonialsSection />
       <CTASection />
     </>

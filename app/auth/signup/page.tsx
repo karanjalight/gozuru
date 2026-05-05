@@ -79,6 +79,7 @@ export default function SignupPage() {
       const result = await signup(email, password, {
         firstName,
         lastName,
+        role: "expert",
       });
       if (result.needsEmailVerification) {
         setSuccessMessage("Account created. Check your email to verify your account.");

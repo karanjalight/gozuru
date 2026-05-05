@@ -145,7 +145,8 @@ export const categories: Category[] = [
   { id: "2", name: "Agriculture & Farming", description: "Visit farms, understand supply chains, and learn from producers", icon: "UtensilsCrossed", expertCount: 98 },
   { id: "3", name: "Business & FMCG", description: "Get real insights into distribution, pricing, and market dynamics", icon: "TreePine", expertCount: 67 },
   { id: "4", name: "Culture & Lifestyle", description: "Explore food, traditions, and everyday life with locals", icon: "Palette", expertCount: 83 },
-  { id: "5", name: "Career & Industry Insights", description: "Learn from professionals across sectors", icon: "MapPin", expertCount: 156 },
+  { id: "5", name: "Career & Industry Insights", description: "Learn from professionals across sectors and discover practical career growth paths", icon: "MapPin", expertCount: 156 },
+  { id: "6", name: "Hospitality & Tourism", description: "Understand guest experience, operations, and destination growth", icon: "Landmark", expertCount: 91 },
 ];
 
 export const testimonials: Testimonial[] = [

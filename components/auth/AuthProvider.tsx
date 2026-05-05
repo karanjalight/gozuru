@@ -3,9 +3,32 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 
+type SupabaseAuthUser = {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, unknown>;
+};
+
 export type AuthUser = {
   id: string;
   email: string;
+  metadata: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    location?: string;
+    role?: string;
+    headline?: string;
+    bio?: string;
+    professionalTitle?: string;
+    yearsOfExperience?: string;
+    skills?: string;
+    languages?: string;
+    website?: string;
+    linkedin?: string;
+    portfolioUrl?: string;
+    avatarUrl?: string;
+  };
 };
 
 type AuthContextValue = {
@@ -20,12 +43,63 @@ type AuthContextValue = {
       lastName?: string;
       phone?: string;
       location?: string;
+      role?: "client" | "expert";
     },
   ) => Promise<{ needsEmailVerification: boolean }>;
+  updateProfile: (profile: AuthUser["metadata"]) => Promise<void>;
   logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+const mapAuthUser = (authUser: SupabaseAuthUser | null): AuthUser | null => {
+  if (!authUser?.email) return null;
+  const metadata = authUser.user_metadata ?? {};
+  return {
+    id: authUser.id,
+    email: authUser.email,
+    metadata: {
+      firstName: typeof metadata.first_name === "string" ? metadata.first_name : undefined,
+      lastName: typeof metadata.last_name === "string" ? metadata.last_name : undefined,
+      phone: typeof metadata.phone === "string" ? metadata.phone : undefined,
+      location: typeof metadata.location === "string" ? metadata.location : undefined,
+      role: typeof metadata.role === "string" ? metadata.role : undefined,
+      headline: typeof metadata.headline === "string" ? metadata.headline : undefined,
+      bio: typeof metadata.bio === "string" ? metadata.bio : undefined,
+      professionalTitle:
+        typeof metadata.professional_title === "string" ? metadata.professional_title : undefined,
+      yearsOfExperience:
+        typeof metadata.years_of_experience === "string" ? metadata.years_of_experience : undefined,
+      skills: typeof metadata.skills === "string" ? metadata.skills : undefined,
+      languages: typeof metadata.languages === "string" ? metadata.languages : undefined,
+      website: typeof metadata.website === "string" ? metadata.website : undefined,
+      linkedin: typeof metadata.linkedin === "string" ? metadata.linkedin : undefined,
+      portfolioUrl: typeof metadata.portfolio_url === "string" ? metadata.portfolio_url : undefined,
+      avatarUrl: typeof metadata.avatar_url === "string" ? metadata.avatar_url : undefined,
+    },
+  };
+};
+
+function toAvatarStoragePath(avatarUrl?: string | null): string | null {
+  const value = avatarUrl?.trim();
+  if (!value) return null;
+  if (!value.startsWith("http://") && !value.startsWith("https://")) {
+    return value;
+  }
+
+  const publicMarker = "/storage/v1/object/public/avatars/";
+  const renderMarker = "/storage/v1/render/image/public/avatars/";
+  const marker = value.includes(publicMarker) ? publicMarker : value.includes(renderMarker) ? renderMarker : null;
+  if (!marker) {
+    // Keep external URLs as-is so chat/avatar UIs can still render them.
+    return value;
+  }
+
+  const afterMarker = value.split(marker)[1] ?? "";
+  const pathWithoutQuery = afterMarker.split("?")[0] ?? "";
+  if (!pathWithoutQuery) return null;
+  return decodeURIComponent(pathWithoutQuery);
+}
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
@@ -41,9 +115,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
-
-    const mapAuthUser = (authUser: { id: string; email?: string | null } | null): AuthUser | null =>
-      authUser?.email ? { id: authUser.id, email: authUser.email } : null;
 
     supabase.auth
       .getUser()
@@ -93,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             last_name: profile?.lastName?.trim() || undefined,
             phone: profile?.phone?.trim() || undefined,
             location: profile?.location?.trim() || undefined,
-            role: "traveler",
+            role: profile?.role ?? "client",
           },
         },
       });
@@ -102,6 +173,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const hasSession = Boolean(data.session);
       return { needsEmailVerification: !hasSession };
+    },
+    updateProfile: async (profile) => {
+      if (!user) throw new Error("Authentication required.");
+
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          first_name: profile.firstName?.trim() || null,
+          last_name: profile.lastName?.trim() || null,
+          phone: profile.phone?.trim() || null,
+          location: profile.location?.trim() || null,
+          role: profile.role?.trim() || "client",
+          headline: profile.headline?.trim() || null,
+          bio: profile.bio?.trim() || null,
+          professional_title: profile.professionalTitle?.trim() || null,
+          years_of_experience: profile.yearsOfExperience?.trim() || null,
+          skills: profile.skills?.trim() || null,
+          languages: profile.languages?.trim() || null,
+          website: profile.website?.trim() || null,
+          linkedin: profile.linkedin?.trim() || null,
+          portfolio_url: profile.portfolioUrl?.trim() || null,
+          avatar_url: profile.avatarUrl?.trim() || null,
+        },
+      });
+
+      if (error) throw new Error(error.message);
+
+      const avatarPath = toAvatarStoragePath(profile.avatarUrl);
+      const { error: profileSyncError } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            user_id: user.id,
+            email: user.email,
+            first_name: profile.firstName?.trim() || null,
+            last_name: profile.lastName?.trim() || null,
+            phone: profile.phone?.trim() || null,
+            bio: profile.bio?.trim() || null,
+            avatar_path: avatarPath,
+          },
+          { onConflict: "user_id" },
+        );
+
+      if (profileSyncError) throw new Error(profileSyncError.message);
+
+      const { data: refreshed, error: refreshError } = await supabase.auth.getUser();
+      if (refreshError) {
+        throw new Error(refreshError.message);
+      }
+      setUser(mapAuthUser(refreshed.user));
     },
     logout: () => {
       void supabase.auth.signOut().then(({ error }) => {

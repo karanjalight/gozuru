@@ -1,22 +1,27 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
-import { Lock, Mail, MapPin, Phone, User, X } from "lucide-react";
+import { Eye, EyeOff, X } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 export function LandingSignupPrompt() {
-  const router = useRouter();
-  const { user, loading, signup } = useAuth();
+  const { user, loading, login, signup } = useAuth();
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [location, setLocation] = useState("");
-  const [password, setPassword] = useState("");
+  const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [signupFirstName, setSignupFirstName] = useState("");
+  const [signupLastName, setSignupLastName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -31,49 +36,73 @@ export function LandingSignupPrompt() {
     return () => window.clearTimeout(timer);
   }, [loading, user]);
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    if (user) {
+      setOpen(false);
+      setError(null);
+      setSuccessMessage(null);
+    }
+  }, [user]);
+
+  const onLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setSuccessMessage(null);
 
-    if (!name.trim()) {
-      setError("Please enter your name.");
-      return;
-    }
-    if (!email.trim()) {
+    if (!loginEmail.trim()) {
       setError("Please enter your email.");
       return;
     }
-    if (!phone.trim()) {
-      setError("Please enter your phone number.");
+    if (!loginPassword) {
+      setError("Please enter your password.");
       return;
     }
-    if (!location.trim()) {
-      setError("Please enter your location.");
-      return;
-    }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-
-    const [firstName, ...rest] = name.trim().split(/\s+/);
-    const lastName = rest.join(" ");
 
     setSubmitting(true);
     try {
-      const result = await signup(email, password, {
-        firstName,
-        lastName: lastName || undefined,
-        phone,
-        location,
-      });
+      await login(loginEmail, loginPassword);
+    } catch (loginError) {
+      const message = loginError instanceof Error ? loginError.message : "Login failed.";
+      setError(
+        message.includes("Invalid login credentials")
+          ? "Invalid email or password."
+          : message,
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
+  const onSignupSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setSuccessMessage(null);
+
+    if (!signupFirstName.trim() || !signupLastName.trim()) {
+      setError("Please provide your first and last name.");
+      return;
+    }
+    if (signupPassword.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (signupPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    if (!acceptTerms) {
+      setError("You must accept the terms to continue.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const result = await signup(signupEmail, signupPassword, {
+        firstName: signupFirstName,
+        lastName: signupLastName,
+      });
       if (result.needsEmailVerification) {
         setSuccessMessage("Account created. Check your email to verify your account.");
-      } else {
-        setOpen(false);
-        router.push("/account/experiences");
       }
     } catch (signupError) {
       setError(signupError instanceof Error ? signupError.message : "Sign up failed.");
@@ -92,100 +121,172 @@ export function LandingSignupPrompt() {
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="landing-signup-title"
-        className="relative w-full max-w-md rounded-2xl bg-background p-6 shadow-2xl"
+        aria-labelledby="landing-auth-title"
+        className="w-full max-w-md rounded-2xl border border-border bg-background p-5 shadow-xl"
       >
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="absolute right-3 top-3 rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-          aria-label="Close sign up prompt"
-        >
-          <X className="size-4" />
-        </button>
+        <div className="mb-4 flex items-center justify-between">
+          <div className="inline-flex rounded-full border border-border bg-muted/20 p-1">
+            <button
+              type="button"
+              onClick={() => setAuthMode("login")}
+              className={cn(
+                "rounded-full px-4 py-1.5 text-sm",
+                authMode === "login"
+                  ? "bg-orange-500 text-white"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Log in
+            </button>
+            <button
+              type="button"
+              onClick={() => setAuthMode("signup")}
+              className={cn(
+                "rounded-full px-4 py-1.5 text-sm",
+                authMode === "signup"
+                  ? "bg-orange-500 text-white"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Sign up
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border hover:bg-muted/70"
+            aria-label="Close auth modal"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
 
-        <h2 id="landing-signup-title" className="text-xl font-semibold tracking-tight">
+        <h2 id="landing-auth-title" className="text-lg font-semibold tracking-tight">
           Join Gozuru
         </h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Sign up to explore experiences and connect with local experts.
+        <p className="mt-1 text-sm text-muted-foreground">
+          Sign up or log in to continue.
         </p>
 
-        <form className="mt-5 space-y-3" onSubmit={onSubmit}>
-          <div className="relative">
-            <User className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Full name"
-              className="h-10 rounded-xl pl-9"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              required
-            />
-          </div>
-          <div className="relative">
-            <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        {authMode === "login" ? (
+          <form className="mt-5 space-y-4" onSubmit={onLoginSubmit}>
             <Input
               type="email"
-              placeholder="Email address"
-              className="h-10 rounded-xl pl-9"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              value={loginEmail}
+              onChange={(event) => setLoginEmail(event.target.value)}
+              placeholder="Email"
+              className="h-10 rounded-xl"
               required
             />
-          </div>
-          <div className="relative">
-            <Phone className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <div className="relative">
+              <Input
+                type={showLoginPassword ? "text" : "password"}
+                value={loginPassword}
+                onChange={(event) => setLoginPassword(event.target.value)}
+                placeholder="Password"
+                className="h-10 rounded-xl pr-10"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowLoginPassword((prev) => !prev)}
+                className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center text-muted-foreground"
+              >
+                {showLoginPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+            <Button
+              type="submit"
+              className="h-10 w-full rounded-full bg-orange-500 text-white hover:bg-orange-600"
+              disabled={submitting}
+            >
+              {submitting ? "Logging in..." : "Log in"}
+            </Button>
+          </form>
+        ) : (
+          <form className="mt-5 space-y-3" onSubmit={onSignupSubmit}>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Input
+                value={signupFirstName}
+                onChange={(event) => setSignupFirstName(event.target.value)}
+                placeholder="First name"
+                className="h-10 rounded-xl"
+                required
+              />
+              <Input
+                value={signupLastName}
+                onChange={(event) => setSignupLastName(event.target.value)}
+                placeholder="Last name"
+                className="h-10 rounded-xl"
+                required
+              />
+            </div>
             <Input
-              type="tel"
-              placeholder="Phone number"
-              className="h-10 rounded-xl pl-9"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
+              type="email"
+              value={signupEmail}
+              onChange={(event) => setSignupEmail(event.target.value)}
+              placeholder="Email"
+              className="h-10 rounded-xl"
               required
             />
-          </div>
-          <div className="relative">
-            <MapPin className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Location"
-              className="h-10 rounded-xl pl-9"
-              value={location}
-              onChange={(event) => setLocation(event.target.value)}
-              required
-            />
-          </div>
-          <div className="relative">
-            <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="password"
-              placeholder="Password"
-              className="h-10 rounded-xl pl-9"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
-          </div>
+            <div className="relative">
+              <Input
+                type={showSignupPassword ? "text" : "password"}
+                value={signupPassword}
+                onChange={(event) => setSignupPassword(event.target.value)}
+                placeholder="Password"
+                className="h-10 rounded-xl pr-10"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowSignupPassword((prev) => !prev)}
+                className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center text-muted-foreground"
+              >
+                {showSignupPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+            <div className="relative">
+              <Input
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                placeholder="Confirm password"
+                className="h-10 rounded-xl pr-10"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center text-muted-foreground"
+              >
+                {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+            <label className="flex items-start gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(event) => setAcceptTerms(event.target.checked)}
+                className="mt-0.5 size-4 rounded border border-input"
+                required
+              />
+              <span>I agree to the Terms of Use and Privacy Policy.</span>
+            </label>
+            <Button
+              type="submit"
+              className="h-10 w-full rounded-full bg-orange-500 text-white hover:bg-orange-600"
+              disabled={submitting}
+            >
+              {submitting ? "Creating account..." : "Create account"}
+            </Button>
+          </form>
+        )}
 
-          <Button
-            type="submit"
-            className="mt-1 h-10 w-full rounded-full bg-orange-500 text-sm font-semibold text-white hover:bg-orange-600"
-            disabled={submitting}
-          >
-            {submitting ? "Creating account..." : "Sign up"}
-          </Button>
-
-          {error ? <p className="text-center text-xs text-red-500">{error}</p> : null}
-          {successMessage ? (
-            <p className="text-center text-xs text-green-600">{successMessage}</p>
-          ) : null}
-        </form>
-
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          Already have an account?{" "}
-          <Link href="/auth/login" className="font-semibold text-orange-500">
-            Log in
-          </Link>
-        </p>
+        {error ? <p className="mt-3 text-center text-xs text-red-500">{error}</p> : null}
+        {successMessage ? (
+          <p className="mt-3 text-center text-xs text-green-600">{successMessage}</p>
+        ) : null}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { Footer } from "./components";
+import { LinkedInMessagesDock } from "@/components/messages/LinkedInMessagesDock";
 
 export default function LandingLayout({
   children,
@@ -10,6 +11,7 @@ export default function LandingLayout({
       {/* <Nav /> */}
       <main className="flex-1">{children}</main>
       <Footer />
+      <LinkedInMessagesDock />
     </div>
   );
 }

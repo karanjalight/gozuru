@@ -11,9 +11,10 @@ import { useAuth } from "@/components/auth/AuthProvider";
 
 const primaryNavLinks = [
   { href: "/account/experiences", label: "Explore" },
-  { href: "/account/experiences/create", label: "Host" },
-  { href: "/account/calendar", label: "Calendar" },
+  // { href: "/account/experiences/create", label: "Host" },
+  // { href: "/account/calendar", label: "Calendar" },
   { href: "/account/applied", label: "Applied" },
+  { href: "/account/messages", label: "Messages" },
   { href: "/account/payments", label: "Payments" },
 ];
 
@@ -28,6 +29,7 @@ export function AccountTopNav() {
   const { setTheme, resolvedTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const displayName = `${user?.metadata.firstName ?? ""} ${user?.metadata.lastName ?? ""}`.trim();
 
   useEffect(() => {
     queueMicrotask(() => setMounted(true));
@@ -80,8 +82,8 @@ export function AccountTopNav() {
                   className={cn(
                     "rounded-xl px-3 py-2 text-sm font-semibold transition-colors",
                     active
-                      ? "bg-orange-50 text-orange-700"
-                      : "text-black hover:bg-muted/50 dark:text-zinc-500",
+                      ? "bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-300"
+                      : "text-foreground/90 hover:bg-muted/50",
                   )}
                 >
                   {l.label}
@@ -109,7 +111,7 @@ export function AccountTopNav() {
               <div className="flex items-center gap-2 rounded-full border border-border bg-muted/30 px-3 py-1.5">
                 <UserRound className="size-4 text-muted-foreground" />
                 <span className="max-w-[180px] truncate text-xs font-semibold">
-                  {user.email}
+                  {displayName || user.email}
                 </span>
               </div>
               <Button
@@ -143,7 +145,7 @@ export function AccountTopNav() {
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 rounded-full border border-border bg-muted/30 px-3 py-1.5">
                   <UserRound className="size-4 text-muted-foreground" />
-                  <span className="text-xs font-semibold">{user?.email}</span>
+                  <span className="text-xs font-semibold">{displayName || user?.email}</span>
                 </div>
                 <Button
                   type="button"
@@ -169,8 +171,8 @@ export function AccountTopNav() {
                     className={cn(
                       "rounded-xl border px-4 py-2 text-sm font-semibold transition-colors",
                       active
-                        ? "border-orange-500 bg-orange-50 text-orange-700"
-                        : "border-border bg-muted/20 text-zinc-800 dark:text-zinc-200",
+                        ? "border-orange-500 bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-300"
+                        : "border-border bg-muted/20 text-foreground/90",
                     )}
                   >
                     {l.label}

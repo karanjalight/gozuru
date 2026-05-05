@@ -4,7 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { fetchLandingExperiences, listImageTransform } from "@/lib/queries/experiences";
+import {
+  fetchLandingExperiences,
+  listImageTransform,
+  type LandingExperiencesResult,
+} from "@/lib/queries/experiences";
 
 type WhenFilter =
   | "all"
@@ -14,13 +18,15 @@ type WhenFilter =
   | "cooking-classes"
   | "food-tours";
 
-export function ExperiencesGrid() {
+export function ExperiencesGrid({ initialData }: { initialData?: LandingExperiencesResult }) {
   const [activeFilter, setActiveFilter] = useState<WhenFilter>("all");
   const [currentTimestamp, setCurrentTimestamp] = useState(0);
   const { data } = useQuery({
     queryKey: ["landing", "experiences-grid"],
     queryFn: () => fetchLandingExperiences(24, listImageTransform),
     staleTime: 1000 * 60 * 10,
+    refetchOnMount: false,
+    initialData,
   });
 
   const experiences = useMemo(() => data?.experiences ?? [], [data?.experiences]);
@@ -86,18 +92,18 @@ export function ExperiencesGrid() {
   return (
     <section
       id="experiences"
-      className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 lg:px-6 lg:py-14 text-zinc-900  transition-colors"
+      className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 text-foreground transition-colors lg:px-6 lg:py-14"
     >
       <div className="space-y-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Trust at a glance
             </p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-800 dark:text-zinc-100 sm:text-4xl">
+            <h2 className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">
               Real people. Real insight.
             </h2>
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
+            <p className="mt-2 text-sm text-muted-foreground">
               Verified experts, instant booking, virtual or in-person, secure payments.
             </p>
           </div>
@@ -110,7 +116,7 @@ export function ExperiencesGrid() {
           </Link>
         </div>
 
-        <div className="flex flex-wrap gap-3 text-sm text-zinc-600 dark:text-zinc-300">
+        <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
           {[
             "Verified experts & guides",
             "Bookable instantly",
@@ -119,7 +125,7 @@ export function ExperiencesGrid() {
           ].map((item) => (
             <span
               key={item}
-              className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 dark:border-zinc-700 dark:bg-zinc-900"
+              className="rounded-full border border-border bg-card px-3 py-1.5"
             >
               {item}
             </span>

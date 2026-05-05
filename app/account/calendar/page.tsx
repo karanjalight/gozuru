@@ -21,7 +21,7 @@ type AvailabilityRow = {
   starts_at: string;
   ends_at: string;
   capacity: number;
-  is_cancelled: boolean;
+  is_cancelled: boolean | null;
 };
 
 type CalendarEvent = {
@@ -64,6 +64,12 @@ function formatHourBlockLabel(startHour: number): string {
   return `${fmt(startHour)} - ${fmt(endHour)}`;
 }
 
+function parseValidDate(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export default function AccountCalendarPage() {
   const { user } = useAuth();
   const [view, setView] = useState<CalendarView>("week");
@@ -96,19 +102,18 @@ export default function AccountCalendarPage() {
 
       const nextExperiences = (experienceRows ?? []) as HostExperienceRow[];
       setExperiences(nextExperiences);
-      const ids = nextExperiences.map((exp) => exp.id);
-
-      if (ids.length === 0) {
+      if (nextExperiences.length === 0) {
         setEvents([]);
         setLoading(false);
         return;
       }
 
+      const experienceIds = nextExperiences.map((exp) => exp.id);
+
       const { data: slotRows, error: slotsError } = await supabase
         .from("experience_availability")
         .select("id,experience_id,starts_at,ends_at,capacity,is_cancelled")
-        .in("experience_id", ids)
-        .eq("is_cancelled", false)
+        .eq("host_user_id", user.id)
         .order("starts_at", { ascending: true });
 
       if (!mounted) return;
@@ -118,15 +123,40 @@ export default function AccountCalendarPage() {
         return;
       }
 
+      let resolvedSlots = (slotRows ?? []) as AvailabilityRow[];
+      if (resolvedSlots.length === 0 && experienceIds.length > 0) {
+        // Backward compatibility: some older rows may miss host_user_id.
+        const { data: fallbackRows, error: fallbackError } = await supabase
+          .from("experience_availability")
+          .select("id,experience_id,starts_at,ends_at,capacity,is_cancelled")
+          .in("experience_id", experienceIds)
+          .order("starts_at", { ascending: true });
+        if (!mounted) return;
+        if (fallbackError) {
+          setError(fallbackError.message);
+          setLoading(false);
+          return;
+        }
+        resolvedSlots = (fallbackRows ?? []) as AvailabilityRow[];
+      }
+
       const titleById = new Map(nextExperiences.map((exp) => [exp.id, exp.title]));
-      const mapped = ((slotRows ?? []) as AvailabilityRow[]).map((slot) => ({
-        id: slot.id,
-        experienceId: slot.experience_id,
-        experienceTitle: titleById.get(slot.experience_id) ?? "Untitled experience",
-        startsAt: new Date(slot.starts_at),
-        endsAt: new Date(slot.ends_at),
-        capacity: slot.capacity,
-      }));
+      const mapped = resolvedSlots
+        .filter((slot) => slot.is_cancelled !== true)
+        .map((slot) => {
+          const startsAt = parseValidDate(slot.starts_at);
+          const endsAt = parseValidDate(slot.ends_at);
+          if (!startsAt || !endsAt) return null;
+          return {
+            id: slot.id,
+            experienceId: slot.experience_id,
+            experienceTitle: titleById.get(slot.experience_id) ?? "Untitled experience",
+            startsAt,
+            endsAt,
+            capacity: slot.capacity,
+          } satisfies CalendarEvent;
+        })
+        .filter((event): event is CalendarEvent => Boolean(event));
       setEvents(mapped);
       setLoading(false);
     };

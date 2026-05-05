@@ -85,6 +85,7 @@ export function AccountDashboard() {
   );
 
   const isDark = resolvedTheme === "dark";
+  const profileDisplayName = `${user?.metadata.firstName ?? ""} ${user?.metadata.lastName ?? ""}`.trim();
 
   const onToggleTheme = () => {
     setTheme(isDark ? "light" : "dark");
@@ -138,8 +139,8 @@ export function AccountDashboard() {
                 className={cn(
                   "flex-1 rounded-xl border px-3 py-2 text-center text-sm font-semibold transition-colors",
                   active
-                    ? "border-orange-500 bg-orange-50 text-orange-700"
-                    : "border-border bg-muted/20 text-zinc-800 dark:text-zinc-200 hover:bg-muted/40",
+                    ? "border-orange-500 bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-300"
+                    : "border-border bg-muted/20 text-foreground/90 hover:bg-muted/40",
                 )}
               >
                 {l.label}
@@ -266,7 +267,7 @@ export function AccountDashboard() {
                   Profile
                 </p>
                 <p className="mt-1 truncate text-sm font-semibold text-foreground">
-                  {user.email}
+                  {profileDisplayName || user.email}
                 </p>
               </div>
             </div>
@@ -276,7 +277,7 @@ export function AccountDashboard() {
                 type="button"
                 variant="outline"
                 className="flex-1 rounded-xl"
-                onClick={() => router.push("/account/experiences")}
+                onClick={() => router.push("/account/profile")}
               >
                 View profile
               </Button>

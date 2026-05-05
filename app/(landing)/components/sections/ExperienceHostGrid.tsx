@@ -27,8 +27,14 @@ type HostProfileRow = {
   user_id: string;
   headline: string | null;
   expertise: string | null;
+  years_experience: number | null;
   career_highlight: string | null;
   highlight_story: string | null;
+};
+
+type ProfileRow = {
+  user_id: string;
+  avatar_path: string | null;
 };
 
 type MediaRow = {
@@ -63,34 +69,40 @@ function locationLabel(row: ExperienceRow): string {
 }
 
 function mapToExpert(
-  row: ExperienceRow,
+  hostId: string,
+  host: HostProfileRow | undefined,
+  row: ExperienceRow | undefined,
   coverUrl: string,
-  hostById: Map<string, HostProfileRow>,
 ): Expert {
-  const host = hostById.get(row.host_user_id);
-  const categoryName = pickCategoryName(row);
+  const yearsLabel =
+    typeof host?.years_experience === "number" && host.years_experience > 0
+      ? `${host.years_experience}+ yrs`
+      : undefined;
+  const categoryName = row ? pickCategoryName(row) : undefined;
   const name =
     host?.headline?.trim() ||
     host?.career_highlight?.trim() ||
-    row.title ||
+    row?.title ||
     "Experience host";
   const titleLine =
     host?.expertise?.trim()?.slice(0, 80) ||
-    row.subtitle ||
-    row.title ||
+    row?.subtitle ||
+    row?.title ||
     "Local experiences";
   const shortBio =
     host?.expertise?.trim() ||
     host?.highlight_story?.trim() ||
-    row.description?.trim()?.slice(0, 160) ||
+    row?.description?.trim()?.slice(0, 160) ||
     "Host-led experiences on Gozuru.";
-  const tags = categoryName ? [categoryName, "Host", "Local"] : ["Host", "Local", "Experiences"];
+  const tags = categoryName
+    ? [categoryName, yearsLabel ?? "Host", "Local"]
+    : [yearsLabel ?? "Host", "Local", "Experiences"];
 
   return {
-    id: row.host_user_id,
+    id: hostId,
     name,
     title: titleLine,
-    location: locationLabel(row),
+    location: row ? locationLabel(row) : "Global",
     image: coverUrl || PLACEHOLDER_IMAGE,
     rating: 5,
     reviewCount: 0,
@@ -110,51 +122,65 @@ export function ExperienceHostGrid() {
     let mounted = true;
 
     const load = async () => {
-      const { data: rows, error } = await supabase
-        .from("experiences")
-        .select(
-          "id,host_user_id,title,subtitle,description,categories(name),experience_locations(city,country_region)",
-        )
-        .eq("status", "published")
-        .order("created_at", { ascending: false });
+      const { data: hostRows, error: hostError } = await supabase
+        .from("host_profiles")
+        .select("user_id,headline,expertise,years_experience,career_highlight,highlight_story")
+        .order("created_at", { ascending: false })
+        .limit(6);
 
       if (!mounted) return;
 
-      if (error || !rows?.length) {
+      if (hostError || !hostRows?.length) {
         setItems([]);
         setLinkHrefs({});
         setLoading(false);
         return;
       }
 
-      const list = rows as unknown as ExperienceRow[];
-      const seenHost = new Set<string>();
-      const featured: ExperienceRow[] = [];
-      for (const row of list) {
-        if (seenHost.has(row.host_user_id)) continue;
-        seenHost.add(row.host_user_id);
-        featured.push(row);
-        if (featured.length >= 6) break;
-      }
+      const profiles = hostRows as HostProfileRow[];
+      const hostIds = profiles.map((h) => h.user_id);
 
-      const experienceIds = featured.map((r) => r.id);
-      const hostIds = featured.map((r) => r.host_user_id);
+      const { data: rows } = await supabase
+        .from("experiences")
+        .select(
+          "id,host_user_id,title,subtitle,description,categories(name),experience_locations(city,country_region)",
+        )
+        .in("host_user_id", hostIds)
+        .eq("status", "published")
+        .order("created_at", { ascending: false });
 
-      const [{ data: mediaRows }, { data: hostProfiles }] = await Promise.all([
-        supabase
-          .from("experience_media")
-          .select("experience_id,storage_path,sort_order,media_type")
-          .in("experience_id", experienceIds)
-          .order("sort_order", { ascending: true }),
-        supabase
-          .from("host_profiles")
-          .select("user_id,headline,expertise,career_highlight,highlight_story")
-          .in("user_id", hostIds),
-      ]);
+      const experienceIds = ((rows ?? []) as ExperienceRow[]).map((row) => row.id);
+      const { data: mediaRows } =
+        experienceIds.length > 0
+          ? await supabase
+              .from("experience_media")
+              .select("experience_id,storage_path,sort_order,media_type")
+              .in("experience_id", experienceIds)
+              .order("sort_order", { ascending: true })
+          : { data: [] as MediaRow[] };
+
+      const { data: profileRows } = await supabase
+        .from("profiles")
+        .select("user_id,avatar_path")
+        .in("user_id", hostIds);
 
       if (!mounted) return;
 
       const mediaList = (mediaRows ?? []) as MediaRow[];
+      const avatarByHost: Record<string, string> = {};
+      for (const row of (profileRows ?? []) as ProfileRow[]) {
+        const path = row.avatar_path?.trim();
+        if (!path) continue;
+        if (path.startsWith("http://") || path.startsWith("https://")) {
+          avatarByHost[row.user_id] = path;
+          continue;
+        }
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("avatars").getPublicUrl(path);
+        avatarByHost[row.user_id] = publicUrl;
+      }
+
       const coverByExp: Record<string, string> = {};
       for (const m of mediaList) {
         if (m.media_type !== "image") continue;
@@ -165,16 +191,20 @@ export function ExperienceHostGrid() {
         coverByExp[m.experience_id] = publicUrl;
       }
 
-      const hostById = new Map<string, HostProfileRow>();
-      for (const h of (hostProfiles ?? []) as HostProfileRow[]) {
-        hostById.set(h.user_id, h);
+      const latestExperienceByHost = new Map<string, ExperienceRow>();
+      for (const row of (rows ?? []) as ExperienceRow[]) {
+        if (latestExperienceByHost.has(row.host_user_id)) continue;
+        latestExperienceByHost.set(row.host_user_id, row);
       }
 
       const hrefs: Record<string, string> = {};
-      const nextExperts: Expert[] = featured.map((row) => {
-        hrefs[row.host_user_id] = `/hosts/${row.host_user_id}`;
-        const cover = coverByExp[row.id] || PLACEHOLDER_IMAGE;
-        return mapToExpert(row, cover, hostById);
+      const nextExperts: Expert[] = profiles.map((host) => {
+        const row = latestExperienceByHost.get(host.user_id);
+        hrefs[host.user_id] = `/hosts/${host.user_id}`;
+        const avatar = avatarByHost[host.user_id];
+        const cover = row ? coverByExp[row.id] || PLACEHOLDER_IMAGE : PLACEHOLDER_IMAGE;
+        const image = avatar || cover;
+        return mapToExpert(host.user_id, host, row, image);
       });
 
       setItems(nextExperts);
@@ -252,14 +282,25 @@ export function ExperienceHostGrid() {
           </div>
         )}
         <div className="mt-12 text-center">
-          <motion.a
-            href="/experiences"
-            className="inline-flex items-center justify-center rounded-full border-2 border-border bg-background px-8 py-3 text-sm font-medium text-foreground shadow-sm transition-all duration-300 hover:scale-[1.03] hover:border-foreground/20 hover:shadow-md"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            Explore Experts
-          </motion.a>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <motion.a
+              href="/experiences"
+              className="inline-flex items-center justify-center rounded-full border-2 border-border bg-background px-8 py-3 text-sm font-medium text-foreground shadow-sm transition-all duration-300 hover:scale-[1.03] hover:border-foreground/20 hover:shadow-md"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Explore Experts
+            </motion.a>
+            <Link
+              href="/auth/signup"
+              className={cn(
+                buttonVariants({ variant: "default" }),
+                "rounded-full bg-orange-500 text-white hover:bg-orange-600",
+              )}
+            >
+              Become a host
+            </Link>
+          </div>
         </div>
       </motion.div>
     </Section>

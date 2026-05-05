@@ -7,7 +7,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { useQuery } from "@tanstack/react-query";
 import { Navbar } from "@/app/(landing)/components/Navbar"
-import { fetchLandingExperiences, listImageTransform } from "@/lib/queries/experiences";
+import {
+  fetchLandingExperiences,
+  listImageTransform,
+  type LandingExperiencesResult,
+} from "@/lib/queries/experiences";
 
 const HERO_IMAGES = [
   "https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg",
@@ -17,7 +21,7 @@ const HERO_IMAGES = [
   "https://images.pexels.com/photos/1398688/pexels-photo-1398688.jpeg",
 ];
 
-export function LandingHero() {
+export function LandingHero({ initialData }: { initialData?: LandingExperiencesResult }) {
   const [index, setIndex] = useState(0);
   const [searchValue, setSearchValue] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -31,8 +35,10 @@ export function LandingHero() {
 
   const { data } = useQuery({
     queryKey: ["landing", "hero-search-experiences"],
-    queryFn: () => fetchLandingExperiences(80, listImageTransform),
+    queryFn: () => fetchLandingExperiences(24, listImageTransform),
     staleTime: 1000 * 60 * 10,
+    enabled: normalizedQuery.length >= 2,
+    initialData,
   });
 
   const suggestions = useMemo(() => {

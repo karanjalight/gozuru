@@ -191,7 +191,7 @@ export function KochiApp() {
 
               <div className="flex flex-wrap gap-3">
                 <Link
-                  href="/sign-up"
+                  href="/auth/signup"
                   className="inline-flex items-center justify-center rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
                 >
                   Sign up
@@ -263,6 +263,20 @@ export function KochiApp() {
                 procedures. After a successful tour, payouts are released after a
                 short holding period to help resolve any issues fairly.
               </p>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/auth/signup"
+                  className="inline-flex items-center justify-center rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                >
+                  Become a host
+                </Link>
+                <Link
+                  href="/hosts"
+                  className="inline-flex items-center justify-center rounded-full border border-border bg-background/60 px-5 py-2.5 text-sm font-semibold text-foreground shadow-sm transition hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  Host overview
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -292,6 +306,20 @@ export function KochiApp() {
                 and enjoy a guided discovery that’s social, professional, and
                 genuinely local.
               </p> 
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/experiences"
+                  className="inline-flex items-center justify-center rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                >
+                  Explore experiences
+                </Link>
+                <Link
+                  href="/auth/signup"
+                  className="inline-flex items-center justify-center rounded-full border border-border bg-background/60 px-5 py-2.5 text-sm font-semibold text-foreground shadow-sm transition hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  Join as traveler
+                </Link>
+              </div>
             </div>
 
             {/* Right Side - Illustration */}

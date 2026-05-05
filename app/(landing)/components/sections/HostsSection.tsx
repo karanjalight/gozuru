@@ -307,7 +307,7 @@ export function HostsSection() {
             </div>
           </div>
 
-          <div className="grid gap-4">
+          {/* <div className="grid gap-4">
             {steps.map((s, i) => (
               <Card key={s.title} className="rounded-2xl border-2 border-border">
                 <CardContent className="p-5 sm:p-6">
@@ -320,7 +320,7 @@ export function HostsSection() {
                           Step {i + 1}
                         </span>
                       </div>
-                      <p className="mt-1 text-sm text-muted-foreground">
+                      <p className="mt-1 line-clamp-1 h-4 text-sm text-muted-foreground">
                         {s.description}
                       </p>
                     </div>
@@ -328,7 +328,7 @@ export function HostsSection() {
                 </CardContent>
               </Card>
             ))}
-          </div>
+          </div> */}
         </div>
       </Section>
 
@@ -344,7 +344,7 @@ export function HostsSection() {
                 <h3 className="text-lg font-semibold text-foreground [font-family:var(--font-heading)]">
                   {p.title}
                 </h3>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground leading-relaxed">
                   {p.description}
                 </p>
               </CardContent>
