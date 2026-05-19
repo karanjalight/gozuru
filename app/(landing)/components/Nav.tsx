@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -56,23 +57,10 @@ export function Nav() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link
           href="/"
-          className="flex items-center gap-1.5 text-lg font-semibold tracking-tight"
+          className="flex items-center"
           aria-label="Gozuru home"
         >
-          <span
-            className={cn(
-              navDarkAtTop ? "text-white" : "text-primary"
-            )}
-          >
-            Go
-          </span>
-          <span
-            className={cn(
-              navDarkAtTop ? "text-amber-400" : "text-amber-600"
-            )}
-          >
-            zuru
-          </span>
+          <BrandLogo size="md" priority />
         </Link>
 
        <div className="flex items-center gap-4">

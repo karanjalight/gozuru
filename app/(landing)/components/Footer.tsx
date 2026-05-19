@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Twitter, Instagram } from "lucide-react";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 const explore = [
   { href: "#experts", label: "Explore experts" },
@@ -36,10 +37,8 @@ export function Footer() {
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-5">
           <div className="lg:col-span-2">
-            <Link href="/" className="inline-flex items-center gap-2">
-              <span className="text-xl font-bold tracking-tight text-foreground [font-family:var(--font-heading)]">
-                Gozuru
-              </span>
+            <Link href="/" className="inline-flex items-center" aria-label="Gozuru home">
+              <BrandLogo size="lg" />
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
               Reward Your Curiosity. The Gozuru of curious travelers — connect

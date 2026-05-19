@@ -10,8 +10,28 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/brand/BrandLogo";
+import { authModalStyles as auth } from "@/components/auth/auth-modal-styles";
 
-// import { ThemeToggle } from "./ThemeToggle";
+const NAV_LINKS = [
+  { href: "/", label: "Home", isActive: (path: string) => path === "/" },
+  {
+    href: "/experiences",
+    label: "Experiences",
+    isActive: (path: string) =>
+      path === "/experiences" || path.startsWith("/experiences/"),
+  },
+  {
+    href: "/about",
+    label: "How it works",
+    isActive: (path: string) => path === "/about" || path.startsWith("/about/"),
+  },
+  {
+    href: "/hosts",
+    label: "Become a host",
+    isActive: (path: string) => path === "/hosts" || path.startsWith("/hosts/"),
+  },
+] as const;
 
 export function Navbar() {
   const pathname = usePathname();
@@ -45,25 +65,35 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    const onScroll = () => setScrolled(window.scrollY > 16);
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
-
-    handleScroll();
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   const closeMobile = () => setMobileOpen(false);
   const isHome = pathname === "/";
+  const isTransparent = isHome && !scrolled;
   const userInitial = user?.email?.trim().charAt(0).toUpperCase() || "U";
+
+  const navLinkClass = (active: boolean) =>
+    cn(
+      "rounded-full px-3.5 py-2 text-sm font-medium transition-colors",
+      isTransparent
+        ? active
+          ? "bg-white/20 text-white"
+          : "text-white/85 hover:bg-white/10 hover:text-white"
+        : active
+          ? "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300"
+          : "text-foreground/80 hover:bg-muted/60 hover:text-foreground",
+    );
+
+  const iconButtonClass = cn(
+    "inline-flex size-10 items-center justify-center rounded-full border transition-colors",
+    isTransparent
+      ? "border-white/40 bg-white/10 text-white hover:bg-white/20"
+      : "border-border bg-background text-foreground hover:bg-muted/70",
+  );
 
   useEffect(() => {
     if (user) {
@@ -164,78 +194,81 @@ export function Navbar() {
     <header
       className={cn(
         "fixed inset-x-0 top-0 z-50 border-b transition-colors duration-300",
-        isHome && !scrolled
+        isTransparent
           ? "border-transparent bg-transparent text-white"
-          : "border-border/80 bg-background/95 text-foreground",
-        scrolled && "backdrop-blur-md shadow-sm"
+          : "border-border/70 bg-background/95 text-foreground shadow-sm backdrop-blur-md"
       )}
     >
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 text-sm sm:text-[15px] md:text-md lg:px-6">
-        <Link href="/" className="flex items-center gap-1">
-          <span className="rounded-full bg-orange-500 px-2 py-1 text-md  text-white">
-            Go
-          </span>
-          <span className="text-md  font-semibold tracking-tight">Zuru</span>
+      <nav className="mx-auto flex h-[4.75rem] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <Link
+          href="/"
+          className="group flex shrink-0 items-center rounded-xl py-1 pr-2 transition-transform hover:scale-[1.02]"
+          aria-label="Gozuru home"
+        >
+          <BrandLogo
+            size="2xl"
+            priority
+            className={cn("drop-shadow-sm", isTransparent && "brightness-0 invert")}
+          />
         </Link>
 
-        <div className="flex items-center gap-3 font-medium">
-          {/* desktop links */}
-          <div className="hidden items-center gap-6 lg:flex">
-          <Link href="/" className="hover:text-orange-500">
-              Home
-            </Link>
-            <Link href="/experiences" className="hover:text-orange-500">
-              Experiences
-            </Link>
-            <Link href="/about" className="hover:text-orange-500">
-              How it works
-            </Link>
-            <Link href="/hosts" className="hover:text-orange-500">
-              Become a host
-            </Link>
+        <div className="hidden flex-1 items-center justify-center lg:flex">
+          <div
+            className={cn(
+              "flex items-center gap-1 rounded-full p-1",
+              isTransparent ? "bg-white/10" : "bg-muted/40 dark:bg-muted/30",
+            )}
+          >
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={navLinkClass(link.isActive(pathname ?? ""))}
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
+        </div>
 
-          {/* theme toggle (always visible) */}
-          {/* <ThemeToggle /> */}
-
-          {mounted && (
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {mounted ? (
             <button
               type="button"
               aria-label="Toggle theme"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className={cn(
-                "rounded-full p-2 mx-2 transition-colors border",
-                isHome && !scrolled
-                  ? "border-white/60 bg-white/5 text-white hover:bg-white/10"
-                  : "border-border bg-background text-foreground hover:bg-muted/70"
-              )}
+              className={cn(iconButtonClass, "hidden sm:inline-flex")}
             >
               {theme === "dark" ? (
-                <Sun className="size-4" />
+                <Sun className="size-[1.125rem]" />
               ) : (
-                <Moon className="size-4" />
+                <Moon className="size-[1.125rem]" />
               )}
             </button>
-          )}
+          ) : null}
 
-          {/* desktop auth buttons */}
           {!loading && !user ? (
-            <>
+            <div className="hidden items-center gap-2 lg:flex">
               <button
                 type="button"
                 onClick={() => openAuthModal("login")}
-                className="hidden rounded-full border border-orange-400 bg-white px-6 py-2 text-sm text-orange-600 shadow-sm transition hover:border-orange-500 hover:text-orange-500 dark:bg-black/40 dark:text-orange-300 dark:border-orange-700 lg:inline-block"
+                className={cn(
+                  "rounded-full px-5 py-2.5 text-sm font-semibold transition-colors",
+                  isTransparent
+                    ? "border border-white/50 bg-white/10 text-white hover:bg-white/20"
+                    : "border border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-600/50 dark:text-orange-300 dark:hover:bg-orange-500/10",
+                )}
               >
                 Log in
               </button>
               <button
                 type="button"
                 onClick={() => openAuthModal("signup")}
-                className="hidden rounded-full bg-orange-500 px-6 py-2 text-sm text-white shadow-sm transition hover:bg-orange-600 lg:inline-block"
+                className="rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-orange-500/25 transition hover:bg-orange-600"
               >
                 Sign up
               </button>
-            </>
+            </div>
           ) : null}
 
           {!loading && user ? (
@@ -253,17 +286,17 @@ export function Navbar() {
                 </Avatar>
               </button>
               {profileMenuOpen ? (
-                <div className="absolute right-0 mt-3 w-44 rounded-xl border border-border bg-background p-2 shadow-lg">
+                <div className="absolute right-0 mt-3 w-44 rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-xl ring-1 ring-border/80 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
                   <Link
                     href="/account/profile"
-                    className="block rounded-lg px-3 py-2 text-sm hover:bg-muted/70"
+                    className="block rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted/70 dark:text-zinc-100 dark:hover:bg-zinc-800"
                     onClick={() => setProfileMenuOpen(false)}
                   >
                     Profile
                   </Link>
                   <button
                     type="button"
-                    className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted/70"
+                    className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-foreground hover:bg-muted/70 dark:text-zinc-100 dark:hover:bg-zinc-800"
                     onClick={() => {
                       setProfileMenuOpen(false);
                       logout();
@@ -276,16 +309,10 @@ export function Navbar() {
             </div>
           ) : null}
 
-          {/* mobile menu button */}
           <button
             type="button"
             onClick={() => setMobileOpen((prev) => !prev)}
-            className={cn(
-              "inline-flex h-9 w-9 items-center justify-center rounded-full border shadow-sm lg:hidden transition-colors",
-              isHome && !scrolled
-                ? "border-white/60 bg-black/40 text-white hover:bg-black/60"
-                : "border-border bg-background text-foreground hover:bg-muted/70"
-            )}
+            className={cn(iconButtonClass, "lg:hidden")}
             aria-label="Toggle navigation menu"
           >
             {mobileOpen ? (
@@ -311,49 +338,34 @@ export function Navbar() {
           mobileOpen ? "translate-x-0" : "translate-x-full"
         } lg:hidden`}
       >
-        <div className="mb-6 flex items-center justify-between bg-">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full px-2 py-1 text-base font-semibold bg-orange-500 text-white dark:bg-orange-400 dark:text-zinc-900">
-              Go
-            </span>
-            <span className="text-base font-semibold tracking-tight ">
-              Zuru
-            </span>
-          </div>
+        <div className="mb-6 flex items-center justify-between border-b border-border pb-4">
+          <BrandLogo size="2xl" />
           <button
             type="button"
             onClick={closeMobile}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background text-foreground hover:bg-muted/70"
+            className="inline-flex size-10 items-center justify-center rounded-full border border-border bg-muted/30 text-foreground hover:bg-muted/60"
             aria-label="Close navigation menu"
           >
-            <X className="h-4 w-4" aria-hidden="true" />
+            <X className="size-4" aria-hidden="true" />
           </button>
         </div>
 
-        <nav
-          className="space-y-2 text-foreground"
-        >
-          <Link
-            href="#experiences"
-            className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted/70"
-            onClick={closeMobile}
-          >
-            Experiences
-          </Link>
-          <Link
-            href="/how-it-works"
-            className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted/70"
-            onClick={closeMobile}
-          >
-            How it works
-          </Link>
-          <Link
-            href="#hosts"
-            className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted/70"
-            onClick={closeMobile}
-          >
-            Become a host
-          </Link>
+        <nav className="space-y-1 text-foreground" aria-label="Mobile navigation">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                "block rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                link.isActive(pathname ?? "")
+                  ? "bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-300"
+                  : "hover:bg-muted/70",
+              )}
+              onClick={closeMobile}
+            >
+              {link.label}
+            </Link>
+          ))}
 
           {!loading && !user ? (
             <div
@@ -410,17 +422,18 @@ export function Navbar() {
 
       {authModalOpen ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-background p-5 shadow-xl">
+          <div className={auth.panel}>
+            <div className="mb-5 flex justify-center">
+              <BrandLogo size="lg" />
+            </div>
             <div className="mb-4 flex items-center justify-between">
-              <div className="inline-flex rounded-full border border-border bg-muted/20 p-1">
+              <div className={auth.tabGroup}>
                 <button
                   type="button"
                   onClick={() => switchAuthMode("login")}
                   className={cn(
-                    "rounded-full px-4 py-1.5 text-sm",
-                    authMode === "login"
-                      ? "bg-orange-500 text-white"
-                      : "text-muted-foreground hover:text-foreground",
+                    "rounded-full px-4 py-1.5 text-sm font-medium",
+                    authMode === "login" ? auth.tabActive : auth.tabInactive,
                   )}
                 >
                   Log in
@@ -429,10 +442,8 @@ export function Navbar() {
                   type="button"
                   onClick={() => switchAuthMode("signup")}
                   className={cn(
-                    "rounded-full px-4 py-1.5 text-sm",
-                    authMode === "signup"
-                      ? "bg-orange-500 text-white"
-                      : "text-muted-foreground hover:text-foreground",
+                    "rounded-full px-4 py-1.5 text-sm font-medium",
+                    authMode === "signup" ? auth.tabActive : auth.tabInactive,
                   )}
                 >
                   Sign up
@@ -441,7 +452,7 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => setAuthModalOpen(false)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border hover:bg-muted/70"
+                className={auth.closeButton}
                 aria-label="Close auth modal"
               >
                 <X className="size-4" />
@@ -451,19 +462,19 @@ export function Navbar() {
             {authMode === "login" ? (
               <form className="space-y-4" onSubmit={onLoginSubmit}>
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground">
+                  <label className={auth.label}>
                     Email
                   </label>
                   <Input
                     type="email"
                     value={loginEmail}
                     onChange={(event) => setLoginEmail(event.target.value)}
-                    className="h-10 rounded-xl"
+                    className={auth.input}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground">
+                  <label className={auth.label}>
                     Password
                   </label>
                   <div className="relative">
@@ -471,13 +482,13 @@ export function Navbar() {
                       type={showLoginPassword ? "text" : "password"}
                       value={loginPassword}
                       onChange={(event) => setLoginPassword(event.target.value)}
-                      className="h-10 rounded-xl pr-10"
+                      className={cn(auth.input, "pr-10")}
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowLoginPassword((prev) => !prev)}
-                      className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center text-muted-foreground"
+                      className={auth.togglePassword}
                     >
                       {showLoginPassword ? (
                         <EyeOff className="size-4" />
@@ -502,14 +513,14 @@ export function Navbar() {
                     value={signupFirstName}
                     onChange={(event) => setSignupFirstName(event.target.value)}
                     placeholder="First name"
-                    className="h-10 rounded-xl"
+                    className={auth.input}
                     required
                   />
                   <Input
                     value={signupLastName}
                     onChange={(event) => setSignupLastName(event.target.value)}
                     placeholder="Last name"
-                    className="h-10 rounded-xl"
+                    className={auth.input}
                     required
                   />
                 </div>
@@ -518,7 +529,7 @@ export function Navbar() {
                   value={signupEmail}
                   onChange={(event) => setSignupEmail(event.target.value)}
                   placeholder="Email"
-                  className="h-10 rounded-xl"
+                  className={auth.input}
                   required
                 />
                 <div className="relative">
@@ -527,13 +538,13 @@ export function Navbar() {
                     value={signupPassword}
                     onChange={(event) => setSignupPassword(event.target.value)}
                     placeholder="Password"
-                    className="h-10 rounded-xl pr-10"
+                    className={cn(auth.input, "pr-10")}
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowSignupPassword((prev) => !prev)}
-                    className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center text-muted-foreground"
+                    className={auth.togglePassword}
                   >
                     {showSignupPassword ? (
                       <EyeOff className="size-4" />
@@ -548,13 +559,13 @@ export function Navbar() {
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
                     placeholder="Confirm password"
-                    className="h-10 rounded-xl pr-10"
+                    className={cn(auth.input, "pr-10")}
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword((prev) => !prev)}
-                    className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center text-muted-foreground"
+                    className={auth.togglePassword}
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="size-4" />
@@ -563,12 +574,12 @@ export function Navbar() {
                     )}
                   </button>
                 </div>
-                <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                <label className={auth.termsLabel}>
                   <input
                     type="checkbox"
                     checked={acceptTerms}
                     onChange={(event) => setAcceptTerms(event.target.checked)}
-                    className="mt-0.5 size-4 rounded border border-input"
+                    className={auth.checkbox}
                     required
                   />
                   <span>I agree to the Terms of Use and Privacy Policy.</span>
@@ -584,10 +595,10 @@ export function Navbar() {
             )}
 
             {authError ? (
-              <p className="mt-3 text-center text-xs text-red-500">{authError}</p>
+              <p className={auth.error}>{authError}</p>
             ) : null}
             {authSuccess ? (
-              <p className="mt-3 text-center text-xs text-emerald-600">{authSuccess}</p>
+              <p className={auth.success}>{authSuccess}</p>
             ) : null}
           </div>
         </div>

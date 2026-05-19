@@ -8,6 +8,7 @@ import { LogOut, Menu, Moon, Sun, X, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 const primaryNavLinks = [
   { href: "/account/experiences", label: "Explore" },
@@ -52,16 +53,14 @@ export function AccountTopNav() {
   );
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-border bg-background/90 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-6">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-border/80 bg-background/95 shadow-sm backdrop-blur-md">
+      <div className="mx-auto flex h-[4.25rem] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link
           href="/"
-          className="flex items-center gap-2 rounded-full px-2 py-1 hover:bg-muted/60"
+          className="flex shrink-0 items-center rounded-xl py-1 transition-transform hover:scale-[1.02]"
+          aria-label="Gozuru home"
         >
-          <span className="rounded-full bg-orange-500 px-2 py-1 text-sm font-semibold text-white">
-            Go
-          </span>
-          <span className="text-sm font-semibold tracking-tight">Zuru</span>
+          <BrandLogo size="2xl" priority />
         </Link>
 
         <nav className="hidden items-center gap-2 md:flex" aria-label="Account navigation">

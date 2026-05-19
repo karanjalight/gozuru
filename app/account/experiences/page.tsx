@@ -85,7 +85,7 @@ export default function ExperiencesPage() {
   const deleteExperience = async (experience: HostExperience) => {
     if (!user) return;
     const confirmed = window.confirm(
-      `Delete "${experience.title}"? This will remove the experience and cannot be undone.`,
+      `Delete "${experience.title}"?\n\nThis permanently removes the experience and any bookings linked to it (including payment records). This cannot be undone.`,
     );
     if (!confirmed) return;
 
@@ -98,7 +98,12 @@ export default function ExperiencesPage() {
       .eq("host_user_id", user.id);
 
     if (deleteError) {
-      setError(deleteError.message);
+      const message = deleteError.message.includes("bookings_experience_id_fkey")
+        ? "This experience still has bookings. Apply the latest database migration, or cancel active bookings before deleting."
+        : deleteError.message.includes("foreign key")
+          ? "This experience is still linked to other records and cannot be deleted yet."
+          : deleteError.message;
+      setError(message);
     } else {
       setExperiences((prev) => prev.filter((item) => item.id !== experience.id));
       setCoverByExperienceId((prev) => {

@@ -8,6 +8,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 const GoogleIcon = (
   <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
@@ -83,11 +84,8 @@ export default function LoginPage() {
           
 
           <div className="w-full max-w-lg rounded-2xl">
-          <Link href="/" className="flex items-center gap-1">
-            <span className="rounded-full bg-orange-500 px-2 py-1 text-sm font-semibold text-white">
-              Go
-            </span>
-            <span className="text-sm font-semibold tracking-tight">Zuru</span>
+          <Link href="/" className="flex items-center" aria-label="Gozuru home">
+            <BrandLogo size="md" priority />
           </Link>
             <h1 className="text-3xl  lg:mt-10 mt-5 font-bold tracking-tight">Welcome Back</h1>
             <p className="mt-2 text-sm text-muted-foreground">

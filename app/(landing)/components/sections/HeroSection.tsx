@@ -52,13 +52,15 @@ export function HeroSection() {
         )}
       </div>
 
-      <div className="relative z-20 mx-auto w-full max-w-7xl px-4 pt-28 pb-24 sm:px-6 lg:px-8 lg:pt-32">
+      <motion.div
+        className="relative z-20 mx-auto w-full max-w-7xl px-4 pt-28 pb-24 sm:px-6 lg:px-8 lg:pt-32 pointer-events-none"
+        variants={container}
+        initial="hidden"
+        animate="show"
+      >
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 lg:items-center">
           <motion.div
-            className={`max-w-xl ${!isDark ? "[text-shadow:0_1px_3px_rgba(255,255,255,0.9),0_0_20px_rgba(255,255,255,0.4)]" : ""}`}
-            variants={container}
-            initial="hidden"
-            animate="show"
+            className={`max-w-xl pointer-events-auto ${!isDark ? "[text-shadow:0_1px_3px_rgba(255,255,255,0.9),0_0_20px_rgba(255,255,255,0.4)]" : ""}`}
           >
             <motion.div
               variants={item}
@@ -97,9 +99,12 @@ export function HeroSection() {
             </motion.div>
           </motion.div>
 
-          <div className="hidden lg:block lg:relative lg:min-h-[400px]" aria-hidden />
+          <motion.div
+            className="hidden lg:block lg:relative lg:min-h-[400px] pointer-events-auto"
+            aria-hidden
+          />
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

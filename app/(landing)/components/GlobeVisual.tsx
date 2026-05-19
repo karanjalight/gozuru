@@ -65,6 +65,11 @@ export function GlobeVisual({ variant = "full", className }: GlobeVisualProps) {
     }
   }, []);
 
+  const pauseAutoRotate = useCallback(() => {
+    const controls = globeRef.current?.controls();
+    if (controls) controls.autoRotate = false;
+  }, []);
+
   useEffect(() => {
     const updateSize = () =>
       setDimensions({
@@ -98,6 +103,8 @@ export function GlobeVisual({ variant = "full", className }: GlobeVisualProps) {
   return (
     <motion.div
       className={cn("absolute inset-0 overflow-hidden", className)}
+      onPointerEnter={pauseAutoRotate}
+      onPointerLeave={enableAutoRotate}
       initial={isHero ? { opacity: 0 } : undefined}
       animate={
         isHero
@@ -144,7 +151,7 @@ export function GlobeVisual({ variant = "full", className }: GlobeVisualProps) {
           }
           labelColor={labelColorFn}
           labelResolution={2}
-          enablePointerInteraction={!isHero}
+          enablePointerInteraction
           onGlobeReady={enableAutoRotate}
         />
       </div>

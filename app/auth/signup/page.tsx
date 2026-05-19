@@ -8,6 +8,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 const sideImage =
   "https://images.pexels.com/photos/3771110/pexels-photo-3771110.jpeg?auto=compress&cs=tinysrgb&w=1600";
@@ -101,11 +102,8 @@ export default function SignupPage() {
          
 
           <div className="w-full max-w-lg rounded-2xl">
-          <Link href="/" className="flex items-center gap-1">
-            <span className="rounded-full bg-orange-500 px-2 py-1 text-sm font-semibold text-white">
-              Go
-            </span>
-            <span className="text-sm font-semibold tracking-tight">Zuru</span>
+          <Link href="/" className="flex items-center" aria-label="Gozuru home">
+            <BrandLogo size="md" priority />
           </Link>
             <h1 className="text-3xl lg:mt-10 mt-5 font-bold tracking-tight">
               Create your account

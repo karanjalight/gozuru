@@ -7,6 +7,7 @@ import { Menu, X, LogOut, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 export function AccountNavbar() {
   const router = useRouter();
@@ -34,12 +35,10 @@ export function AccountNavbar() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-6">
         <Link
           href="/"
-          className="flex items-center gap-2 rounded-full px-2 py-1 hover:bg-muted/60"
+          className="flex items-center rounded-full px-2 py-1 hover:bg-muted/60"
+          aria-label="Gozuru home"
         >
-          <span className="rounded-full bg-orange-500 px-2 py-1 text-sm font-semibold text-white">
-            Go
-          </span>
-          <span className="text-sm font-semibold tracking-tight">Zuru</span>
+          <BrandLogo size="xl" priority />
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex" aria-label="Account navigation">

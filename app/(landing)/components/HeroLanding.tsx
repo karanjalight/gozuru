@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { useQuery } from "@tanstack/react-query";
-import { Navbar } from "@/app/(landing)/components/Navbar"
+import { Navbar } from "@/app/(landing)/components/Navbar";
 import {
   fetchLandingExperiences,
   listImageTransform,
@@ -116,7 +116,7 @@ export function LandingHero({ initialData }: { initialData?: LandingExperiencesR
         />
       </div>
 
-      <div className="relative z-10 mx-auto flex    lg:w-[1040px] flex-col items-center gap-8 px-4 pt-16 text-center md:items-start md:text-left">
+      <div className="relative z-10 mx-auto flex lg:w-[1040px] flex-col items-center gap-8 px-4 pt-20 text-center md:items-start md:text-left">
         <div
           className={`inline-flex items-center gap-2 rounded-full px-4 py-1 text-xs font-medium backdrop-blur transition-colors ${
             isDark ? "bg-white/10 text-white" : "bg-zinc-900/5 text-zinc-200"
@@ -141,7 +141,7 @@ export function LandingHero({ initialData }: { initialData?: LandingExperiencesR
         </div>
 
         {/* primary search bar */}
-        <div ref={searchContainerRef} className="relative mt-4 w-full max-w-xl">
+        <div ref={searchContainerRef} className="relative mt-4 w-full max-w-xl text-zinc-950 [color-scheme:light]">
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -149,7 +149,7 @@ export function LandingHero({ initialData }: { initialData?: LandingExperiencesR
               router.push(`/experiences?query=${encodeURIComponent(searchValue.trim())}`);
               setShowSuggestions(false);
             }}
-            className="flex w-full items-stretch gap-2 rounded-full border border-zinc-300/90 bg-white/95 px-3 py-2 text-left text-zinc-900 shadow-md shadow-black/25 outline-none transition hover:bg-white focus-within:ring-2 focus-within:ring-orange-400 dark:border-zinc-500/80 dark:bg-zinc-900/95 dark:text-zinc-100"
+            className="flex w-full items-stretch gap-2 rounded-full border border-zinc-200 bg-white px-3 py-2 text-left shadow-lg shadow-black/20 outline-none transition focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-400/40 hover:border-zinc-300"
           >
             <input
               value={searchValue}
@@ -160,7 +160,7 @@ export function LandingHero({ initialData }: { initialData?: LandingExperiencesR
               onFocus={() => setShowSuggestions(true)}
               placeholder="Search experiences by topic, city, or keyword"
               aria-label="Search experiences"
-              className="flex-1 rounded-full bg-transparent px-4 py-2 text-xs font-medium text-zinc-900 placeholder:text-zinc-600 outline-none sm:text-sm dark:text-zinc-100 dark:placeholder:text-zinc-300"
+              className="flex-1 rounded-full border-0 bg-white px-4 py-2 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none [&:-webkit-autofill]:[-webkit-text-fill-color:rgb(9_9_11)] [&:-webkit-autofill]:[box-shadow:0_0_0px_1000px_#fff_inset]"
             />
             <button
               type="submit"
@@ -171,9 +171,9 @@ export function LandingHero({ initialData }: { initialData?: LandingExperiencesR
           </form>
 
           {showSuggestions && normalizedQuery && (
-            <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-2xl border border-zinc-200 bg-white text-zinc-900 shadow-xl dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
+            <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-2xl border border-zinc-200 bg-white text-zinc-950 shadow-xl">
               {suggestions.length === 0 ? (
-                <p className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-300">
+                <p className="px-4 py-3 text-sm text-zinc-600">
                   No matching experiences yet.
                 </p>
               ) : (
@@ -183,12 +183,12 @@ export function LandingHero({ initialData }: { initialData?: LandingExperiencesR
                       <Link
                         href={`/experiences/${suggestion.id}`}
                         onClick={() => setShowSuggestions(false)}
-                        className="block px-4 py-2.5 transition hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                        className="block px-4 py-2.5 transition hover:bg-zinc-100"
                       >
-                        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                        <p className="text-sm font-semibold text-zinc-950">
                           {suggestion.title}
                         </p>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-300">
+                        <p className="text-xs text-zinc-600">
                           {suggestion.location}
                         </p>
                       </Link>

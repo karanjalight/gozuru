@@ -28,12 +28,21 @@ export const defaultMetadata: Metadata = {
     title: "Gozuru – Your journey starts here",
     description:
       "Gozuru delivers simple, fast experiences built for you. Explore vendors, schools, pricing, and resources.",
+    images: [
+      {
+        url: "/logo.png",
+        width: 500,
+        height: 500,
+        alt: "Gozuru",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Gozuru – Your journey starts here",
     description:
       "Gozuru delivers simple, fast experiences built for you. Explore vendors, schools, pricing, and resources.",
+    images: ["/logo.png"],
   },
   robots: {
     index: true,
@@ -46,6 +55,10 @@ export const defaultMetadata: Metadata = {
   alternates: {
     canonical: siteUrl,
   },
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export function buildJsonLdOrganization() {
@@ -54,6 +67,7 @@ export function buildJsonLdOrganization() {
     "@type": "Organization",
     name: "Gozuru",
     url: siteUrl,
+    logo: `${siteUrl}/logo.png`,
     description: defaultMetadata.description,
   };
 }

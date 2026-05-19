@@ -160,7 +160,7 @@ create table if not exists public.experience_tags (
 
 create table if not exists public.experiences (
   id uuid primary key default gen_random_uuid(),
-  host_user_id uuid not null references public.host_profiles(user_id) on delete restrict,
+  host_user_id uuid not null references public.host_profiles(user_id) on delete cascade,
   title text not null check (char_length(title) between 5 and 120),
   subtitle text,
   description text,
@@ -241,10 +241,10 @@ create index if not exists idx_experience_availability_starts_at on public.exper
 -- ------------------------------------------------------------
 create table if not exists public.bookings (
   id uuid primary key default gen_random_uuid(),
-  experience_id uuid not null references public.experiences(id) on delete restrict,
+  experience_id uuid not null references public.experiences(id) on delete cascade,
   availability_id uuid references public.experience_availability(id) on delete set null,
   guest_user_id uuid not null references auth.users(id) on delete restrict,
-  host_user_id uuid not null references public.host_profiles(user_id) on delete restrict,
+  host_user_id uuid not null references public.host_profiles(user_id) on delete cascade,
   status public.booking_status not null default 'requested',
   guests_count integer not null default 1 check (guests_count > 0 and guests_count <= 20),
   total_amount numeric(10,2) not null check (total_amount >= 0),
@@ -275,7 +275,7 @@ create table if not exists public.payments (
   id uuid primary key default gen_random_uuid(),
   booking_id uuid not null unique references public.bookings(id) on delete cascade,
   payer_user_id uuid not null references auth.users(id) on delete restrict,
-  payee_user_id uuid not null references public.host_profiles(user_id) on delete restrict,
+  payee_user_id uuid not null references public.host_profiles(user_id) on delete cascade,
   amount numeric(10,2) not null check (amount >= 0),
   currency public.currency_code not null default 'USD',
   provider text,

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { loadMockExperiences, type MockExperience } from "@/lib/mock-experiences";
 
 type PaymentRow = {
@@ -109,12 +110,10 @@ export function AccountDashboard() {
         <div className="flex items-center justify-between gap-3">
           <Link
             href="/"
-            className="flex items-center gap-2 rounded-full px-2 py-1 hover:bg-muted/60"
+            className="flex items-center rounded-full px-2 py-1 hover:bg-muted/60"
+            aria-label="Gozuru home"
           >
-            <span className="rounded-full bg-orange-500 px-2 py-1 text-sm font-semibold text-white">
-              Go
-            </span>
-            <span className="text-sm font-semibold tracking-tight">Zuru</span>
+            <BrandLogo size="xl" />
           </Link>
 
           <Button

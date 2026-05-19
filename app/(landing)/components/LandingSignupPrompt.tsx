@@ -6,6 +6,8 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/brand/BrandLogo";
+import { authModalStyles as auth } from "@/components/auth/auth-modal-styles";
 
 export function LandingSignupPrompt() {
   const { user, loading, login, signup } = useAuth();
@@ -122,18 +124,19 @@ export function LandingSignupPrompt() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="landing-auth-title"
-        className="w-full max-w-md rounded-2xl border border-border bg-background p-5 shadow-xl"
+        className={auth.panel}
       >
+        <div className="mb-5 flex justify-center">
+          <BrandLogo size="lg" />
+        </div>
         <div className="mb-4 flex items-center justify-between">
-          <div className="inline-flex rounded-full border border-border bg-muted/20 p-1">
+          <div className={auth.tabGroup}>
             <button
               type="button"
               onClick={() => setAuthMode("login")}
               className={cn(
-                "rounded-full px-4 py-1.5 text-sm",
-                authMode === "login"
-                  ? "bg-orange-500 text-white"
-                  : "text-muted-foreground hover:text-foreground",
+                "rounded-full px-4 py-1.5 text-sm font-medium",
+                authMode === "login" ? auth.tabActive : auth.tabInactive,
               )}
             >
               Log in
@@ -142,10 +145,8 @@ export function LandingSignupPrompt() {
               type="button"
               onClick={() => setAuthMode("signup")}
               className={cn(
-                "rounded-full px-4 py-1.5 text-sm",
-                authMode === "signup"
-                  ? "bg-orange-500 text-white"
-                  : "text-muted-foreground hover:text-foreground",
+                "rounded-full px-4 py-1.5 text-sm font-medium",
+                authMode === "signup" ? auth.tabActive : auth.tabInactive,
               )}
             >
               Sign up
@@ -154,17 +155,17 @@ export function LandingSignupPrompt() {
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border hover:bg-muted/70"
+            className={auth.closeButton}
             aria-label="Close auth modal"
           >
             <X className="size-4" />
           </button>
         </div>
 
-        <h2 id="landing-auth-title" className="text-lg font-semibold tracking-tight">
+        <h2 id="landing-auth-title" className={auth.title}>
           Join Gozuru
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className={auth.subtitle}>
           Sign up or log in to continue.
         </p>
 
@@ -175,7 +176,7 @@ export function LandingSignupPrompt() {
               value={loginEmail}
               onChange={(event) => setLoginEmail(event.target.value)}
               placeholder="Email"
-              className="h-10 rounded-xl"
+              className={auth.input}
               required
             />
             <div className="relative">
@@ -184,13 +185,13 @@ export function LandingSignupPrompt() {
                 value={loginPassword}
                 onChange={(event) => setLoginPassword(event.target.value)}
                 placeholder="Password"
-                className="h-10 rounded-xl pr-10"
+                className={cn(auth.input, "pr-10")}
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowLoginPassword((prev) => !prev)}
-                className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center text-muted-foreground"
+                className={auth.togglePassword}
               >
                 {showLoginPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
@@ -210,14 +211,14 @@ export function LandingSignupPrompt() {
                 value={signupFirstName}
                 onChange={(event) => setSignupFirstName(event.target.value)}
                 placeholder="First name"
-                className="h-10 rounded-xl"
+                className={auth.input}
                 required
               />
               <Input
                 value={signupLastName}
                 onChange={(event) => setSignupLastName(event.target.value)}
                 placeholder="Last name"
-                className="h-10 rounded-xl"
+                className={auth.input}
                 required
               />
             </div>
@@ -226,7 +227,7 @@ export function LandingSignupPrompt() {
               value={signupEmail}
               onChange={(event) => setSignupEmail(event.target.value)}
               placeholder="Email"
-              className="h-10 rounded-xl"
+              className={auth.input}
               required
             />
             <div className="relative">
@@ -235,13 +236,13 @@ export function LandingSignupPrompt() {
                 value={signupPassword}
                 onChange={(event) => setSignupPassword(event.target.value)}
                 placeholder="Password"
-                className="h-10 rounded-xl pr-10"
+                className={cn(auth.input, "pr-10")}
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowSignupPassword((prev) => !prev)}
-                className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center text-muted-foreground"
+                className={auth.togglePassword}
               >
                 {showSignupPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
@@ -252,23 +253,23 @@ export function LandingSignupPrompt() {
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 placeholder="Confirm password"
-                className="h-10 rounded-xl pr-10"
+                className={cn(auth.input, "pr-10")}
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword((prev) => !prev)}
-                className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center text-muted-foreground"
+                className={auth.togglePassword}
               >
                 {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
-            <label className="flex items-start gap-2 text-xs text-muted-foreground">
+            <label className={auth.termsLabel}>
               <input
                 type="checkbox"
                 checked={acceptTerms}
                 onChange={(event) => setAcceptTerms(event.target.checked)}
-                className="mt-0.5 size-4 rounded border border-input"
+                className={auth.checkbox}
                 required
               />
               <span>I agree to the Terms of Use and Privacy Policy.</span>
@@ -283,9 +284,9 @@ export function LandingSignupPrompt() {
           </form>
         )}
 
-        {error ? <p className="mt-3 text-center text-xs text-red-500">{error}</p> : null}
+        {error ? <p className={auth.error}>{error}</p> : null}
         {successMessage ? (
-          <p className="mt-3 text-center text-xs text-green-600">{successMessage}</p>
+          <p className={auth.success}>{successMessage}</p>
         ) : null}
       </div>
     </div>
