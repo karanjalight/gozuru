@@ -2,6 +2,13 @@ import type { Metadata } from "next";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gozuru.com";
 
+export const socialPreviewImage = {
+  url: "/opengraph-image",
+  width: 1200,
+  height: 630,
+  alt: "Gozuru preview showing curated local experiences for curious travelers",
+};
+
 export const defaultMetadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
@@ -28,21 +35,14 @@ export const defaultMetadata: Metadata = {
     title: "Gozuru – Your journey starts here",
     description:
       "Gozuru delivers simple, fast experiences built for you. Explore vendors, schools, pricing, and resources.",
-    images: [
-      {
-        url: "/logo.png",
-        width: 500,
-        height: 500,
-        alt: "Gozuru",
-      },
-    ],
+    images: [socialPreviewImage],
   },
   twitter: {
     card: "summary_large_image",
     title: "Gozuru – Your journey starts here",
     description:
       "Gozuru delivers simple, fast experiences built for you. Explore vendors, schools, pricing, and resources.",
-    images: ["/logo.png"],
+    images: [socialPreviewImage.url],
   },
   robots: {
     index: true,

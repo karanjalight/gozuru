@@ -27,6 +27,7 @@ export interface Category {
   description: string;
   icon: string;
   expertCount: number;
+  image: string;
 }
 
 export interface Testimonial {
@@ -141,12 +142,54 @@ export const experiences: Experience[] = [
 ];
 
 export const categories: Category[] = [
-  { id: "1", name: "Tech & Startups", description: "Talk to builders, operators, and insiders shaping local ecosystems", icon: "Landmark", expertCount: 124 },
-  { id: "2", name: "Agriculture & Farming", description: "Visit farms, understand supply chains, and learn from producers", icon: "UtensilsCrossed", expertCount: 98 },
-  { id: "3", name: "Business & FMCG", description: "Get real insights into distribution, pricing, and market dynamics", icon: "TreePine", expertCount: 67 },
-  { id: "4", name: "Culture & Lifestyle", description: "Explore food, traditions, and everyday life with locals", icon: "Palette", expertCount: 83 },
-  { id: "5", name: "Career & Industry Insights", description: "Learn from professionals across sectors and discover practical career growth paths", icon: "MapPin", expertCount: 156 },
-  { id: "6", name: "Hospitality & Tourism", description: "Understand guest experience, operations, and destination growth", icon: "Landmark", expertCount: 91 },
+  {
+    id: "1",
+    name: "Tech & Startups",
+    description: "Talk to builders, operators, and insiders shaping local ecosystems",
+    icon: "Rocket",
+    expertCount: 124,
+    image: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=900&h=700&fit=crop",
+  },
+  {
+    id: "2",
+    name: "Agriculture & Farming",
+    description: "Visit farms, understand supply chains, and learn from producers",
+    icon: "Sprout",
+    expertCount: 98,
+    image: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=900&h=700&fit=crop",
+  },
+  {
+    id: "3",
+    name: "Business & FMCG",
+    description: "Get real insights into distribution, pricing, and market dynamics",
+    icon: "BriefcaseBusiness",
+    expertCount: 67,
+    image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=900&h=700&fit=crop",
+  },
+  {
+    id: "4",
+    name: "Culture & Lifestyle",
+    description: "Explore food, traditions, and everyday life with locals",
+    icon: "Palette",
+    expertCount: 83,
+    image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900&h=700&fit=crop",
+  },
+  {
+    id: "5",
+    name: "Career & Industry Insights",
+    description: "Learn from professionals across sectors and discover practical career growth paths",
+    icon: "GraduationCap",
+    expertCount: 156,
+    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=900&h=700&fit=crop",
+  },
+  {
+    id: "6",
+    name: "Hospitality & Tourism",
+    description: "Understand guest experience, operations, and destination growth",
+    icon: "Hotel",
+    expertCount: 91,
+    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=900&h=700&fit=crop",
+  },
 ];
 
 export const testimonials: Testimonial[] = [

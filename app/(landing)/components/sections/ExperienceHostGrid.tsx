@@ -47,6 +47,19 @@ type MediaRow = {
 const PLACEHOLDER_IMAGE =
   "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&h=400&fit=crop";
 
+function isSupportedImageUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return [
+      "images.unsplash.com",
+      "images.pexels.com",
+      "omeztanuxcfpmnpenicd.supabase.co",
+    ].includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function pickLocation(row: ExperienceRow): { city: string | null; country_region: string | null } | null {
   const loc = row.experience_locations;
   if (!loc) return null;
@@ -172,7 +185,9 @@ export function ExperienceHostGrid() {
         const path = row.avatar_path?.trim();
         if (!path) continue;
         if (path.startsWith("http://") || path.startsWith("https://")) {
-          avatarByHost[row.user_id] = path;
+          if (isSupportedImageUrl(path)) {
+            avatarByHost[row.user_id] = path;
+          }
           continue;
         }
         const {

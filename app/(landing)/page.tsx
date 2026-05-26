@@ -14,6 +14,7 @@ import {
   listImageTransform,
 } from "@/lib/queries/experiences";
 import { fetchLandingExperiencesServer } from "@/lib/queries/experiences-server";
+import { socialPreviewImage } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Gozuru – Reward Your Curiosity",
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
     title: "Gozuru – Reward Your Curiosity",
     description:
       "Connect with local experts. Discover hidden gems, stories, and knowledge — not just sights.",
+    images: [socialPreviewImage],
   },
 };
 

@@ -85,15 +85,15 @@ export function FeaturedExperiences({ initialData }: { initialData?: LandingExpe
             >
               <Link href={`/experiences/${exp.id}`}>
                 <Card className="overflow-hidden rounded-2xl border-2 border-border shadow-md transition-all duration-300 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/10">
-                  <div className="relative aspect-[3/2] overflow-hidden bg-muted">
+                  <div className="relative aspect-[3/2] -mt-4 overflow-hidden bg-muted">
                     {exp.image ? (
                       <Image
                         src={exp.image}
                         alt={exp.title}
                         fill
+                        unoptimized
                         className="object-cover transition duration-300 group-hover:scale-105"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        quality={72}
                         loading={i < 3 ? "eager" : "lazy"}
                       />
                     ) : (

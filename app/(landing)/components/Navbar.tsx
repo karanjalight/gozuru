@@ -31,13 +31,18 @@ const NAV_LINKS = [
     label: "Become a host",
     isActive: (path: string) => path === "/hosts" || path.startsWith("/hosts/"),
   },
+  {
+    href: "/contact",
+    label: "Contact",
+    isActive: (path: string) => path === "/contact",
+  },
 ] as const;
 
 export function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const { user, loading, login, signup, logout } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -74,6 +79,7 @@ export function Navbar() {
   const closeMobile = () => setMobileOpen(false);
   const isHome = pathname === "/";
   const isTransparent = isHome && !scrolled;
+  const isDarkMode = (theme === "system" ? resolvedTheme : theme) === "dark";
   const userInitial = user?.email?.trim().charAt(0).toUpperCase() || "U";
 
   const navLinkClass = (active: boolean) =>
@@ -81,18 +87,24 @@ export function Navbar() {
       "rounded-full px-3.5 py-2 text-sm font-medium transition-colors",
       isTransparent
         ? active
-          ? "bg-white/20 text-white"
-          : "text-white/85 hover:bg-white/10 hover:text-white"
-        : active
-          ? "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300"
-          : "text-foreground/80 hover:bg-muted/60 hover:text-foreground",
+          ? "bg-white text-slate-950 shadow-sm"
+          : "text-white/90 hover:bg-white/15 hover:text-white"
+        : isDarkMode
+          ? active
+            ? "bg-white text-slate-950 shadow-sm"
+            : "text-slate-200 hover:bg-white/10 hover:text-white"
+          : active
+            ? "bg-slate-950 text-white shadow-sm"
+            : "text-slate-700 hover:bg-slate-100 hover:text-slate-950",
     );
 
   const iconButtonClass = cn(
     "inline-flex size-10 items-center justify-center rounded-full border transition-colors",
     isTransparent
-      ? "border-white/40 bg-white/10 text-white hover:bg-white/20"
-      : "border-border bg-background text-foreground hover:bg-muted/70",
+      ? "border-white/25 bg-slate-950/35 text-white shadow-sm backdrop-blur-md hover:bg-white/15"
+      : isDarkMode
+        ? "border-white/10 bg-white/10 text-white shadow-sm hover:bg-white/15"
+        : "border-slate-200 bg-white text-slate-900 shadow-sm hover:bg-slate-100",
   );
 
   useEffect(() => {
@@ -195,8 +207,10 @@ export function Navbar() {
       className={cn(
         "fixed inset-x-0 top-0 z-50 border-b transition-colors duration-300",
         isTransparent
-          ? "border-transparent bg-transparent text-white"
-          : "border-border/70 bg-background/95 text-foreground shadow-sm backdrop-blur-md"
+          ? "border-white/10 bg-slate-950/25 text-white shadow-lg shadow-black/10 backdrop-blur-md"
+          : isDarkMode
+            ? "border-white/10 bg-slate-950/95 text-white shadow-lg shadow-black/20 backdrop-blur-md"
+            : "border-slate-200/80 bg-white/95 text-slate-950 shadow-sm backdrop-blur-md"
       )}
     >
       <nav className="mx-auto flex h-[4.75rem] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
@@ -208,7 +222,10 @@ export function Navbar() {
           <BrandLogo
             size="2xl"
             priority
-            className={cn("drop-shadow-sm", isTransparent && "brightness-0 invert")}
+            className={cn(
+              "drop-shadow-sm",
+              (isTransparent || isDarkMode) && "brightness-0 invert",
+            )}
           />
         </Link>
 
@@ -216,7 +233,11 @@ export function Navbar() {
           <div
             className={cn(
               "flex items-center gap-1 rounded-full p-1",
-              isTransparent ? "bg-white/10" : "bg-muted/40 dark:bg-muted/30",
+              isTransparent
+                ? "bg-slate-950/35 shadow-sm ring-1 ring-white/15 backdrop-blur-md"
+                : isDarkMode
+                  ? "bg-white/10 ring-1 ring-white/10"
+                  : "bg-slate-100 ring-1 ring-slate-200",
             )}
           >
             {NAV_LINKS.map((link) => (
@@ -236,10 +257,10 @@ export function Navbar() {
             <button
               type="button"
               aria-label="Toggle theme"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              onClick={() => setTheme(isDarkMode ? "light" : "dark")}
               className={cn(iconButtonClass, "hidden sm:inline-flex")}
             >
-              {theme === "dark" ? (
+              {isDarkMode ? (
                 <Sun className="size-[1.125rem]" />
               ) : (
                 <Moon className="size-[1.125rem]" />
@@ -255,8 +276,10 @@ export function Navbar() {
                 className={cn(
                   "rounded-full px-5 py-2.5 text-sm font-semibold transition-colors",
                   isTransparent
-                    ? "border border-white/50 bg-white/10 text-white hover:bg-white/20"
-                    : "border border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-600/50 dark:text-orange-300 dark:hover:bg-orange-500/10",
+                    ? "border border-white/35 bg-slate-950/30 text-white shadow-sm backdrop-blur-md hover:bg-white/15"
+                    : isDarkMode
+                      ? "border border-white/15 bg-white/5 text-white hover:bg-white/10"
+                      : "border border-slate-300 bg-white text-slate-800 hover:bg-slate-100",
                 )}
               >
                 Log in
@@ -264,7 +287,14 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => openAuthModal("signup")}
-                className="rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-orange-500/25 transition hover:bg-orange-600"
+                className={cn(
+                  "rounded-full px-5 py-2.5 text-sm font-semibold shadow-md transition",
+                  isTransparent
+                    ? "bg-white text-slate-950 shadow-black/20 hover:bg-slate-100"
+                    : isDarkMode
+                      ? "bg-white text-slate-950 shadow-black/20 hover:bg-slate-100"
+                      : "bg-slate-950 text-white shadow-slate-950/20 hover:bg-slate-800",
+                )}
               >
                 Sign up
               </button>
@@ -279,8 +309,21 @@ export function Navbar() {
                 className="inline-flex rounded-full"
                 aria-label="Open profile menu"
               >
-                <Avatar size="sm" className="ring-1 ring-orange-300/70">
-                  <AvatarFallback className="bg-orange-100 font-semibold text-orange-700">
+                <Avatar
+                  size="sm"
+                  className={cn(
+                    "ring-1",
+                    isDarkMode ? "ring-white/20" : "ring-slate-300/80",
+                  )}
+                >
+                  <AvatarFallback
+                    className={cn(
+                      "font-semibold",
+                      isDarkMode
+                        ? "bg-white/10 text-white"
+                        : "bg-slate-100 text-slate-800",
+                    )}
+                  >
                     {userInitial}
                   </AvatarFallback>
                 </Avatar>
@@ -334,23 +377,23 @@ export function Navbar() {
 
       {/* mobile slide-over menu */}
       <div
-        className={`fixed inset-y-0 right-0 z-50 w-72 max-w-[80%] transform border-l border-border bg-background p-5 text-sm text-foreground shadow-xl transition-transform duration-300 backdrop-blur-sm ${
+        className={`fixed inset-y-0 right-0 z-50 w-72 max-w-[80%] transform border-l border-slate-200 bg-white p-5 text-sm text-slate-950 shadow-xl transition-transform duration-300 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950 dark:text-white ${
           mobileOpen ? "translate-x-0" : "translate-x-full"
         } lg:hidden`}
       >
-        <div className="mb-6 flex items-center justify-between border-b border-border pb-4">
+        <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-white/10">
           <BrandLogo size="2xl" />
           <button
             type="button"
             onClick={closeMobile}
-            className="inline-flex size-10 items-center justify-center rounded-full border border-border bg-muted/30 text-foreground hover:bg-muted/60"
+            className="inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-950 hover:bg-slate-100 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
             aria-label="Close navigation menu"
           >
             <X className="size-4" aria-hidden="true" />
           </button>
         </div>
 
-        <nav className="space-y-1 text-foreground" aria-label="Mobile navigation">
+        <nav className="space-y-1 text-slate-950 dark:text-white" aria-label="Mobile navigation">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
@@ -358,8 +401,8 @@ export function Navbar() {
               className={cn(
                 "block rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                 link.isActive(pathname ?? "")
-                  ? "bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-300"
-                  : "hover:bg-muted/70",
+                  ? "bg-slate-950 text-white dark:bg-white dark:text-slate-950"
+                  : "hover:bg-slate-100 dark:hover:bg-white/10",
               )}
               onClick={closeMobile}
             >
@@ -378,7 +421,7 @@ export function Navbar() {
                   closeMobile();
                   openAuthModal("login");
                 }}
-                className="block w-full rounded-full border border-orange-300 px-4 py-2 text-center text-sm font-medium text-foreground shadow-sm transition hover:border-orange-400 hover:text-orange-500 dark:border-orange-500/40 dark:hover:text-orange-300"
+              className="block w-full rounded-full border border-slate-300 px-4 py-2 text-center text-sm font-medium text-slate-900 shadow-sm transition hover:bg-slate-100 dark:border-white/15 dark:text-white dark:hover:bg-white/10"
               >
                 Log in
               </Link>
@@ -389,7 +432,7 @@ export function Navbar() {
                   closeMobile();
                   openAuthModal("signup");
                 }}
-                className="block w-full rounded-full bg-orange-500 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-orange-400"
+                className="block w-full rounded-full bg-slate-950 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
               >
                 Sign up
               </Link>

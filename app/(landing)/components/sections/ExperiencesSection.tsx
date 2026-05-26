@@ -174,9 +174,9 @@ export function ExperiencesGrid({ initialData }: { initialData?: LandingExperien
                   src={exp.image}
                   alt={exp.title}
                   fill
+                  unoptimized
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  quality={70}
                   loading={idx < 4 ? "eager" : "lazy"}
                 />
               ) : (

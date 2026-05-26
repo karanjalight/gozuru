@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowUpRight, BriefcaseBusiness, Globe, MapPin, Sparkles } from "lucide-react";
+import { ArrowUpRight, BriefcaseBusiness, Globe, MapPin, Sparkles, UserRound } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,12 @@ type HostProfileRow = {
   highlight_story: string | null;
 };
 
+type ProfileRow = {
+  first_name: string | null;
+  last_name: string | null;
+  avatar_path: string | null;
+};
+
 type HostSocialRow = {
   id: string;
   url: string;
@@ -48,6 +54,40 @@ type HostSocialRow = {
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const FALLBACK_COVER =
+  "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&h=800&fit=crop";
+
+function isSafeImageUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return [
+      "images.unsplash.com",
+      "images.pexels.com",
+      "omeztanuxcfpmnpenicd.supabase.co",
+    ].includes(url.hostname);
+  } catch {
+    return value.startsWith("/");
+  }
+}
+
+function publicStorageUrl(bucket: string, path?: string | null): string | null {
+  const value = path?.trim();
+  if (!value) return null;
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return isSafeImageUrl(value) ? value : null;
+  }
+  return supabase.storage.from(bucket).getPublicUrl(value).data.publicUrl;
+}
+
+function normalizeExternalUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
 
 function formatPrice(amount: number | null, currency: string) {
   if (!amount || amount <= 0) return "Price on request";
@@ -79,6 +119,7 @@ export default function HostProfilePage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [hostProfile, setHostProfile] = useState<HostProfileRow | null>(null);
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [socialLinks, setSocialLinks] = useState<HostSocialRow[]>([]);
   const [experiences, setExperiences] = useState<ExperienceListRow[]>([]);
   const [coverByExperienceId, setCoverByExperienceId] = useState<Record<string, string>>({});
@@ -96,7 +137,12 @@ export default function HostProfilePage() {
       setLoading(true);
       setNotFound(false);
 
-      const [{ data: expRows, error: expError }, { data: hostRow }, { data: socialRows }] = await Promise.all([
+      const [
+        { data: expRows, error: expError },
+        { data: hostRow, error: hostError },
+        { data: profileRow },
+        { data: socialRows },
+      ] = await Promise.all([
         supabase
           .from("experiences")
           .select(
@@ -110,12 +156,17 @@ export default function HostProfilePage() {
           .select("headline,expertise,years_experience,career_highlight,highlight_story")
           .eq("user_id", hostId)
           .maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("first_name,last_name,avatar_path")
+          .eq("user_id", hostId)
+          .maybeSingle(),
         supabase.from("host_social_links").select("id,url").eq("host_user_id", hostId).limit(6),
       ]);
 
       if (!mounted) return;
 
-      if (expError || !hostRow) {
+      if (expError || hostError || !hostRow) {
         setNotFound(true);
         setLoading(false);
         return;
@@ -124,6 +175,7 @@ export default function HostProfilePage() {
       const rows = (expRows ?? []) as unknown as ExperienceListRow[];
       setExperiences(rows);
       setHostProfile(hostRow as HostProfileRow);
+      setProfile((profileRow ?? null) as ProfileRow | null);
       setSocialLinks((socialRows ?? []) as HostSocialRow[]);
 
       const ids = rows.map((r) => r.id);
@@ -141,10 +193,8 @@ export default function HostProfilePage() {
       const map: Record<string, string> = {};
       for (const m of (mediaRows ?? []) as MediaRow[]) {
         if (map[m.experience_id]) continue;
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("experience-media").getPublicUrl(m.storage_path);
-        map[m.experience_id] = publicUrl;
+        const publicUrl = publicStorageUrl("experience-media", m.storage_path);
+        if (publicUrl) map[m.experience_id] = publicUrl;
       }
       setCoverByExperienceId(map);
       setLoading(false);
@@ -236,38 +286,85 @@ export default function HostProfilePage() {
     .map((token) => token.trim())
     .filter((token) => token.length > 2)
     .slice(0, 4);
+  const profileName =
+    `${profile?.first_name ?? ""} ${profile?.last_name ?? ""}`.trim() || displayTitle;
+  const avatarUrl = publicStorageUrl("avatars", profile?.avatar_path);
+  const heroImage = heroCover || avatarUrl || FALLBACK_COVER;
+  const safeSocialLinks = socialLinks
+    .map((social) => ({
+      ...social,
+      url: normalizeExternalUrl(social.url),
+    }))
+    .filter((social): social is HostSocialRow => Boolean(social.url));
 
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-6xl px-4 pb-16 pt-24 sm:px-6">
-        <div className="mb-6">
-          <Link href="/" className="text-sm font-medium text-orange-500 hover:text-orange-600">
+      <main className="mx-auto max-w-6xl px-4 pb-16 pt-28 sm:px-6">
+        <div className="mb-6 flex flex-wrap items-center gap-2 text-sm">
+          <Link href="/" className="font-medium text-orange-500 hover:text-orange-600">
             Home
           </Link>
           <span className="text-muted-foreground"> / </span>
-          <Link href="/experiences" className="text-sm font-medium text-orange-500 hover:text-orange-600">
+          <Link href="/experiences" className="font-medium text-orange-500 hover:text-orange-600">
             Experts
           </Link>
+          <span className="text-muted-foreground"> / </span>
+          <span className="line-clamp-1 text-muted-foreground">{profileName}</span>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-          <div className="relative aspect-[21/9] w-full bg-muted md:aspect-[3/1]">
-            {heroCover ? (
-              <Image src={heroCover} alt={displayTitle} fill className="object-cover" priority />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-                No cover image
+        <section className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm">
+          <div className="relative min-h-[420px] bg-muted">
+            <Image
+              src={heroImage}
+              alt={displayTitle}
+              fill
+              unoptimized
+              priority
+              className="object-cover object-top"
+              sizes="100vw"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/15" />
+            <div className="absolute inset-x-0 bottom-0 p-6 text-white md:p-8 lg:p-10">
+              <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+                <div className="max-w-3xl">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-200">
+                    Host profile
+                  </p>
+                  <h1 className="mt-3 text-3xl font-bold tracking-tight md:text-5xl">
+                    {displayTitle}
+                  </h1>
+                  <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/90 md:text-base">
+                    {profileStatement}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 rounded-2xl border border-white/20 bg-black/35 p-3 backdrop-blur-md">
+                  <div className="relative size-16 overflow-hidden rounded-2xl border border-white/30 bg-white/10">
+                    {avatarUrl ? (
+                      <Image
+                        src={avatarUrl}
+                        alt={profileName}
+                        fill
+                        unoptimized
+                        className="object-cover"
+                        sizes="64px"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <UserRound className="size-7 text-white/80" />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{profileName}</p>
+                    <p className="text-xs text-white/70">{primaryLocation || "Global"}</p>
+                  </div>
+                </div>
               </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-6 text-white md:p-8">
-              <p className="text-xs uppercase tracking-[0.2em] text-white/80">Expert Portfolio</p>
-              <h1 className="mt-2 text-2xl font-bold tracking-tight md:text-4xl">{displayTitle}</h1>
-              <p className="mt-2 max-w-3xl text-sm text-white/90 md:text-base">{profileStatement}</p>
             </div>
           </div>
-        </div>
+        </section>
 
         <section className="mt-8 grid gap-6 md:grid-cols-3">
           <Card className="rounded-2xl border-2 border-border md:col-span-2">
@@ -300,11 +397,11 @@ export default function HostProfilePage() {
                 <Sparkles className="size-4" />
                 {experiences.length} published experience{experiences.length === 1 ? "" : "s"}
               </div>
-              {socialLinks.length > 0 ? (
+              {safeSocialLinks.length > 0 ? (
                 <div className="pt-2">
                   <p className="mb-2 text-xs uppercase tracking-[0.14em] text-muted-foreground">On the web</p>
                   <div className="space-y-2">
-                    {socialLinks.map((social) => (
+                    {safeSocialLinks.map((social) => (
                       <a
                         key={social.id}
                         href={social.url}
@@ -359,6 +456,7 @@ export default function HostProfilePage() {
                           src={cover}
                           alt={exp.title}
                           fill
+                          unoptimized
                           className="object-cover"
                           sizes="(max-width: 768px) 100vw, 33vw"
                         />

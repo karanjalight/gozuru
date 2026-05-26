@@ -84,7 +84,7 @@ export function LandingHero({ initialData }: { initialData?: LandingExperiencesR
   return (
     <section
       className={`relative flex min-h-[75vh] items-center justify-center overflow-hidden transition-colors ${
-        isDark ? "bg-zinc-900 text-white" : "bg-zinc-500 text-zinc-900"
+        isDark ? "bg-zinc-900 text-white" : "bg-slate-950 text-white"
       }`}
     >
       <Navbar />
@@ -111,7 +111,7 @@ export function LandingHero({ initialData }: { initialData?: LandingExperiencesR
           className={`absolute inset-0 bg-gradient-to-b transition-colors ${
             isDark
               ? "from-black/90 via-black/65 to-black/90"
-              : "from-black/80 via-black/40 to-black/70"
+              : "from-black/85 via-slate-950/45 to-black/80"
           }`}
         />
       </div>
@@ -119,7 +119,9 @@ export function LandingHero({ initialData }: { initialData?: LandingExperiencesR
       <div className="relative z-10 mx-auto flex lg:w-[1040px] flex-col items-center gap-8 px-4 pt-20 text-center md:items-start md:text-left">
         <div
           className={`inline-flex items-center gap-2 rounded-full px-4 py-1 text-xs font-medium backdrop-blur transition-colors ${
-            isDark ? "bg-white/10 text-white" : "bg-zinc-900/5 text-zinc-200"
+            isDark
+              ? "bg-white/10 text-white"
+              : "bg-white/15 text-white ring-1 ring-white/20"
           }`}
         >
           <span className="h-2 w-2 rounded-full bg-emerald-400" />
@@ -203,7 +205,7 @@ export function LandingHero({ initialData }: { initialData?: LandingExperiencesR
         {/* dots indicator */}
         <div
           className={`mt-2 lg:ml-5 p-1 rounded-full flex gap-1.5 transition-colors ${
-            isDark ? "bg-black/30" : "bg-zinc-900/5"
+            isDark ? "bg-black/30" : "bg-black/35"
           }`}
         >
           {HERO_IMAGES.map((_, i) => (

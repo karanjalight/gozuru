@@ -22,7 +22,30 @@ interface ExpertCardProps {
   linkHref?: string;
 }
 
+const FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&h=400&fit=crop";
+
+function getSafeImageSrc(src: string): string {
+  try {
+    const url = new URL(src);
+    if (
+      [
+        "images.unsplash.com",
+        "images.pexels.com",
+        "omeztanuxcfpmnpenicd.supabase.co",
+      ].includes(url.hostname)
+    ) {
+      return src;
+    }
+  } catch {
+    if (src.startsWith("/")) return src;
+  }
+
+  return FALLBACK_IMAGE;
+}
+
 export function ExpertCard({ expert, index = 0, linkHref }: ExpertCardProps) {
+  const imageSrc = getSafeImageSrc(expert.image);
   const initials = expert.name
     .split(" ")
     .map((n) => n[0])
@@ -41,17 +64,18 @@ export function ExpertCard({ expert, index = 0, linkHref }: ExpertCardProps) {
       <Link href={linkHref ?? `/experts/${expert.id}`} className="block h-full">
         <Card
           className={cn(
-            "h-full overflow-hidden rounded-2xl border-2 border-border bg-card shadow-md transition-all duration-300",
+            "h-full overflow-hidden  rounded-2xl border-2 border-border bg-card shadow-md transition-all duration-300",
             "hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10"
           )}
         >
-          <CardHeader className="p-0">
+          <CardHeader className="p-0 -mt-4 ">
             <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
               <Image
-                src={expert.image}
+                src={imageSrc}
                 alt={expert.name}
                 fill
-                className="object-cover transition duration-300 group-hover:scale-105"
+                unoptimized
+                className="object-cover object-center transition duration-300 group-hover:scale-105"
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               />
               <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-background/95 px-2.5 py-1 text-xs font-semibold text-foreground shadow backdrop-blur-sm">
@@ -63,7 +87,7 @@ export function ExpertCard({ expert, index = 0, linkHref }: ExpertCardProps) {
           <CardContent className="p-5 sm:p-6">
             <div className="flex items-start gap-3">
               <Avatar className="size-12 shrink-0 rounded-xl border-2 border-border shadow-sm">
-                <AvatarImage src={expert.image} alt={expert.name} />
+                <AvatarImage src={imageSrc} alt={expert.name} />
                 <AvatarFallback className="rounded-xl bg-primary/15 text-primary font-medium">
                   {initials}
                 </AvatarFallback>
@@ -82,7 +106,7 @@ export function ExpertCard({ expert, index = 0, linkHref }: ExpertCardProps) {
               </div>
             </div>
             <p className="mt-4 line-clamp-2 text-sm text-muted-foreground leading-relaxed">
-              {expert.shortBio}
+              {/* {expert.shortBio} */}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {expert.tags.slice(0, 3).map((tag) => (

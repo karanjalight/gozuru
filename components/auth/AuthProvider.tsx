@@ -117,15 +117,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
 
     supabase.auth
-      .getUser()
-      .then(({ data, error }) => {
+      .getSession()
+      .then(async ({ data: sessionData, error: sessionError }) => {
         if (!mounted) return;
+
+        if (sessionError) {
+          console.error("Failed to load auth session:", sessionError.message);
+          setUser(null);
+          return;
+        }
+
+        if (!sessionData.session) {
+          setUser(null);
+          return;
+        }
+
+        const { data, error } = await supabase.auth.getUser();
+        if (!mounted) return;
+
         if (error) {
           console.error("Failed to load authenticated user:", error.message);
           setUser(null);
-        } else {
-          setUser(mapAuthUser(data.user));
+          return;
         }
+
+        setUser(mapAuthUser(data.user));
       })
       .finally(() => {
         if (mounted) setLoading(false);

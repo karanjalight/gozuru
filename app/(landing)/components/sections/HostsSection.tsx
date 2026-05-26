@@ -252,7 +252,7 @@ export function HostsSection() {
   return (
     <>
       <Section id="how-it-works">
-        <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
+        <div className="grid grid-cols-2 lg:items-start">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               How to become a host
@@ -281,7 +281,10 @@ export function HostsSection() {
               </Link>
             </div>
 
-            <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-4">
+          </div>
+
+
+          <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-4">
               {gallery.map((img, idx) => (
                 <div
                   key={img.src}
@@ -305,7 +308,6 @@ export function HostsSection() {
                 </div>
               ))}
             </div>
-          </div>
 
           {/* <div className="grid gap-4">
             {steps.map((s, i) => (
