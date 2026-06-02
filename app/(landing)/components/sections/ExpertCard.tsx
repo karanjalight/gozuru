@@ -96,17 +96,17 @@ export function ExpertCard({ expert, index = 0, linkHref }: ExpertCardProps) {
                 <h3 className="font-semibold text-foreground text-lg [font-family:var(--font-heading)]">
                   {expert.name}
                 </h3>
-                <p className="text-sm text-muted-foreground line-clamp-1">
+                {/* <p className="text-sm text-muted-foreground line-clamp-1">
                   {expert.title}
-                </p>
+                </p> */}
                 <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
                   <MapPin className="size-3.5 shrink-0" aria-hidden />
                   <span>{expert.location}</span>
                 </div>
               </div>
             </div>
-            <p className="mt-4 line-clamp-2 text-sm text-muted-foreground leading-relaxed">
-              {/* {expert.shortBio} */}
+            <p className="mt-4 line-clamp-1 text-sm text-muted-foreground leading-relaxed">
+              {expert.shortBio}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {expert.tags.slice(0, 3).map((tag) => (

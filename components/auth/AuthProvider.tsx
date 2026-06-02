@@ -226,12 +226,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             last_name: profile.lastName?.trim() || null,
             phone: profile.phone?.trim() || null,
             bio: profile.bio?.trim() || null,
+            city: profile.location?.trim() || null,
             avatar_path: avatarPath,
           },
           { onConflict: "user_id" },
         );
 
       if (profileSyncError) throw new Error(profileSyncError.message);
+
+      const yearsNum = profile.yearsOfExperience?.trim()
+        ? parseInt(profile.yearsOfExperience.trim(), 10)
+        : null;
+
+      const { error: hostProfileSyncError } = await supabase
+        .from("host_profiles")
+        .upsert(
+          {
+            user_id: user.id,
+            headline: profile.headline?.trim() || null,
+            expertise: profile.professionalTitle?.trim() || null,
+            years_experience: Number.isFinite(yearsNum) && yearsNum !== null && yearsNum >= 0 ? yearsNum : null,
+          },
+          { onConflict: "user_id" },
+        );
+
+      if (hostProfileSyncError) throw new Error(hostProfileSyncError.message);
 
       const { data: refreshed, error: refreshError } = await supabase.auth.getUser();
       if (refreshError) {

@@ -1,17 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useRef, useState } from "react";
-import { Menu, X, Sun, Moon, Eye, EyeOff } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Menu, X, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand/BrandLogo";
-import { authModalStyles as auth } from "@/components/auth/auth-modal-styles";
 
 const NAV_LINKS = [
   { href: "/", label: "Home", isActive: (path: string) => path === "/" },
@@ -43,26 +40,10 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { theme, resolvedTheme, setTheme } = useTheme();
-  const { user, loading, login, signup, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [mounted, setMounted] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
-  const [showLoginPassword, setShowLoginPassword] = useState(false);
-  const [showSignupPassword, setShowSignupPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [signupFirstName, setSignupFirstName] = useState("");
-  const [signupLastName, setSignupLastName] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  const [authSubmitting, setAuthSubmitting] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [authSuccess, setAuthSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -108,14 +89,6 @@ export function Navbar() {
   );
 
   useEffect(() => {
-    if (user) {
-      setAuthModalOpen(false);
-      setAuthError(null);
-      setAuthSuccess(null);
-    }
-  }, [user]);
-
-  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (!profileMenuRef.current) return;
       if (!profileMenuRef.current.contains(event.target as Node)) {
@@ -126,80 +99,12 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const openAuthModal = (mode: "login" | "signup") => {
-    setAuthMode(mode);
-    setAuthError(null);
-    setAuthSuccess(null);
-    setAuthModalOpen(true);
-  };
-
-  const switchAuthMode = (mode: "login" | "signup") => {
-    setAuthMode(mode);
-    setAuthError(null);
-    setAuthSuccess(null);
-  };
-
-  const onLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setAuthError(null);
-    setAuthSuccess(null);
-    if (!loginEmail.trim()) {
-      setAuthError("Please enter your email.");
-      return;
-    }
-    if (!loginPassword) {
-      setAuthError("Please enter your password.");
-      return;
-    }
-    setAuthSubmitting(true);
-    try {
-      await login(loginEmail, loginPassword);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Login failed.";
-      setAuthError(
-        message.includes("Invalid login credentials")
-          ? "Invalid email or password."
-          : message,
-      );
-    } finally {
-      setAuthSubmitting(false);
-    }
-  };
-
-  const onSignupSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setAuthError(null);
-    setAuthSuccess(null);
-    if (!signupFirstName.trim() || !signupLastName.trim()) {
-      setAuthError("Please provide your first and last name.");
-      return;
-    }
-    if (signupPassword.length < 8) {
-      setAuthError("Password must be at least 8 characters.");
-      return;
-    }
-    if (signupPassword !== confirmPassword) {
-      setAuthError("Passwords do not match.");
-      return;
-    }
-    if (!acceptTerms) {
-      setAuthError("You must accept the terms to continue.");
-      return;
-    }
-    setAuthSubmitting(true);
-    try {
-      const result = await signup(signupEmail, signupPassword, {
-        firstName: signupFirstName,
-        lastName: signupLastName,
-      });
-      if (result.needsEmailVerification) {
-        setAuthSuccess("Account created. Check your email to verify your account.");
-      }
-    } catch (error) {
-      setAuthError(error instanceof Error ? error.message : "Sign up failed.");
-    } finally {
-      setAuthSubmitting(false);
-    }
+  const openLandingAuthModal = (mode: "login" | "signup") => {
+    window.dispatchEvent(
+      new CustomEvent("gozuru-auth-modal-open", {
+        detail: { mode },
+      }),
+    );
   };
 
   return (
@@ -270,11 +175,14 @@ export function Navbar() {
 
           {!loading && !user ? (
             <div className="hidden items-center gap-2 lg:flex">
-              <button
-                type="button"
-                onClick={() => openAuthModal("login")}
+              <Link
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault();
+                  openLandingAuthModal("login");
+                }}
                 className={cn(
-                  "rounded-full px-5 py-2.5 text-sm font-semibold transition-colors",
+                  "rounded-full px-5 py-2.5 text-sm font-semibold transition-colors inline-flex items-center justify-center",
                   isTransparent
                     ? "border border-white/35 bg-slate-950/30 text-white shadow-sm backdrop-blur-md hover:bg-white/15"
                     : isDarkMode
@@ -283,12 +191,15 @@ export function Navbar() {
                 )}
               >
                 Log in
-              </button>
-              <button
-                type="button"
-                onClick={() => openAuthModal("signup")}
+              </Link>
+              <Link
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault();
+                  openLandingAuthModal("signup");
+                }}
                 className={cn(
-                  "rounded-full px-5 py-2.5 text-sm font-semibold shadow-md transition",
+                  "rounded-full px-5 py-2.5 text-sm font-semibold shadow-md transition inline-flex items-center justify-center",
                   isTransparent
                     ? "bg-white text-slate-950 shadow-black/20 hover:bg-slate-100"
                     : isDarkMode
@@ -297,7 +208,7 @@ export function Navbar() {
                 )}
               >
                 Sign up
-              </button>
+              </Link>
             </div>
           ) : null}
 
@@ -419,7 +330,7 @@ export function Navbar() {
                 onClick={(event) => {
                   event.preventDefault();
                   closeMobile();
-                  openAuthModal("login");
+                  openLandingAuthModal("login");
                 }}
               className="block w-full rounded-full border border-slate-300 px-4 py-2 text-center text-sm font-medium text-slate-900 shadow-sm transition hover:bg-slate-100 dark:border-white/15 dark:text-white dark:hover:bg-white/10"
               >
@@ -430,7 +341,7 @@ export function Navbar() {
                 onClick={(event) => {
                   event.preventDefault();
                   closeMobile();
-                  openAuthModal("signup");
+                  openLandingAuthModal("signup");
                 }}
                 className="block w-full rounded-full bg-slate-950 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
               >
@@ -463,189 +374,6 @@ export function Navbar() {
         </nav>
       </div>
 
-      {authModalOpen ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 px-4">
-          <div className={auth.panel}>
-            <div className="mb-5 flex justify-center">
-              <BrandLogo size="lg" />
-            </div>
-            <div className="mb-4 flex items-center justify-between">
-              <div className={auth.tabGroup}>
-                <button
-                  type="button"
-                  onClick={() => switchAuthMode("login")}
-                  className={cn(
-                    "rounded-full px-4 py-1.5 text-sm font-medium",
-                    authMode === "login" ? auth.tabActive : auth.tabInactive,
-                  )}
-                >
-                  Log in
-                </button>
-                <button
-                  type="button"
-                  onClick={() => switchAuthMode("signup")}
-                  className={cn(
-                    "rounded-full px-4 py-1.5 text-sm font-medium",
-                    authMode === "signup" ? auth.tabActive : auth.tabInactive,
-                  )}
-                >
-                  Sign up
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAuthModalOpen(false)}
-                className={auth.closeButton}
-                aria-label="Close auth modal"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            {authMode === "login" ? (
-              <form className="space-y-4" onSubmit={onLoginSubmit}>
-                <div className="space-y-2">
-                  <label className={auth.label}>
-                    Email
-                  </label>
-                  <Input
-                    type="email"
-                    value={loginEmail}
-                    onChange={(event) => setLoginEmail(event.target.value)}
-                    className={auth.input}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className={auth.label}>
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type={showLoginPassword ? "text" : "password"}
-                      value={loginPassword}
-                      onChange={(event) => setLoginPassword(event.target.value)}
-                      className={cn(auth.input, "pr-10")}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowLoginPassword((prev) => !prev)}
-                      className={auth.togglePassword}
-                    >
-                      {showLoginPassword ? (
-                        <EyeOff className="size-4" />
-                      ) : (
-                        <Eye className="size-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                <Button
-                  type="submit"
-                  className="h-10 w-full rounded-full bg-orange-500 text-white hover:bg-orange-600"
-                  disabled={authSubmitting}
-                >
-                  {authSubmitting ? "Logging in..." : "Log in"}
-                </Button>
-              </form>
-            ) : (
-              <form className="space-y-3" onSubmit={onSignupSubmit}>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Input
-                    value={signupFirstName}
-                    onChange={(event) => setSignupFirstName(event.target.value)}
-                    placeholder="First name"
-                    className={auth.input}
-                    required
-                  />
-                  <Input
-                    value={signupLastName}
-                    onChange={(event) => setSignupLastName(event.target.value)}
-                    placeholder="Last name"
-                    className={auth.input}
-                    required
-                  />
-                </div>
-                <Input
-                  type="email"
-                  value={signupEmail}
-                  onChange={(event) => setSignupEmail(event.target.value)}
-                  placeholder="Email"
-                  className={auth.input}
-                  required
-                />
-                <div className="relative">
-                  <Input
-                    type={showSignupPassword ? "text" : "password"}
-                    value={signupPassword}
-                    onChange={(event) => setSignupPassword(event.target.value)}
-                    placeholder="Password"
-                    className={cn(auth.input, "pr-10")}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowSignupPassword((prev) => !prev)}
-                    className={auth.togglePassword}
-                  >
-                    {showSignupPassword ? (
-                      <EyeOff className="size-4" />
-                    ) : (
-                      <Eye className="size-4" />
-                    )}
-                  </button>
-                </div>
-                <div className="relative">
-                  <Input
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(event) => setConfirmPassword(event.target.value)}
-                    placeholder="Confirm password"
-                    className={cn(auth.input, "pr-10")}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword((prev) => !prev)}
-                    className={auth.togglePassword}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="size-4" />
-                    ) : (
-                      <Eye className="size-4" />
-                    )}
-                  </button>
-                </div>
-                <label className={auth.termsLabel}>
-                  <input
-                    type="checkbox"
-                    checked={acceptTerms}
-                    onChange={(event) => setAcceptTerms(event.target.checked)}
-                    className={auth.checkbox}
-                    required
-                  />
-                  <span>I agree to the Terms of Use and Privacy Policy.</span>
-                </label>
-                <Button
-                  type="submit"
-                  className="h-10 w-full rounded-full bg-orange-500 text-white hover:bg-orange-600"
-                  disabled={authSubmitting}
-                >
-                  {authSubmitting ? "Creating account..." : "Create account"}
-                </Button>
-              </form>
-            )}
-
-            {authError ? (
-              <p className={auth.error}>{authError}</p>
-            ) : null}
-            {authSuccess ? (
-              <p className={auth.success}>{authSuccess}</p>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
     </header>
   );
 }

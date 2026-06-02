@@ -8,7 +8,6 @@ import {
 } from "./components/sections";
 import { LandingHero } from "./components/HeroLanding";
 import { ExperiencesGrid } from "./components/sections/ExperiencesSection";
-import { LandingSignupPrompt } from "./components/LandingSignupPrompt";
 import {
   featuredImageTransform,
   listImageTransform,
@@ -36,7 +35,6 @@ export default async function LandingPage() {
 
   return (
     <>
-      <LandingSignupPrompt />
       <LandingHero initialData={sharedLandingData} />
       {/* <HeroSection /> */}
       {/* <SearchSection /> */}

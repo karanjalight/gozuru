@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { socialPreviewImage } from "@/lib/seo";
-import { CategorySection, FeaturedExperiences } from "../components/sections";
+import { CategorySection, ExpertGrid, FeaturedExperiences } from "../components/sections";
 import { ExperienceHero } from "../components/HeroExperience copy";
 import { Navbar } from "../components/Navbar";
 
@@ -24,6 +24,7 @@ export default function LandingPage() {
         <ExperienceHero />
       </div>
       <FeaturedExperiences />
+      <ExpertGrid />
       <CategorySection />
     </>
   );

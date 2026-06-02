@@ -67,7 +67,8 @@ export function ExperiencesGrid({ initialData }: { initialData?: LandingExperien
           id: exp.id,
           title: exp.title,
           location:
-            locationByExperienceId[exp.id] || exp.meeting_point_name || "Location shared after booking",
+            locationByExperienceId[exp.id] || exp.meeting_point_name || "Location to be confirmed",
+          description: exp.description?.trim() || exp.subtitle?.trim() || "Discover this host-led experience.",
           tag,
           when,
           type,
@@ -98,13 +99,13 @@ export function ExperiencesGrid({ initialData }: { initialData?: LandingExperien
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Trust at a glance
+              Discover experiences
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              Real people. Real insight.
+              Learn directly from local experts
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Verified experts, instant booking, virtual or in-person, secure payments.
+              Browse real, host-led experiences with clear details on location, duration, and price.
             </p>
           </div>
           <Link
@@ -118,10 +119,10 @@ export function ExperiencesGrid({ initialData }: { initialData?: LandingExperien
 
         <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
           {[
-            "Verified experts & guides",
-            "Bookable instantly",
-            "Virtual or in-person",
-            "Secure payments",
+            "Verified hosts",
+            "Transparent pricing",
+            "Clear locations",
+            "Instant booking",
           ].map((item) => (
             <span
               key={item}
@@ -184,16 +185,17 @@ export function ExperiencesGrid({ initialData }: { initialData?: LandingExperien
                   No media uploaded
                 </div>
               )}
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
               <div className="absolute bottom-3  left-3 right-3 flex items-end justify-between gap-3 text-xs text-white">
                 <div className="space-y-1  w-full">
                   <span className="inline-flex items-center rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
                     {exp.tag}
                   </span>
-                  <h3 className="line-clamp-2 text-sm font-semibold">
+                  <h3 className="line-clamp-1 text-xl  font-semibold">
                     {exp.title}
                   </h3>
-                  <p className="text-lg  uppercase  ">{exp.location}</p>
+                  <p className="line-clamp-1 text-sm text-zinc-200">{exp.description}</p>
+                  {/* <p className="text-lg  uppercase  ">{exp.location}</p> */}
 
                   <div className="flex items-center justify-between gap-4 text-[15px] sm:text-md">
                     <div className="flex items-center gap-1 ">
@@ -201,12 +203,12 @@ export function ExperiencesGrid({ initialData }: { initialData?: LandingExperien
                       <span className="font-semibold">{exp.rating.toFixed(1)}</span>
                       <span className="text-zinc-700">({exp.reviews.toLocaleString()})</span>
                     </div>
-                    <div className="text-right text-zinc-700 dark:text-zinc-700">
+                    <div className="text-right text-zinc-100">
                       <span className="text-sm font-semibold ">
                         {exp.price}
                       </span>
-                      <span className="ml-1 text-[11px] text-black dark:text-zinc-400">
-                        /guest
+                      <span className="ml-1 text-[11px] text-black dark:text-zinc-100">
+                        /guest • {exp.durationLabel}
                       </span>
                     </div>
                   </div>

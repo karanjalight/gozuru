@@ -29,26 +29,26 @@ export default function SignupPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const GoogleIcon = (
-    <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-      <path
-        fill="#EA4335"
-        d="M12 10.2v3.9h5.5c-.2 1.2-.9 2.2-1.9 2.9v2.4h3.1c1.8-1.6 2.8-4 2.8-6.8 0-.7-.1-1.3-.2-1.9H12Z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 22c2.6 0 4.8-.9 6.4-2.4l-3.1-2.4c-.9.6-2 .9-3.3.9-2.5 0-4.6-1.7-5.3-4H3.4v2.5C5 19.8 8.2 22 12 22Z"
-      />
-      <path
-        fill="#4A90E2"
-        d="M6.7 13.1c-.2-.6-.3-1.2-.3-1.9s.1-1.3.3-1.9V6.8H3.4C2.8 8 2.5 9.4 2.5 11.2s.3 3.2.9 4.4l3.3-2.5Z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M12 5.6c1.4 0 2.6.5 3.6 1.4l2.7-2.7C16.8 2.7 14.6 2 12 2 8.2 2 5 4.2 3.4 6.8l3.3 2.5c.7-2.3 2.8-3.7 5.3-3.7Z"
-      />
-    </svg>
-  );
+  // const GoogleIcon = (
+  //   <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
+  //     <path
+  //       fill="#EA4335"
+  //       d="M12 10.2v3.9h5.5c-.2 1.2-.9 2.2-1.9 2.9v2.4h3.1c1.8-1.6 2.8-4 2.8-6.8 0-.7-.1-1.3-.2-1.9H12Z"
+  //     />
+  //     <path
+  //       fill="#34A853"
+  //       d="M12 22c2.6 0 4.8-.9 6.4-2.4l-3.1-2.4c-.9.6-2 .9-3.3.9-2.5 0-4.6-1.7-5.3-4H3.4v2.5C5 19.8 8.2 22 12 22Z"
+  //     />
+  //     <path
+  //       fill="#4A90E2"
+  //       d="M6.7 13.1c-.2-.6-.3-1.2-.3-1.9s.1-1.3.3-1.9V6.8H3.4C2.8 8 2.5 9.4 2.5 11.2s.3 3.2.9 4.4l3.3-2.5Z"
+  //     />
+  //     <path
+  //       fill="#FBBC05"
+  //       d="M12 5.6c1.4 0 2.6.5 3.6 1.4l2.7-2.7C16.8 2.7 14.6 2 12 2 8.2 2 5 4.2 3.4 6.8l3.3 2.5c.7-2.3 2.8-3.7 5.3-3.7Z"
+  //     />
+  //   </svg>
+  // );
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -242,7 +242,7 @@ export default function SignupPage() {
                 <p className="text-center text-xs text-green-600">{successMessage}</p>
               ) : null}
 
-              <div className="relative py-2">
+              {/* <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-border" />
                 </div>
@@ -251,9 +251,9 @@ export default function SignupPage() {
                     Or continue with
                   </span>
                 </div>
-              </div>
+              </div> */}
 
-              <div className="grid grid-cols-1 gap-3">
+              {/* <div className="grid grid-cols-1 gap-3">
                 <Button
                   type="button"
                   variant="outline"
@@ -264,7 +264,7 @@ export default function SignupPage() {
                   <span>Google</span>
                 </Button>
                 
-              </div>
+              </div> */}
 
               <p className="pt-2 text-xs text-muted-foreground">
                 Already have an account?{" "}

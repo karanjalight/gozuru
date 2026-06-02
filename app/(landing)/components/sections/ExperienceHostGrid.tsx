@@ -34,6 +34,11 @@ type HostProfileRow = {
 
 type ProfileRow = {
   user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  bio: string | null;
+  city: string | null;
+  country_code: string | null;
   avatar_path: string | null;
 };
 
@@ -84,6 +89,7 @@ function locationLabel(row: ExperienceRow): string {
 function mapToExpert(
   hostId: string,
   host: HostProfileRow | undefined,
+  profile: ProfileRow | undefined,
   row: ExperienceRow | undefined,
   coverUrl: string,
 ): Expert {
@@ -92,21 +98,37 @@ function mapToExpert(
       ? `${host.years_experience}+ yrs`
       : undefined;
   const categoryName = row ? pickCategoryName(row) : undefined;
+
+  const firstName = profile?.first_name?.trim();
+  const lastName = profile?.last_name?.trim();
+  const fullName =
+    firstName && lastName
+      ? `${firstName} ${lastName}`
+      : firstName || lastName || null;
+
   const name =
-    host?.headline?.trim() ||
-    host?.career_highlight?.trim() ||
-    row?.title ||
-    "Experience host";
+    fullName ||
+    "Expert";
+
   const titleLine =
     host?.expertise?.trim()?.slice(0, 80) ||
-    row?.subtitle ||
-    row?.title ||
-    "Local experiences";
+    row?.subtitle?.trim() ||
+    host?.headline?.trim()?.slice(0, 80) ||
+    host?.career_highlight?.trim()?.slice(0, 80) ||
+    (categoryName ? `${categoryName} expert` : "Expert");
+
   const shortBio =
-    host?.expertise?.trim() ||
+    profile?.bio?.trim() ||
     host?.highlight_story?.trim() ||
+    host?.expertise?.trim() ||
     row?.description?.trim()?.slice(0, 160) ||
     "Host-led experiences on Gozuru.";
+
+  const locationStr =
+    profile?.city?.trim() ||
+    (row ? locationLabel(row) : null) ||
+    "Global";
+
   const tags = categoryName
     ? [categoryName, yearsLabel ?? "Host", "Local"]
     : [yearsLabel ?? "Host", "Local", "Experiences"];
@@ -115,14 +137,12 @@ function mapToExpert(
     id: hostId,
     name,
     title: titleLine,
-    location: row ? locationLabel(row) : "Global",
+    location: locationStr,
     image: coverUrl || PLACEHOLDER_IMAGE,
     rating: 5,
     reviewCount: 0,
     tags: tags.slice(0, 3),
     shortBio,
-    // stash count for optional future use — Expert type has no count; we encode in reviewCount as hack? No.
-    // Keep Expert shape strict; omit count from card or add to shortBio
   };
 }
 
@@ -174,14 +194,16 @@ export function ExperienceHostGrid() {
 
       const { data: profileRows } = await supabase
         .from("profiles")
-        .select("user_id,avatar_path")
+        .select("user_id,first_name,last_name,bio,city,country_code,avatar_path")
         .in("user_id", hostIds);
 
       if (!mounted) return;
 
       const mediaList = (mediaRows ?? []) as MediaRow[];
+      const profileByHost: Record<string, ProfileRow> = {};
       const avatarByHost: Record<string, string> = {};
       for (const row of (profileRows ?? []) as ProfileRow[]) {
+        profileByHost[row.user_id] = row;
         const path = row.avatar_path?.trim();
         if (!path) continue;
         if (path.startsWith("http://") || path.startsWith("https://")) {
@@ -219,7 +241,8 @@ export function ExperienceHostGrid() {
         const avatar = avatarByHost[host.user_id];
         const cover = row ? coverByExp[row.id] || PLACEHOLDER_IMAGE : PLACEHOLDER_IMAGE;
         const image = avatar || cover;
-        return mapToExpert(host.user_id, host, row, image);
+        const profile = profileByHost[host.user_id];
+        return mapToExpert(host.user_id, host, profile, row, image);
       });
 
       setItems(nextExperts);
@@ -244,7 +267,7 @@ export function ExperienceHostGrid() {
       >
         <div className="text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl [font-family:var(--font-heading)]">
-            How Gozuru Works
+            Meet our experts
           </h2>
           <p className="mt-3 max-w-2xl mx-auto text-muted-foreground">
             Meet real hosts who list experiences on Gozuru—then discover, book, and learn from
@@ -278,7 +301,10 @@ export function ExperienceHostGrid() {
               </Link>
               <Link
                 href="/auth/signup"
-                className={cn(buttonVariants({ variant: "outline" }), "rounded-full")}
+                className={cn(
+                  buttonVariants({ variant: "default" }),
+                  "rounded-full bg-orange-500 text-white hover:bg-orange-600",
+                )}
               >
                 Become a host
               </Link>
@@ -300,7 +326,7 @@ export function ExperienceHostGrid() {
           <div className="flex flex-wrap items-center justify-center gap-3">
             <motion.a
               href="/experiences"
-              className="inline-flex items-center justify-center rounded-full border-2 border-border bg-background px-8 py-3 text-sm font-medium text-foreground shadow-sm transition-all duration-300 hover:scale-[1.03] hover:border-foreground/20 hover:shadow-md"
+              className="inline-flex items-center justify-center rounded-full border-2 border-border bg-background px-8 py-3 text-sm font-medium text-foreground  transition-all duration-300 hover:scale-[1.03] hover:border-foreground/20 hover:shadow-md"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -308,10 +334,8 @@ export function ExperienceHostGrid() {
             </motion.a>
             <Link
               href="/auth/signup"
-              className={cn(
-                buttonVariants({ variant: "default" }),
-                "rounded-full bg-orange-500 text-white hover:bg-orange-600",
-              )}
+              className="inline-flex items-center justify-center rounded-full border-2 border-border bg-orange-500 px-8 py-3 text-sm font-medium text-white  transition-all duration-300 hover:scale-[1.03] hover:border-foreground/20 hover:shadow-md"
+
             >
               Become a host
             </Link>

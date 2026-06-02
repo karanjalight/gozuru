@@ -9,6 +9,10 @@ import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { authModalStyles as auth } from "@/components/auth/auth-modal-styles";
 
+type LandingAuthModalOpenDetail = {
+  mode?: "login" | "signup";
+};
+
 export function LandingSignupPrompt() {
   const { user, loading, login, signup } = useAuth();
   const [open, setOpen] = useState(false);
@@ -29,22 +33,30 @@ export function LandingSignupPrompt() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (loading || user) return;
-
-    const timer = window.setTimeout(() => {
-      setOpen(true);
-    }, 3000);
-
-    return () => window.clearTimeout(timer);
-  }, [loading, user]);
-
-  useEffect(() => {
     if (user) {
       setOpen(false);
       setError(null);
       setSuccessMessage(null);
     }
   }, [user]);
+
+  useEffect(() => {
+    const onOpenRequested = (event: Event) => {
+      const customEvent = event as CustomEvent<LandingAuthModalOpenDetail>;
+      const requestedMode = customEvent.detail?.mode;
+      if (requestedMode === "login" || requestedMode === "signup") {
+        setAuthMode(requestedMode);
+      }
+      setError(null);
+      setSuccessMessage(null);
+      setOpen(true);
+    };
+
+    window.addEventListener("gozuru-auth-modal-open", onOpenRequested as EventListener);
+    return () => {
+      window.removeEventListener("gozuru-auth-modal-open", onOpenRequested as EventListener);
+    };
+  }, []);
 
   const onLoginSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

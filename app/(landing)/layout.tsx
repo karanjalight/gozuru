@@ -1,4 +1,5 @@
 import { Footer } from "./components";
+import { LandingSignupPrompt } from "./components/LandingSignupPrompt";
 import { LinkedInMessagesDock } from "@/components/messages/LinkedInMessagesDock";
 
 export default function LandingLayout({
@@ -9,6 +10,7 @@ export default function LandingLayout({
   return (
     <div className="min-h-screen flex flex-col">
       {/* <Nav /> */}
+      <LandingSignupPrompt />
       <main className="flex-1">{children}</main>
       <Footer />
       <LinkedInMessagesDock />

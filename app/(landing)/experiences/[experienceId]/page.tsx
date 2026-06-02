@@ -832,6 +832,89 @@ export default function ExperienceDetailPage() {
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+          <Card className="rounded-2xl border-orange-200 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <CalendarDays className="size-4 text-orange-500" />
+                Pick a time slot
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Choose a date and reserve your place instantly.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {availability.length ? (
+                availability.map((slot) => {
+                  const confirmedGuests = confirmedGuestsBySlotId[slot.id] ?? 0;
+                  const remainingSpots = Math.max(0, slot.capacity - confirmedGuests);
+                  const slotPrice = formatMoney(
+                    slot.price_amount ?? experience.price_amount,
+                    slot.currency ?? experience.currency,
+                  );
+                  const isSubmitting = bookingSubmittingSlotId === slot.id;
+                  const isSoldOut = remainingSpots <= 0;
+
+                  return (
+                    <div
+                      key={slot.id}
+                      className={cn(
+                        "rounded-xl border p-3 transition-colors",
+                        isSoldOut
+                          ? "border-border bg-muted/40"
+                          : "border-orange-200 bg-orange-50/60",
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1">
+                          <p className="font-semibold text-foreground">{formatDayTime(slot.starts_at)}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Ends {formatDayTime(slot.ends_at)}
+                          </p>
+                        </div>
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                            isSoldOut
+                              ? "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+                          )}
+                        >
+                          {isSoldOut ? "Sold out" : `${remainingSpots} spots left`}
+                        </span>
+                      </div>
+
+                      {slot.meeting_place_name ? (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Meeting place: {slot.meeting_place_name}
+                        </p>
+                      ) : null}
+
+                      <div className="mt-2 flex items-center justify-between">
+                        <p className="text-sm font-semibold text-foreground">{slotPrice}</p>
+                        <p className="text-xs text-muted-foreground">per guest</p>
+                      </div>
+
+                      <Button
+                        type="button"
+                        className="mt-3 h-9 w-full rounded-full bg-orange-500 text-xs font-semibold text-white hover:bg-orange-600"
+                        onClick={() => handleRequestBooking(slot)}
+                        disabled={isSubmitting || isSoldOut}
+                      >
+                        {isSoldOut
+                          ? "Unavailable"
+                          : isSubmitting
+                            ? "Preparing checkout..."
+                            : "Book this slot"}
+                      </Button>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-xs text-muted-foreground">New dates will be announced soon.</p>
+              )}
+            </CardContent>
+          </Card>
+
           <Card className="rounded-2xl border-orange-100 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-xl">{formatMoney(experience.price_amount, experience.currency)}</CardTitle>
@@ -866,45 +949,6 @@ export default function ExperienceDetailPage() {
               <p className="text-xs text-muted-foreground">
                 {experience.cancellation_policy || "Free cancellation up to 24 hours before start time."}
               </p>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl">
-            <CardHeader>
-              <CardTitle className="text-base">Upcoming availability</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              {availability.length ? (
-                availability.map((slot) => (
-                  <div key={slot.id} className="rounded-lg border p-3">
-                    <div className="flex items-center gap-2 font-medium">
-                      <CalendarDays className="size-4 text-orange-500" />
-                      {formatDayTime(slot.starts_at)}
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Ends {formatDayTime(slot.ends_at)} • {slot.capacity} spots
-                    </p>
-                    {slot.meeting_place_name ? (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Meeting place: {slot.meeting_place_name}
-                      </p>
-                    ) : null}
-                    <p className="mt-1 text-xs font-medium text-foreground">
-                      {formatMoney(slot.price_amount ?? experience.price_amount, slot.currency ?? experience.currency)}
-                    </p>
-                    <Button
-                      type="button"
-                      className="mt-3 h-8 w-full rounded-full bg-orange-500 text-xs text-white hover:bg-orange-600"
-                      onClick={() => handleRequestBooking(slot)}
-                      disabled={bookingSubmittingSlotId === slot.id}
-                    >
-                      {bookingSubmittingSlotId === slot.id ? "Sending request..." : "Request booking"}
-                    </Button>
-                  </div>
-                ))
-              ) : (
-                <p className="text-xs text-muted-foreground">New dates will be announced soon.</p>
-              )}
             </CardContent>
           </Card>
 
