@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { buildCoverByExperienceId, type ExperienceMediaItem } from "@/lib/experience-media";
 import { supabase } from "@/lib/supabase/client";
 import Link from "next/link";
 import { Section } from "./Section";
@@ -149,6 +150,9 @@ function mapToExpert(
 export function ExperienceHostGrid() {
   const [items, setItems] = useState<Expert[]>([]);
   const [linkHrefs, setLinkHrefs] = useState<Record<string, string>>({});
+  const [headerMediaByHostId, setHeaderMediaByHostId] = useState<
+    Record<string, ExperienceMediaItem>
+  >({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -218,15 +222,7 @@ export function ExperienceHostGrid() {
         avatarByHost[row.user_id] = publicUrl;
       }
 
-      const coverByExp: Record<string, string> = {};
-      for (const m of mediaList) {
-        if (m.media_type !== "image") continue;
-        if (coverByExp[m.experience_id]) continue;
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("experience-media").getPublicUrl(m.storage_path);
-        coverByExp[m.experience_id] = publicUrl;
-      }
+      const coverByExp = buildCoverByExperienceId(supabase, mediaList);
 
       const latestExperienceByHost = new Map<string, ExperienceRow>();
       for (const row of (rows ?? []) as ExperienceRow[]) {
@@ -235,18 +231,23 @@ export function ExperienceHostGrid() {
       }
 
       const hrefs: Record<string, string> = {};
+      const headerMediaByHost: Record<string, ExperienceMediaItem> = {};
       const nextExperts: Expert[] = profiles.map((host) => {
         const row = latestExperienceByHost.get(host.user_id);
         hrefs[host.user_id] = `/hosts/${host.user_id}`;
         const avatar = avatarByHost[host.user_id];
-        const cover = row ? coverByExp[row.id] || PLACEHOLDER_IMAGE : PLACEHOLDER_IMAGE;
-        const image = avatar || cover;
+        const coverItem = row ? coverByExp[row.id] : undefined;
+        const image = avatar || coverItem?.url || PLACEHOLDER_IMAGE;
+        if (!avatar && coverItem) {
+          headerMediaByHost[host.user_id] = coverItem;
+        }
         const profile = profileByHost[host.user_id];
         return mapToExpert(host.user_id, host, profile, row, image);
       });
 
       setItems(nextExperts);
       setLinkHrefs(hrefs);
+      setHeaderMediaByHostId(headerMediaByHost);
       setLoading(false);
     };
 
@@ -318,6 +319,7 @@ export function ExperienceHostGrid() {
                 expert={expert}
                 index={i}
                 linkHref={linkHrefs[expert.id]}
+                headerMedia={headerMediaByHostId[expert.id]}
               />
             ))}
           </div>

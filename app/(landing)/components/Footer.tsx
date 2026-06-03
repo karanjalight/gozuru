@@ -15,6 +15,7 @@ const FOOTER_BACKGROUND_IMAGE =
   "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1800&h=1000&fit=crop";
 
 const explore = [
+  { href: "/about", label: "About us" },
   { href: "/experiences", label: "Browse experiences" },
   { href: "/#experts", label: "Explore experts" },
   { href: "/#categories", label: "Interest categories" },
@@ -22,7 +23,8 @@ const explore = [
 ];
 
 const company = [
-  { href: "/about", label: "How Gozuru works" },
+  { href: "/about", label: "About us" },
+  { href: "/about#team", label: "The team" },
   { href: "/hosts", label: "Become a host" },
   { href: "/auth/signup", label: "Create account" },
   { href: "/auth/login", label: "Sign in" },
@@ -212,7 +214,7 @@ export function Footer() {
           <p>© {year} Gozuru. All rights reserved.</p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link href="/about" className="transition hover:text-white">
-              About
+              About us
             </Link>
             <Link href="/hosts" className="transition hover:text-white">
               Hosts

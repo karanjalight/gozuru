@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { CalendarDays, Clock3, MapPin, ShieldCheck, Star, Users } from "lucide-react";
+import { ExperienceMediaCarousel } from "@/components/experience/ExperienceMediaCarousel";
+import { ExperienceBookingPanel } from "@/components/experience/ExperienceBookingPanel";
+import { mapExperienceGalleryMedia } from "@/lib/experience-media";
+import { useParams } from "next/navigation";
+import { Clock3, MapPin, ShieldCheck, Star, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/components/auth/AuthProvider";
 import { Navbar } from "../../components/Navbar";
 
 type ExperienceDetailRow = {
@@ -39,6 +41,7 @@ type ExperienceMediaRow = {
   storage_path: string;
   alt_text: string | null;
   sort_order: number;
+  media_type: string | null;
 };
 
 type ExperienceAvailabilityRow = {
@@ -81,30 +84,6 @@ type ReviewerCardView = {
   avatarUrl: string | null;
 };
 
-declare global {
-  interface Window {
-    PaystackPop?: {
-      setup: (config: {
-        access_code?: string;
-        key?: string;
-        email?: string;
-        amount?: number;
-        currency?: string;
-        ref?: string;
-        callback?: (response: { reference: string }) => void;
-        onClose?: () => void;
-      }) => { openIframe: () => void };
-    };
-  }
-}
-
-const DETAIL_HERO_WIDTH = 1400;
-const DETAIL_HERO_HEIGHT = 900;
-const DETAIL_GRID_WIDTH = 900;
-const DETAIL_GRID_HEIGHT = 700;
-const paystackPublicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY;
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 function formatMoney(amount: number | null, currency: string) {
   if (!amount || amount <= 0) return "Price on request";
   return new Intl.NumberFormat("en-US", {
@@ -114,54 +93,35 @@ function formatMoney(amount: number | null, currency: string) {
   }).format(amount);
 }
 
-function formatDayTime(iso: string) {
-  const date = new Date(iso);
-  return date.toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
+const DETAIL_HERO_WIDTH = 1400;
+const DETAIL_HERO_HEIGHT = 900;
+const DETAIL_GRID_WIDTH = 900;
+const DETAIL_GRID_HEIGHT = 700;
 
 export default function ExperienceDetailPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const params = useParams<{ experienceId: string }>();
   const experienceId = params?.experienceId;
-  const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [experience, setExperience] = useState<ExperienceDetailRow | null>(null);
   const [location, setLocation] = useState<ExperienceLocationRow | null>(null);
-  const [images, setImages] = useState<{ heroUrl: string; gridUrl: string; alt: string }[]>([]);
+  const [galleryMedia, setGalleryMedia] = useState<
+    Array<{
+      url: string;
+      previewUrl: string;
+      mediaType: "image" | "video";
+      alt: string;
+    }>
+  >([]);
   const [availability, setAvailability] = useState<ExperienceAvailabilityRow[]>([]);
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [hostProfile, setHostProfile] = useState<HostProfileRow | null>(null);
   const [hostUser, setHostUser] = useState<ProfileRow | null>(null);
   const [reviewerProfiles, setReviewerProfiles] = useState<Record<string, ProfileRow>>({});
   const [reviewerFallbackImages, setReviewerFallbackImages] = useState<Record<string, string>>({});
-  const [guestsCount, setGuestsCount] = useState(1);
-  const [guestNote, setGuestNote] = useState("");
-  const [bookingError, setBookingError] = useState<string | null>(null);
-  const [bookingMessage, setBookingMessage] = useState<string | null>(null);
-  const [bookingSubmittingSlotId, setBookingSubmittingSlotId] = useState<string | null>(null);
   const [confirmedGuestsBySlotId, setConfirmedGuestsBySlotId] = useState<Record<string, number>>({});
-  const [paymentPromptSlot, setPaymentPromptSlot] = useState<ExperienceAvailabilityRow | null>(null);
-  const [verifyingReference, setVerifyingReference] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || window.PaystackPop) return;
-    const script = document.createElement("script");
-    script.src = "https://js.paystack.co/v1/inline.js";
-    script.async = true;
-    document.body.appendChild(script);
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
 
   useEffect(() => {
     if (!experienceId) return;
@@ -170,7 +130,7 @@ export default function ExperienceDetailPage() {
     const loadUpcomingAvailability = async () => {
       const rpcResult = await supabase.rpc("get_public_upcoming_slots", {
         p_experience_id: experienceId,
-        p_limit: 6,
+        p_limit: 24,
       });
       if (rpcResult.error) {
         throw new Error(rpcResult.error.message);
@@ -181,7 +141,7 @@ export default function ExperienceDetailPage() {
     const loadDetail = async () => {
       setLoading(true);
       setNotFound(false);
-      setBookingError(null);
+      setLoadError(null);
 
       try {
         const { data: expData } = await supabase
@@ -219,7 +179,7 @@ export default function ExperienceDetailPage() {
               .maybeSingle(),
             supabase
               .from("experience_media")
-              .select("storage_path,alt_text,sort_order")
+              .select("storage_path,alt_text,sort_order,media_type")
               .eq("experience_id", experienceId)
               .order("sort_order", { ascending: true }),
             loadUpcomingAvailability(),
@@ -251,32 +211,17 @@ export default function ExperienceDetailPage() {
       setHostProfile((hostData as HostProfileRow | null) ?? null);
       setHostUser((hostUserData as ProfileRow | null) ?? null);
 
-      const mappedImages = ((mediaRows ?? []) as ExperienceMediaRow[]).map((media) => {
-        const {
-          data: { publicUrl: heroUrl },
-        } = supabase.storage.from("experience-media").getPublicUrl(media.storage_path, {
-          transform: {
-            width: DETAIL_HERO_WIDTH,
-            height: DETAIL_HERO_HEIGHT,
-            quality: 74,
-          },
-        });
-        const {
-          data: { publicUrl: gridUrl },
-        } = supabase.storage.from("experience-media").getPublicUrl(media.storage_path, {
-          transform: {
-            width: DETAIL_GRID_WIDTH,
-            height: DETAIL_GRID_HEIGHT,
-            quality: 70,
-          },
-        });
-        return {
-          heroUrl,
-          gridUrl,
-          alt: media.alt_text || experienceRow.title,
-        };
-      });
-      setImages(mappedImages);
+      setGalleryMedia(
+        mapExperienceGalleryMedia(
+          supabase,
+          (mediaRows ?? []) as ExperienceMediaRow[],
+          { width: DETAIL_HERO_WIDTH, height: DETAIL_HERO_HEIGHT, quality: 74 },
+          { width: DETAIL_GRID_WIDTH, height: DETAIL_GRID_HEIGHT, quality: 70 },
+        ).map((item) => ({
+          ...item,
+          alt: item.alt || experienceRow.title,
+        })),
+      );
 
       const slotIds = nextAvailability.map((slot) => slot.id);
       if (slotIds.length > 0) {
@@ -369,7 +314,7 @@ export default function ExperienceDetailPage() {
         if (!mounted) return;
         setAvailability([]);
         setLoading(false);
-        setBookingError(
+        setLoadError(
           error instanceof Error
             ? `Unable to load upcoming availability right now: ${error.message}`
             : "Unable to load upcoming availability right now.",
@@ -412,8 +357,8 @@ export default function ExperienceDetailPage() {
       } = supabase.storage.from("avatars").getPublicUrl(hostUser.avatar_path);
       return publicUrl;
     }
-    return images[0]?.gridUrl || null;
-  }, [hostUser, images]);
+    return galleryMedia[0]?.previewUrl || galleryMedia[0]?.url || null;
+  }, [hostUser, galleryMedia]);
 
   const reviewerCards = useMemo<ReviewerCardView[]>(() => {
     return reviews.map((review) => {
@@ -440,206 +385,6 @@ export default function ExperienceDetailPage() {
       };
     });
   }, [reviewerFallbackImages, reviewerProfiles, reviews]);
-
-  useEffect(() => {
-    const reference = searchParams.get("reference") || searchParams.get("trxref");
-    if (!reference || !user || verifyingReference === reference) return;
-
-    let cancelled = false;
-    const verifyAndCreateBooking = async () => {
-      setVerifyingReference(reference);
-      setBookingError(null);
-      setBookingMessage("Verifying payment and creating your application...");
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData.session?.access_token;
-        if (!token) {
-          throw new Error("Please log in again to complete payment verification.");
-        }
-
-        const response = await fetch("/api/paystack/verify", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ reference }),
-        });
-        const payload = (await response.json()) as { error?: string; alreadyExists?: boolean };
-
-        if (!response.ok) {
-          throw new Error(payload.error || "Payment verification failed.");
-        }
-        if (cancelled) return;
-
-        setBookingMessage(
-          payload.alreadyExists
-            ? "Payment verified. You already have an application for this slot."
-            : "Payment verified. Your application has been created.",
-        );
-        const nextUrl = new URL(window.location.href);
-        nextUrl.searchParams.delete("reference");
-        nextUrl.searchParams.delete("trxref");
-        nextUrl.searchParams.delete("paystack");
-        window.history.replaceState({}, "", nextUrl.toString());
-      } catch (error) {
-        if (cancelled) return;
-        setBookingError(error instanceof Error ? error.message : "Failed to verify payment.");
-      }
-    };
-
-    void verifyAndCreateBooking();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [searchParams, user, verifyingReference]);
-
-  async function beginPaystackCheckout(slot: ExperienceAvailabilityRow) {
-    if (!experience) return;
-    const normalizedEmail = user?.email?.trim().toLowerCase() ?? "";
-    if (!normalizedEmail) {
-      setBookingError("Please log in with a valid email before checkout.");
-      return;
-    }
-    if (!emailPattern.test(normalizedEmail)) {
-      setBookingError("Your account email format is invalid for Paystack. Update your email and try again.");
-      return;
-    }
-    if (!paystackPublicKey) {
-      setBookingError("Paystack public key is missing. Set NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY.");
-      return;
-    }
-    setBookingSubmittingSlotId(slot.id);
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) {
-        throw new Error("Your session expired. Please log in again.");
-      }
-
-      const response = await fetch("/api/paystack/initialize", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          experienceId: experience.id,
-          availabilityId: slot.id,
-          guestsCount,
-          guestNote: guestNote.trim() || null,
-        }),
-      });
-      const payload = (await response.json()) as {
-        error?: string;
-        authorizationUrl?: string;
-        accessCode?: string | null;
-        reference?: string;
-        amountMinor?: number;
-        currency?: string;
-      };
-      if (!response.ok || !payload.reference) {
-        throw new Error(payload.error || "Unable to start Paystack checkout.");
-      }
-      if (!payload.accessCode) {
-        throw new Error("Paystack checkout token missing. Please try again.");
-      }
-      if (!payload.amountMinor || payload.amountMinor <= 0) {
-        throw new Error("Checkout amount is missing for this availability.");
-      }
-
-      if (!window.PaystackPop) {
-        throw new Error("Paystack modal failed to load. Please refresh and try again.");
-      }
-
-      setGuestNote("");
-      const handlePaystackCallback = (paystackResponse: { reference: string }) => {
-        void (async () => {
-          try {
-            setBookingMessage("Verifying payment and creating your application...");
-            setBookingError(null);
-            const { data: sessionData } = await supabase.auth.getSession();
-            const token = sessionData.session?.access_token;
-            if (!token) {
-              throw new Error("Please log in again to complete payment verification.");
-            }
-
-            const verifyResponse = await fetch("/api/paystack/verify", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({ reference: paystackResponse.reference }),
-            });
-            const verifyPayload = (await verifyResponse.json()) as { error?: string; alreadyExists?: boolean };
-            if (!verifyResponse.ok) {
-              throw new Error(verifyPayload.error || "Payment verification failed.");
-            }
-            setBookingMessage(
-              verifyPayload.alreadyExists
-                ? "Payment verified. You already have an application for this slot."
-                : "Payment verified. Your application has been created.",
-            );
-          } catch (error) {
-            setBookingError(error instanceof Error ? error.message : "Failed to verify payment.");
-          }
-        })();
-      };
-
-      const handler = window.PaystackPop.setup({
-        key: paystackPublicKey,
-        email: normalizedEmail,
-        amount: payload.amountMinor,
-        currency: payload.currency ?? "KES",
-        ref: payload.reference,
-        access_code: payload.accessCode,
-        callback: handlePaystackCallback,
-        onClose: () => {
-          setBookingMessage((prev) => prev ?? "Payment window closed before confirmation.");
-        },
-      });
-      handler.openIframe();
-    } catch (error) {
-      setBookingError(error instanceof Error ? error.message : "Failed to start payment.");
-    }
-    setBookingSubmittingSlotId(null);
-  }
-
-  function handleRequestBooking(slot: ExperienceAvailabilityRow) {
-    if (!experience) return;
-    setBookingError(null);
-    setBookingMessage(null);
-
-    if (!user) {
-      router.push("/auth/login");
-      return;
-    }
-
-    if (user.id === experience.host_user_id) {
-      setBookingError("You cannot book your own experience.");
-      return;
-    }
-
-    const remainingSpots = slot.capacity - (confirmedGuestsBySlotId[slot.id] ?? 0);
-    if (remainingSpots <= 0) {
-      setBookingError("This slot is fully booked.");
-      return;
-    }
-
-    if (!Number.isFinite(guestsCount) || guestsCount < 1) {
-      setBookingError("Please select at least 1 guest.");
-      return;
-    }
-
-    if (guestsCount > remainingSpots) {
-      setBookingError(`Only ${remainingSpots} spot(s) remaining for this slot.`);
-      return;
-    }
-
-    setPaymentPromptSlot(slot);
-  }
 
   if (loading) {
     return (
@@ -687,24 +432,32 @@ export default function ExperienceDetailPage() {
           </Link>
         </div>
 
-        <section className="rounded-2xl border bg-gradient-to-br from-orange-50/60 via-background to-background p-6 sm:p-8">
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{experience.title}</h1>
-          {experience.subtitle ? <p className="mt-3 max-w-3xl text-muted-foreground">{experience.subtitle}</p> : null}
-          <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <MapPin className="size-4" />
+        <section className="overflow-hidden rounded-3xl border border-orange-100 bg-gradient-to-br from-orange-50/80 via-background to-background shadow-sm">
+          <div className="border-b border-orange-100/80 px-6 py-5 sm:px-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Experience</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">{experience.title}</h1>
+            {experience.subtitle ? (
+              <p className="mt-3 max-w-3xl text-base text-muted-foreground">{experience.subtitle}</p>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 px-6 py-4 sm:px-8">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm text-muted-foreground">
+              <MapPin className="size-4 text-orange-500" />
               {locationLabel}
             </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Clock3 className="size-4" />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm text-muted-foreground">
+              <Clock3 className="size-4 text-orange-500" />
               {durationHours ? `${durationHours} hour${durationHours > 1 ? "s" : ""}` : "Flexible duration"}
             </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Users className="size-4" />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm text-muted-foreground">
+              <Users className="size-4 text-orange-500" />
               Up to {experience.max_guests ?? 1} guests
             </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-500/10 px-3 py-1.5 text-sm font-semibold text-orange-700 dark:text-orange-300">
+              {formatMoney(experience.price_amount, experience.currency)} / guest
+            </span>
             {ratingSummary.average ? (
-              <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm font-medium text-foreground">
                 <Star className="size-4 fill-orange-400 text-orange-400" />
                 {ratingSummary.average.toFixed(1)} ({ratingSummary.count} reviews)
               </span>
@@ -712,40 +465,22 @@ export default function ExperienceDetailPage() {
           </div>
         </section>
 
-        <section className="mt-8 grid gap-4 md:grid-cols-2">
-        {(images.length ? images : [{ heroUrl: "", gridUrl: "", alt: experience.title }]).slice(0, 4).map((image, index) => (
-          <div
-            key={`${image.heroUrl}-${index}`}
-            className={`relative overflow-hidden rounded-2xl bg-muted ${index === 0 ? "md:col-span-2 md:h-[420px] h-64" : "h-52 md:h-64"}`}
-          >
-            {image.heroUrl ? (
-              <Image
-                src={index === 0 ? image.heroUrl : image.gridUrl}
-                alt={image.alt}
-                fill
-                unoptimized
-                className="object-cover"
-                priority={index === 0}
-                loading={index === 0 ? "eager" : "lazy"}
-                quality={index === 0 ? 74 : 70}
-                sizes={
-                  index === 0
-                    ? "(max-width: 768px) 100vw, (max-width: 1280px) 100vw, 1400px"
-                    : "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 900px"
-                }
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-                No media uploaded yet
-              </div>
-            )}
-          </div>
-        ))}
-        </section>
+        <div className="mt-8">
+          <ExperienceMediaCarousel
+            items={galleryMedia}
+            emptyLabel={experience.title}
+          />
+        </div>
 
-        <section className="mt-10 grid gap-8 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-8">
-          <Card className="rounded-2xl">
+        <section className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="space-y-6">
+          {loadError ? (
+            <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+              {loadError}
+            </p>
+          ) : null}
+
+          <Card className="rounded-3xl border-border/70 shadow-sm">
             <CardHeader>
               <CardTitle>What you will do</CardTitle>
             </CardHeader>
@@ -758,7 +493,7 @@ export default function ExperienceDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl">
+          <Card className="rounded-3xl border-border/70 shadow-sm">
             <CardHeader>
               <CardTitle>What is included</CardTitle>
             </CardHeader>
@@ -774,7 +509,7 @@ export default function ExperienceDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl">
+          <Card className="rounded-3xl border-border/70 shadow-sm">
             <CardHeader>
               <CardTitle>Guest requirements</CardTitle>
             </CardHeader>
@@ -788,7 +523,7 @@ export default function ExperienceDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl">
+          <Card className="rounded-3xl border-border/70 shadow-sm">
             <CardHeader>
               <CardTitle>Reviews</CardTitle>
             </CardHeader>
@@ -831,128 +566,30 @@ export default function ExperienceDetailPage() {
           </Card>
         </div>
 
-        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-          <Card className="rounded-2xl border-orange-200 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <CalendarDays className="size-4 text-orange-500" />
-                Pick a time slot
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Choose a date and reserve your place instantly.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              {availability.length ? (
-                availability.map((slot) => {
-                  const confirmedGuests = confirmedGuestsBySlotId[slot.id] ?? 0;
-                  const remainingSpots = Math.max(0, slot.capacity - confirmedGuests);
-                  const slotPrice = formatMoney(
-                    slot.price_amount ?? experience.price_amount,
-                    slot.currency ?? experience.currency,
-                  );
-                  const isSubmitting = bookingSubmittingSlotId === slot.id;
-                  const isSoldOut = remainingSpots <= 0;
-
-                  return (
-                    <div
-                      key={slot.id}
-                      className={cn(
-                        "rounded-xl border p-3 transition-colors",
-                        isSoldOut
-                          ? "border-border bg-muted/40"
-                          : "border-orange-200 bg-orange-50/60",
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="space-y-1">
-                          <p className="font-semibold text-foreground">{formatDayTime(slot.starts_at)}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Ends {formatDayTime(slot.ends_at)}
-                          </p>
-                        </div>
-                        <span
-                          className={cn(
-                            "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                            isSoldOut
-                              ? "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
-                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-                          )}
-                        >
-                          {isSoldOut ? "Sold out" : `${remainingSpots} spots left`}
-                        </span>
-                      </div>
-
-                      {slot.meeting_place_name ? (
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Meeting place: {slot.meeting_place_name}
-                        </p>
-                      ) : null}
-
-                      <div className="mt-2 flex items-center justify-between">
-                        <p className="text-sm font-semibold text-foreground">{slotPrice}</p>
-                        <p className="text-xs text-muted-foreground">per guest</p>
-                      </div>
-
-                      <Button
-                        type="button"
-                        className="mt-3 h-9 w-full rounded-full bg-orange-500 text-xs font-semibold text-white hover:bg-orange-600"
-                        onClick={() => handleRequestBooking(slot)}
-                        disabled={isSubmitting || isSoldOut}
-                      >
-                        {isSoldOut
-                          ? "Unavailable"
-                          : isSubmitting
-                            ? "Preparing checkout..."
-                            : "Book this slot"}
-                      </Button>
-                    </div>
-                  );
-                })
-              ) : (
-                <p className="text-xs text-muted-foreground">New dates will be announced soon.</p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl border-orange-100 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xl">{formatMoney(experience.price_amount, experience.currency)}</CardTitle>
-              <p className="text-xs text-muted-foreground">per guest</p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-muted-foreground">Guests</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={experience.max_guests ?? 20}
-                  value={guestsCount}
-                  onChange={(event) => {
-                    const next = Number.parseInt(event.target.value, 10);
-                    setGuestsCount(Number.isFinite(next) ? next : 1);
-                  }}
-                  className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                />
+        <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+          <Suspense
+            fallback={
+              <div className="rounded-3xl border border-border bg-muted/30 px-4 py-12 text-center text-sm text-muted-foreground">
+                Loading booking options...
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-muted-foreground">Note to host (optional)</label>
-                <textarea
-                  value={guestNote}
-                  onChange={(event) => setGuestNote(event.target.value)}
-                  className="min-h-[84px] w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
-                  placeholder="Any preferences or questions?"
-                />
-              </div>
-              {bookingError ? <p className="text-xs text-red-500">{bookingError}</p> : null}
-              {bookingMessage ? <p className="text-xs text-emerald-700">{bookingMessage}</p> : null}
-              <p className="text-xs text-muted-foreground">
-                {experience.cancellation_policy || "Free cancellation up to 24 hours before start time."}
-              </p>
-            </CardContent>
-          </Card>
+            }
+          >
+            <ExperienceBookingPanel
+              experience={{
+                id: experience.id,
+                host_user_id: experience.host_user_id,
+                title: experience.title,
+                price_amount: experience.price_amount,
+                currency: experience.currency,
+                max_guests: experience.max_guests,
+                cancellation_policy: experience.cancellation_policy,
+              }}
+              availability={availability}
+              confirmedGuestsBySlotId={confirmedGuestsBySlotId}
+            />
+          </Suspense>
 
-          <Card className="rounded-2xl">
+          <Card className="rounded-3xl border-border/70 shadow-sm">
             <CardHeader>
               <CardTitle className="text-base">About the host</CardTitle>
             </CardHeader>
@@ -989,45 +626,6 @@ export default function ExperienceDetailPage() {
         </aside>
         </section>
       </main>
-      {paymentPromptSlot ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-background p-5 shadow-xl">
-            <h3 className="text-lg font-semibold">Pay first to confirm</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              To confirm this application, complete payment first in the secure Paystack modal.
-            </p>
-            <p className="mt-3 text-sm font-medium text-foreground">
-              Estimated total:{" "}
-              {formatMoney(
-                (paymentPromptSlot.price_amount ?? experience.price_amount ?? 0) * guestsCount,
-                paymentPromptSlot.currency ?? experience.currency,
-              )}
-            </p>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-full"
-                onClick={() => setPaymentPromptSlot(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                className="rounded-full bg-orange-500 text-white hover:bg-orange-600"
-                disabled={bookingSubmittingSlotId === paymentPromptSlot.id}
-                onClick={async () => {
-                  const currentSlot = paymentPromptSlot;
-                  setPaymentPromptSlot(null);
-                  await beginPaystackCheckout(currentSlot);
-                }}
-              >
-                {bookingSubmittingSlotId === paymentPromptSlot.id ? "Redirecting..." : "Continue to Paystack"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </>
   );
 }

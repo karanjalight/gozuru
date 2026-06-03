@@ -2,10 +2,11 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Plus, Upload, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImageIcon, Play, Plus, Upload, Video, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
 
@@ -36,7 +37,11 @@ type AvailabilityDraftSlot = {
 type CalendarView = "day" | "week" | "month" | "year";
 
 const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
+const MAX_MEDIA_FILE_BYTES = 15 * 1024 * 1024;
+const ACCEPTED_IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const ACCEPTED_VIDEO_MIME_TYPES = new Set(["video/mp4", "video/quicktime"]);
+const PHOTO_FILE_ACCEPT = "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
+const VIDEO_FILE_ACCEPT = "video/mp4,video/quicktime,.mp4,.mov";
 function toLocalInputValue(date: Date): string {
   const pad = (v: number) => String(v).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -76,6 +81,16 @@ function startOfWeek(date: Date): Date {
 
 function monthLabel(date: Date): string {
   return date.toLocaleString(undefined, { month: "long", year: "numeric" });
+}
+
+function slugifyLabel(label: string): string {
+  const slug = label
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+  return slug || `custom-${Date.now()}`;
 }
 
 export default function CreateExperiencePage() {
@@ -126,8 +141,19 @@ export default function CreateExperiencePage() {
     ],
     [],
   );
-  const [primaryCategoryId, setPrimaryCategoryId] = useState<string>("");
-  const [descriptorId, setDescriptorId] = useState<string>("");
+  const [customPrimaryCategories, setCustomPrimaryCategories] = useState<Choice[]>([]);
+  const [customExperienceDescriptors, setCustomExperienceDescriptors] = useState<Choice[]>([]);
+  const [primaryCategoryIds, setPrimaryCategoryIds] = useState<string[]>([]);
+  const [descriptorIds, setDescriptorIds] = useState<string[]>([]);
+
+  const allPrimaryCategories = useMemo(
+    () => [...primaryCategories, ...customPrimaryCategories],
+    [primaryCategories, customPrimaryCategories],
+  );
+  const allExperienceDescriptors = useMemo(
+    () => [...experienceDescriptors, ...customExperienceDescriptors],
+    [experienceDescriptors, customExperienceDescriptors],
+  );
 
   // Step 2: about you
   const [yearsExperience, setYearsExperience] = useState("");
@@ -141,9 +167,11 @@ export default function CreateExperiencePage() {
   >("group");
   const [maxGuests, setMaxGuests] = useState("5");
 
-  // Step 3: photos
+  // Step 3: photos & videos
   const [media, setMedia] = useState<UploadedMediaPreview[]>([]);
+  const [mediaError, setMediaError] = useState<string | null>(null);
   const photosInputRef = useRef<HTMLInputElement | null>(null);
+  const videosInputRef = useRef<HTMLInputElement | null>(null);
   // Step 4: availability
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilityDraftSlot[]>([]);
   const [slotStartsAt, setSlotStartsAt] = useState(getNextHourLocalInputValue);
@@ -166,8 +194,7 @@ export default function CreateExperiencePage() {
     () => [
       { title: "Start", subtitle: "Create an experience" },
       { title: "Experience", subtitle: "What will you offer guests?" },
-      { title: "About you", subtitle: "Tell us more about you" },
-      { title: "Photos", subtitle: "Show your expertise" },
+      { title: "Media", subtitle: "Photos and videos of your experience" },
       { title: "Availability", subtitle: "Set your dates and time slots" },
     ],
     [],
@@ -304,7 +331,9 @@ export default function CreateExperiencePage() {
       throw new Error(`Failed to initialize host profile: ${ensureHostProfileError.message}`);
     }
 
-    if (!primaryCategoryId || !descriptorId) throw new Error("Please select both a category and experience type.");
+    if (primaryCategoryIds.length === 0 || descriptorIds.length === 0) {
+      throw new Error("Please select at least one category and one experience type.");
+    }
     if (!experienceTitle.trim() || experienceTitle.trim().length < 5) {
       throw new Error("Please provide a title with at least 5 characters.");
     }
@@ -321,30 +350,33 @@ export default function CreateExperiencePage() {
       throw new Error("Please add at least 10 characters in your expertise section.");
     }
 
+    const primaryCategorySlug = primaryCategoryIds[0];
     const categoryQuery = await supabase
       .from("categories")
       .select("id")
-      .eq("slug", primaryCategoryId)
+      .eq("slug", primaryCategorySlug)
       .maybeSingle();
     if (categoryQuery.error) throw new Error(categoryQuery.error.message);
 
     let categoryId = categoryQuery.data?.id as string | undefined;
+    const primaryCategoryLabel = getPrimaryCategoryLabel(primaryCategorySlug) ?? primaryCategorySlug;
     if (!categoryId) {
-      const categoryLabel = getPrimaryCategoryLabel() ?? primaryCategoryId;
       const { data: createdCategory, error: createCategoryError } = await supabase
         .from("categories")
         .insert({
-          slug: primaryCategoryId,
-          name: categoryLabel,
+          slug: primaryCategorySlug,
+          name: primaryCategoryLabel,
         })
         .select("id")
         .single();
-      if (createCategoryError) throw new Error(createCategoryError.message);
-      categoryId = createdCategory.id as string;
+      if (!createCategoryError && createdCategory?.id) {
+        categoryId = createdCategory.id as string;
+      }
     }
 
-    const descriptor = getDescriptorLabel();
-    const subtitle = descriptor ? `${descriptor} on Gozuru` : null;
+    const descriptorLabels = getDescriptorLabels();
+    const subtitle =
+      descriptorLabels.length > 0 ? `${descriptorLabels.join(", ")} on Gozuru` : null;
     const resolvedDurationMinutes =
       Number.isFinite(durationHoursNumber) && durationHoursNumber > 0
         ? durationHoursNumber * 60
@@ -359,6 +391,23 @@ export default function CreateExperiencePage() {
       male_only: "Audience: Male only",
       private: "Audience: Private group",
     };
+    const additionalCategoryLabels = primaryCategoryIds
+      .slice(1)
+      .map((id) => getPrimaryCategoryLabel(id))
+      .filter((label): label is string => Boolean(label));
+    const baseRequirements = [
+      audienceRequirementMap[audienceType],
+      `Max group size: ${maxGuestsNumber}`,
+      `Standard price: ${currency} ${resolvedPriceAmount ? resolvedPriceAmount.toFixed(2) : "TBD"} per guest`,
+      `Typical duration: ${resolvedDurationMinutes ? `${Math.round(resolvedDurationMinutes / 60)}` : "TBD"} hour(s)`,
+    ];
+    if (!categoryId) {
+      baseRequirements.unshift(`Primary category: ${primaryCategoryLabel}`);
+    }
+    if (additionalCategoryLabels.length > 0) {
+      baseRequirements.push(`Additional categories: ${additionalCategoryLabels.join(", ")}`);
+    }
+
     const baseExperiencePayload = {
       host_user_id: user.id,
       title: experienceTitle.trim(),
@@ -370,12 +419,7 @@ export default function CreateExperiencePage() {
       price_amount: resolvedPriceAmount,
       currency,
       max_guests: maxGuestsNumber,
-      requirements: [
-        audienceRequirementMap[audienceType],
-        `Max group size: ${maxGuestsNumber}`,
-        `Standard price: ${currency} ${resolvedPriceAmount ? resolvedPriceAmount.toFixed(2) : "TBD"} per guest`,
-        `Typical duration: ${resolvedDurationMinutes ? `${Math.round(resolvedDurationMinutes / 60)}` : "TBD"} hour(s)`,
-      ],
+      requirements: baseRequirements,
     };
 
     const targetExperienceId = draftExperienceId ?? editExperienceId;
@@ -409,7 +453,23 @@ export default function CreateExperiencePage() {
   }
 
   async function goNext() {
-    if (stepIndex === 2) {
+    if (stepIndex === 1) {
+      if (primaryCategoryIds.length === 0 || descriptorIds.length === 0) {
+        setSubmitError("Please select at least one category and one experience type.");
+        return;
+      }
+      if (!experienceTitle.trim() || experienceTitle.trim().length < 5) {
+        setSubmitError("Please provide a title with at least 5 characters.");
+        return;
+      }
+      if (!expertise.trim() || expertise.trim().length < 10) {
+        setSubmitError("Please add at least 10 characters in your expertise section.");
+        return;
+      }
+      if (!Number.isFinite(maxGuestsNumber) || maxGuestsNumber < 1 || maxGuestsNumber > 50) {
+        setSubmitError("Maximum group size must be between 1 and 50.");
+        return;
+      }
       try {
         setSubmitError(null);
         await persistDraftExperience({ strict: false });
@@ -438,12 +498,52 @@ export default function CreateExperiencePage() {
     });
   }
 
-  function getDescriptorLabel(): string | undefined {
-    return experienceDescriptors.find((c) => c.id === descriptorId)?.label;
+  function getDescriptorLabel(id: string): string | undefined {
+    return allExperienceDescriptors.find((c) => c.id === id)?.label;
   }
 
-  function getPrimaryCategoryLabel(): string | undefined {
-    return primaryCategories.find((c) => c.id === primaryCategoryId)?.label;
+  function getDescriptorLabels(): string[] {
+    return descriptorIds
+      .map((id) => getDescriptorLabel(id))
+      .filter((label): label is string => Boolean(label));
+  }
+
+  function getPrimaryCategoryLabel(id: string): string | undefined {
+    return allPrimaryCategories.find((c) => c.id === id)?.label;
+  }
+
+  function addCustomPrimaryCategory(label: string): Choice | null {
+    const trimmed = label.trim();
+    if (!trimmed) return null;
+    const id = slugifyLabel(trimmed);
+    const existing = allPrimaryCategories.find((item) => item.id === id || item.label.toLowerCase() === trimmed.toLowerCase());
+    if (existing) {
+      if (!primaryCategoryIds.includes(existing.id)) {
+        setPrimaryCategoryIds((prev) => [...prev, existing.id]);
+      }
+      return existing;
+    }
+    const created = { id, label: trimmed };
+    setCustomPrimaryCategories((prev) => [...prev, created]);
+    return created;
+  }
+
+  function addCustomDescriptor(label: string): Choice | null {
+    const trimmed = label.trim();
+    if (!trimmed) return null;
+    const id = slugifyLabel(trimmed);
+    const existing = allExperienceDescriptors.find(
+      (item) => item.id === id || item.label.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (existing) {
+      if (!descriptorIds.includes(existing.id)) {
+        setDescriptorIds((prev) => [...prev, existing.id]);
+      }
+      return existing;
+    }
+    const created = { id, label: trimmed };
+    setCustomExperienceDescriptors((prev) => [...prev, created]);
+    return created;
   }
 
   function getFileExtension(filename: string): string {
@@ -454,7 +554,65 @@ export default function CreateExperiencePage() {
   function getMediaType(file: File): "image" | "video" | null {
     if (file.type.startsWith("image/")) return "image";
     if (file.type.startsWith("video/")) return "video";
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    if (extension && ["jpg", "jpeg", "png", "webp"].includes(extension)) return "image";
+    if (extension && ["mp4", "mov"].includes(extension)) return "video";
     return null;
+  }
+
+  function isAllowedMediaMime(file: File, mediaType: "image" | "video"): boolean {
+    if (mediaType === "image") {
+      return !file.type || ACCEPTED_IMAGE_MIME_TYPES.has(file.type);
+    }
+    return !file.type || ACCEPTED_VIDEO_MIME_TYPES.has(file.type);
+  }
+
+  function addMediaFiles(files: File[], preferredType?: "image" | "video") {
+    if (files.length === 0) return;
+
+    const errors: string[] = [];
+    const nextItems: UploadedMediaPreview[] = [];
+    const remaining = Math.max(0, 6 - media.length);
+
+    for (const file of files.slice(0, remaining)) {
+      const mediaType = getMediaType(file);
+      if (!mediaType) {
+        errors.push(`${file.name} is not a supported format.`);
+        continue;
+      }
+      if (preferredType && mediaType !== preferredType) {
+        errors.push(
+          `${file.name} must be a ${preferredType === "video" ? "video (MP4 or MOV)" : "photo (JPG, PNG, or WebP)"}.`,
+        );
+        continue;
+      }
+      if (!isAllowedMediaMime(file, mediaType)) {
+        errors.push(
+          `${file.name} must be ${mediaType === "video" ? "MP4 or MOV" : "JPG, PNG, or WebP"}.`,
+        );
+        continue;
+      }
+      if (file.size > MAX_MEDIA_FILE_BYTES) {
+        errors.push(`${file.name} exceeds the 15MB limit.`);
+        continue;
+      }
+
+      const previewUrl = URL.createObjectURL(file);
+      objectUrlsRef.current.push(previewUrl);
+      nextItems.push({ file, previewUrl, mediaType });
+    }
+
+    if (files.length > remaining) {
+      errors.push(`Only ${remaining} more file${remaining === 1 ? "" : "s"} can be added (6 max).`);
+    }
+
+    if (nextItems.length > 0) {
+      setMedia((prev) => [...prev, ...nextItems].slice(0, 6));
+      setMediaError(null);
+    }
+    if (errors.length > 0) {
+      setMediaError(errors[0]);
+    }
   }
 
   function getAudienceFromRequirements(requirements: string[] | null | undefined) {
@@ -618,8 +776,8 @@ export default function CreateExperiencePage() {
       return;
     }
 
-    if (!primaryCategoryId || !descriptorId) {
-      setSubmitError("Please select both a category and experience type.");
+    if (primaryCategoryIds.length === 0 || descriptorIds.length === 0) {
+      setSubmitError("Please select at least one category and one experience type.");
       return;
     }
 
@@ -652,7 +810,6 @@ export default function CreateExperiencePage() {
     setSubmitting(true);
 
     try {
-      const descriptor = getDescriptorLabel();
       const experienceId = await persistDraftExperience({ strict: true });
 
       const mediaRows: Array<{
@@ -703,22 +860,22 @@ export default function CreateExperiencePage() {
         if (deleteTagMapError) throw new Error(deleteTagMapError.message);
       }
 
-      if (descriptor) {
+      const tagMapRows: Array<{ experience_id: string; tag_id: string }> = [];
+      for (const descriptorSlug of descriptorIds) {
         const { data: tag, error: tagError } = await supabase
           .from("experience_tags")
           .select("id")
-          .eq("slug", descriptorId)
+          .eq("slug", descriptorSlug)
           .maybeSingle();
         if (tagError) throw new Error(tagError.message);
-
         const tagId = tag?.id as string | undefined;
         if (tagId) {
-          const { error: mapError } = await supabase.from("experience_tag_map").insert({
-            experience_id: experienceId,
-            tag_id: tagId,
-          });
-          if (mapError) throw new Error(mapError.message);
+          tagMapRows.push({ experience_id: experienceId, tag_id: tagId });
         }
+      }
+      if (tagMapRows.length > 0) {
+        const { error: mapError } = await supabase.from("experience_tag_map").insert(tagMapRows);
+        if (mapError) throw new Error(mapError.message);
       }
 
       const normalizedSlots = availabilitySlots
@@ -790,7 +947,7 @@ export default function CreateExperiencePage() {
 
       const { data: experience, error: experienceError } = await supabase
         .from("experiences")
-        .select("id,title,description,category_id,meeting_point_name,duration_minutes,price_amount,currency,max_guests,requirements")
+        .select("id,title,subtitle,description,category_id,meeting_point_name,duration_minutes,price_amount,currency,max_guests,requirements")
         .eq("id", editExperienceId)
         .eq("host_user_id", user.id)
         .maybeSingle();
@@ -807,16 +964,17 @@ export default function CreateExperiencePage() {
       const { data: tagMapRows } = await supabase
         .from("experience_tag_map")
         .select("tag_id")
-        .eq("experience_id", editExperienceId)
-        .limit(1);
-      let descriptorSlug = "";
-      if (tagMapRows?.[0]?.tag_id) {
+        .eq("experience_id", editExperienceId);
+      const loadedDescriptorSlugs: string[] = [];
+      if (tagMapRows && tagMapRows.length > 0) {
+        const tagIds = tagMapRows.map((row) => row.tag_id);
         const { data: tagData } = await supabase
           .from("experience_tags")
           .select("slug")
-          .eq("id", tagMapRows[0].tag_id)
-          .maybeSingle();
-        descriptorSlug = tagData?.slug ?? "";
+          .in("id", tagIds);
+        for (const row of tagData ?? []) {
+          if (row.slug) loadedDescriptorSlugs.push(row.slug);
+        }
       }
 
       const { data: hostProfile } = await supabase
@@ -861,8 +1019,75 @@ export default function CreateExperiencePage() {
 
       if (!mounted) return;
 
-      setPrimaryCategoryId(categorySlug);
-      setDescriptorId(descriptorSlug);
+      const loadedCategoryIds = categorySlug ? [categorySlug] : [];
+      const loadedCustomCategories: Choice[] = [];
+      const storedPrimaryCategory =
+        (experience.requirements ?? [])
+          .find((req: string) => req.startsWith("Primary category:"))
+          ?.replace("Primary category:", "")
+          .trim() ?? "";
+      if (!categorySlug && storedPrimaryCategory) {
+        const match = primaryCategories.find(
+          (item) => item.label.toLowerCase() === storedPrimaryCategory.toLowerCase(),
+        );
+        if (match) {
+          loadedCategoryIds.push(match.id);
+        } else {
+          const customId = slugifyLabel(storedPrimaryCategory);
+          loadedCustomCategories.push({ id: customId, label: storedPrimaryCategory });
+          loadedCategoryIds.push(customId);
+        }
+      }
+      const additionalCategories =
+        (experience.requirements ?? [])
+          .find((req: string) => req.startsWith("Additional categories:"))
+          ?.replace("Additional categories:", "")
+          .split(",")
+          .map((label: string) => label.trim())
+          .filter(Boolean) ?? [];
+      for (const label of additionalCategories) {
+        const match = primaryCategories.find(
+          (item) => item.label.toLowerCase() === label.toLowerCase(),
+        );
+        if (match && !loadedCategoryIds.includes(match.id)) {
+          loadedCategoryIds.push(match.id);
+          continue;
+        }
+        const customId = slugifyLabel(label);
+        if (!loadedCategoryIds.includes(customId)) {
+          loadedCustomCategories.push({ id: customId, label });
+          loadedCategoryIds.push(customId);
+        }
+      }
+
+      const loadedDescriptorIds = [...loadedDescriptorSlugs];
+      const loadedCustomDescriptors: Choice[] = [];
+      if (experience.subtitle) {
+        const subtitleLabels = experience.subtitle
+          .replace(/\s+on Gozuru$/i, "")
+          .split(",")
+          .map((label: string) => label.trim())
+          .filter(Boolean);
+        for (const label of subtitleLabels) {
+          const match = experienceDescriptors.find(
+            (item) => item.label.toLowerCase() === label.toLowerCase(),
+          );
+          if (match && !loadedDescriptorIds.includes(match.id)) {
+            loadedDescriptorIds.push(match.id);
+            continue;
+          }
+          const customId = slugifyLabel(label);
+          if (!loadedDescriptorIds.includes(customId)) {
+            loadedCustomDescriptors.push({ id: customId, label });
+            loadedDescriptorIds.push(customId);
+          }
+        }
+      }
+
+      setCustomPrimaryCategories(loadedCustomCategories);
+      setCustomExperienceDescriptors(loadedCustomDescriptors);
+      setPrimaryCategoryIds(loadedCategoryIds);
+      setDescriptorIds(loadedDescriptorIds);
       setExperienceTitle(experience.title ?? "");
       setExpertise(experience.description ?? "");
       setDurationHours(
@@ -1003,189 +1228,162 @@ export default function CreateExperiencePage() {
   return (
     <div className="text-foreground">
       <div className="mx-auto w-full max-w-4xl px-4 py-10 lg:px-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                {currentStep.title}
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {currentStep.subtitle}
-              </p>
-            </div>
-
-            <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="rounded-full bg-muted px-3 py-1">
-                Step {stepIndex + 1} / {stepMeta.length}
-              </span>
-            </div>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{currentStep.title}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{currentStep.subtitle}</p>
           </div>
 
-          {/* Stepper */}
-          <div className="mt-6 flex items-center justify-between gap-2 overflow-x-auto pb-3">
-            {stepMeta.map((s, idx) => {
-              const active = idx === stepIndex;
-              const done = idx < stepIndex;
-              return (
+          <div className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
+            <span className="rounded-full bg-muted px-3 py-1">
+              Step {stepIndex + 1} / {stepMeta.length}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-6 flex items-center justify-between gap-2 overflow-x-auto pb-3">
+          {stepMeta.map((s, idx) => {
+            const active = idx === stepIndex;
+            const done = idx < stepIndex;
+            return (
+              <div key={s.title} className="flex min-w-[120px] items-center gap-2">
                 <div
-                  key={s.title}
-                  className="flex min-w-[120px] items-center gap-2"
+                  className={`flex size-9 items-center justify-center rounded-full border text-xs font-semibold ${
+                    active
+                      ? "border-orange-500 bg-orange-500 text-white"
+                      : done
+                        ? "border-orange-500 bg-orange-500/10 text-orange-500"
+                        : "border-input bg-background text-muted-foreground"
+                  }`}
                 >
-                  <div
-                    className={`flex size-9 items-center justify-center rounded-full border text-xs font-semibold ${
-                      active
-                        ? "border-orange-500 bg-orange-500 text-white"
-                        : done
-                          ? "border-orange-500 bg-orange-500/10 text-orange-500"
-                          : "border-input bg-background text-muted-foreground"
-                    }`}
-                  >
-                    {idx + 1}
-                  </div>
-                  <div className="hidden md:block">
-                    <p className="text-[11px] font-medium text-muted-foreground">
-                      {s.title}
-                    </p>
-                  </div>
+                  {idx + 1}
                 </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-6">
-            {stepIndex === 0 ? (
-              <div className="text-center">
-                <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-full border border-orange-200 bg-orange-50">
-                  <div className="text-orange-600 font-black">G</div>
-                </div>
-
-                <h2 className="text-3xl font-bold tracking-tight">
-                  {isEditing ? "Edit your experience on Gozuru" : "Create an Experience on Gozuru"}
-                </h2>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {isEditing
-                    ? "Update your experience details, pricing, audience and media."
-                    : "Work with our experts to propose an experience to travelers on Gozuru."}
-                </p>
-
-                <div className="mx-auto mt-8 max-w-xl text-left">
-                  <ol className="space-y-4">
-                    <li className="flex gap-4">
-                      <div className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                        1
-                      </div>
-                      <p className="text-sm text-foreground">
-                        You&apos;ll tell us about yourself, where you&apos;ll offer your experience, and set up the itinerary.
-                      </p>
-                    </li>
-                    <li className="flex gap-4">
-                      <div className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                        2
-                      </div>
-                      <p className="text-sm text-foreground">
-                        Gozuru will review your submission to ensure it meets our standards and requirements.
-                      </p>
-                    </li>
-                    <li className="flex gap-4">
-                      <div className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                        3
-                      </div>
-                      <p className="text-sm text-foreground">
-                        Once approved, you will add availability to begin hosting.
-                      </p>
-                    </li>
-                  </ol>
-                </div>
-
-                <div className="mt-10 flex justify-center">
-                  <Button
-                    type="button"
-                    className="h-11 rounded-full bg-orange-500 px-8 text-white hover:bg-orange-600"
-                    onClick={goNext}
-                  >
-                    {isEditing ? "Continue editing" : "Get started"}
-                    <ChevronRight className="ml-2 size-4" />
-                  </Button>
+                <div className="hidden md:block">
+                  <p className="text-[11px] font-medium text-muted-foreground">{s.title}</p>
                 </div>
               </div>
-            ) : null}
+            );
+          })}
+        </div>
 
-            {stepIndex === 1 ? (
-              <Card className="rounded-2xl border-border bg-card p-6">
-                <h2 className="text-xl font-semibold tracking-tight">
-                  What experience will you offer guests?
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Pick a category and a style for your experience.
-                </p>
+        <div className="mt-6">
+          {stepIndex === 0 ? (
+            <div className="text-center">
+              <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-full border border-orange-200 bg-orange-50">
+                <div className="font-black text-orange-600">G</div>
+              </div>
 
-                <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                  {primaryCategories.map((c) => {
-                    const selected = c.id === primaryCategoryId;
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        className={`rounded-xl border p-4 text-left transition ${
-                          selected
-                            ? "border-orange-500 bg-orange-50"
-                            : "border-input bg-background hover:bg-muted/60"
-                        }`}
-                        onClick={() => setPrimaryCategoryId(c.id)}
-                      >
-                        <p className="text-sm font-semibold">{c.label}</p>
-                      </button>
-                    );
-                  })}
+              <h2 className="text-3xl font-bold tracking-tight">
+                {isEditing ? "Edit your experience on Gozuru" : "Create an Experience on Gozuru"}
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {isEditing
+                  ? "Update your experience details, pricing, audience and media."
+                  : "Work with our experts to propose an experience to travelers on Gozuru."}
+              </p>
+
+              <div className="mx-auto mt-8 max-w-xl text-left">
+                <ol className="space-y-4">
+                  <li className="flex gap-4">
+                    <div className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                      1
+                    </div>
+                    <p className="text-sm text-foreground">
+                      You&apos;ll tell us about yourself, where you&apos;ll offer your experience, and
+                      set up the itinerary.
+                    </p>
+                  </li>
+                  <li className="flex gap-4">
+                    <div className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                      2
+                    </div>
+                    <p className="text-sm text-foreground">
+                      Gozuru will review your submission to ensure it meets our standards and
+                      requirements.
+                    </p>
+                  </li>
+                  <li className="flex gap-4">
+                    <div className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                      3
+                    </div>
+                    <p className="text-sm text-foreground">
+                      Once approved, you will add availability to begin hosting.
+                    </p>
+                  </li>
+                </ol>
+              </div>
+
+              <div className="mt-10 flex justify-center">
+                <Button
+                  type="button"
+                  className="h-11 rounded-full bg-orange-500 px-8 text-white hover:bg-orange-600"
+                  onClick={goNext}
+                >
+                  {isEditing ? "Continue editing" : "Get started"}
+                  <ChevronRight className="ml-2 size-4" />
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
+          {stepIndex === 1 ? (
+            <Card className="rounded-2xl border-border bg-card p-6">
+              <h2 className="text-xl font-semibold tracking-tight">
+                What experience will you offer guests?
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Choose categories and experience types, then tell guests about you and your offering.
+              </p>
+
+              <div className="mt-6 grid gap-5 md:grid-cols-2">
+                  <MultiSelect
+                    label="Primary categories"
+                    hint="Select all areas that fit your experience."
+                    placeholder="Select categories"
+                    options={allPrimaryCategories}
+                    selectedIds={primaryCategoryIds}
+                    onChange={setPrimaryCategoryIds}
+                    onAddOption={addCustomPrimaryCategory}
+                    addOptionLabel="Add a category"
+                  />
+                  <MultiSelect
+                    label="Experience types"
+                    hint="How would you best describe what guests will do?"
+                    placeholder="Select experience types"
+                    options={allExperienceDescriptors}
+                    selectedIds={descriptorIds}
+                    onChange={setDescriptorIds}
+                    onAddOption={addCustomDescriptor}
+                    addOptionLabel="Add an experience type"
+                  />
                 </div>
 
-                <div className="mt-8">
-                  <h3 className="text-sm font-semibold">How would you best describe it?</h3>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    {experienceDescriptors.map((c) => {
-                      const selected = c.id === descriptorId;
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          className={`rounded-xl border p-4 text-left transition ${
-                            selected
-                              ? "border-orange-500 bg-orange-50"
-                              : "border-input bg-background hover:bg-muted/60"
-                          }`}
-                          onClick={() => setDescriptorId(c.id)}
-                        >
-                          <p className="text-sm font-semibold">{c.label}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </Card>
-            ) : null}
+              <div className="my-8 h-px bg-border" />
 
-            {stepIndex === 2 ? (
-              <Card className="rounded-2xl border-border bg-card p-6">
-                <h2 className="text-xl font-semibold tracking-tight">About you</h2>
+              <h3 className="text-lg font-semibold tracking-tight">About you</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Help travelers understand your background and who this experience is for.
+              </p>
 
-                <div className="mt-6 space-y-5">
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-muted-foreground">
-                      How many years of experience do you have?
-                    </label>
-                    <Input
-                      className="h-10 rounded-xl bg-background"
+              <div className="mt-6 space-y-5">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    How many years of experience do you have?
+                  </label>
+                  <Input
+                    className="h-10 rounded-xl bg-background"
                       value={yearsExperience}
                       onChange={(e) => setYearsExperience(e.target.value)}
                       placeholder="Enter the number of years"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-muted-foreground">
-                      Give yourself a title
-                    </label>
-                    <Input
-                      className="h-10 rounded-xl bg-background"
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Give yourself a title
+                  </label>
+                  <Input
+                    className="h-10 rounded-xl bg-background"
                       value={experienceTitle}
                       onChange={(e) => setExperienceTitle(e.target.value)}
                       placeholder="e.g. Pasta master & city explorer"
@@ -1193,12 +1391,12 @@ export default function CreateExperiencePage() {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-muted-foreground">
-                      Share your expertise
-                    </label>
-                    <textarea
-                      className="min-h-[140px] w-full rounded-xl border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Share your expertise
+                  </label>
+                  <textarea
+                    className="min-h-[140px] w-full rounded-xl border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
                       value={expertise}
                       onChange={(e) => setExpertise(e.target.value)}
                       placeholder="Tell travelers what makes your experience special."
@@ -1209,7 +1407,7 @@ export default function CreateExperiencePage() {
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-border bg-muted/20 p-4">
+                <div className="rounded-2xl border border-border bg-muted/20 p-4">
                     <h3 className="text-sm font-semibold">Audience setup</h3>
                     <p className="mt-1 text-xs text-muted-foreground">
                       Define who this experience is for and maximum group size.
@@ -1241,45 +1439,54 @@ export default function CreateExperiencePage() {
                       ))}
                     </div>
 
-                    <div className="mt-4 space-y-2">
-                      <label className="text-xs font-semibold text-muted-foreground">
-                        Maximum group size
-                      </label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max="50"
-                        step="1"
-                        className="h-10 rounded-xl bg-background"
+                <div className="mt-4 space-y-2">
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Maximum group size
+                  </label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="50"
+                    step="1"
+                    className="h-10 rounded-xl bg-background"
                         value={maxGuests}
                         onChange={(e) => setMaxGuests(e.target.value.replace(/[^\d]/g, ""))}
                         placeholder="5"
                       />
                     </div>
-                  </div>
                 </div>
-              </Card>
-            ) : null}
+              </div>
+            </Card>
+          ) : null}
 
-            {stepIndex === 3 ? (
-              <Card className="rounded-2xl border-border bg-card p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-semibold tracking-tight">
-                      Add photos that showcase your expertise
-                    </h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Add up to 6 media files (images or videos).
-                    </p>
-                  </div>
+          {stepIndex === 2 ? (
+            <Card className="rounded-2xl border-border bg-card p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold tracking-tight">Add photos and videos</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Showcase your experience with up to 6 files. Photos: JPG, PNG, or WebP. Videos: MP4
+                    or MOV (max 15MB each).
+                  </p>
+                </div>
+                <div className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
+                  {media.length} / 6
+                </div>
+              </div>
 
-                  <div className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
-                    {media.length} / 6 added
-                  </div>
+                <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  <span className="rounded-full border border-border bg-muted/30 px-2.5 py-1">
+                    {media.filter((item) => item.mediaType === "image").length} photo
+                    {media.filter((item) => item.mediaType === "image").length === 1 ? "" : "s"}
+                  </span>
+                  <span className="rounded-full border border-border bg-muted/30 px-2.5 py-1">
+                    {media.filter((item) => item.mediaType === "video").length} video
+                    {media.filter((item) => item.mediaType === "video").length === 1 ? "" : "s"}
+                  </span>
                 </div>
 
                 <div className="mt-6">
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {Array.from({ length: 6 }).map((_, idx) => {
                       const item = media[idx];
                       return (
@@ -1292,95 +1499,127 @@ export default function CreateExperiencePage() {
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 src={item.previewUrl}
-                                alt={`Experience media ${idx + 1}`}
+                                alt={`Experience photo ${idx + 1}`}
                                 className="absolute inset-0 size-full object-cover"
                               />
                             ) : (
-                              <video
-                                src={item.previewUrl}
-                                className="absolute inset-0 size-full object-cover"
-                                muted
-                              />
+                              <>
+                                <video
+                                  src={item.previewUrl}
+                                  className="absolute inset-0 size-full object-cover"
+                                  muted
+                                  playsInline
+                                  preload="metadata"
+                                />
+                                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20">
+                                  <span className="flex size-10 items-center justify-center rounded-full bg-white/90 shadow-sm">
+                                    <Play className="ml-0.5 size-4 fill-orange-600 text-orange-600" />
+                                  </span>
+                                </div>
+                              </>
                             )
                           ) : (
-                            <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
-                              Media
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-xs text-muted-foreground">
+                              <Upload className="size-4 opacity-50" />
+                              <span>Empty slot</span>
                             </div>
                           )}
                           {item ? (
-                            <button
-                              type="button"
-                              onClick={() => removeMediaItem(idx)}
-                              className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/75"
-                              aria-label={`Remove media ${idx + 1}`}
-                            >
-                              <X className="size-3.5" />
-                            </button>
+                            <>
+                              <span className="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold text-white">
+                                {item.mediaType === "video" ? "Video" : "Photo"}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => removeMediaItem(idx)}
+                                className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/75"
+                                aria-label={`Remove ${item.mediaType} ${idx + 1}`}
+                              >
+                                <X className="size-3.5" />
+                              </button>
+                            </>
                           ) : null}
                         </div>
                       );
                     })}
                   </div>
 
-                  <div className="mt-6 flex items-center justify-center">
+                  <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
                     <Button
                       type="button"
                       variant="outline"
-                      className="rounded-full"
-                      onClick={() => photosInputRef.current?.click()}
+                      className="w-full rounded-full sm:w-auto"
+                      onClick={() => {
+                        setMediaError(null);
+                        photosInputRef.current?.click();
+                      }}
                       disabled={media.length >= 6}
                     >
-                      <Upload className="mr-2 size-4" />
-                      Add media
+                      <ImageIcon className="mr-2 size-4" />
+                      Add photos
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full rounded-full border-orange-200 bg-orange-50 text-orange-800 hover:bg-orange-100 sm:w-auto"
+                      onClick={() => {
+                        setMediaError(null);
+                        videosInputRef.current?.click();
+                      }}
+                      disabled={media.length >= 6}
+                    >
+                      <Video className="mr-2 size-4" />
+                      Add videos
                     </Button>
                     <input
                       ref={photosInputRef}
                       type="file"
-                      accept="image/*,video/mp4,video/quicktime"
+                      accept={PHOTO_FILE_ACCEPT}
                       multiple
                       className="hidden"
                       onChange={(e) => {
                         const files = e.target.files ? Array.from(e.target.files) : [];
-                        if (files.length === 0) return;
-                        const remaining = 6 - media.length;
-                        const toAdd = files.slice(0, remaining);
-                        const toAddWithPreview = toAdd.flatMap((file) => {
-                          const mediaType = getMediaType(file);
-                          if (!mediaType) return [];
-                          const previewUrl = URL.createObjectURL(file);
-                          objectUrlsRef.current.push(previewUrl);
-                          return [
-                            {
-                              file,
-                              previewUrl,
-                              mediaType,
-                            } satisfies UploadedMediaPreview,
-                          ];
-                        });
-                        setMedia((prev) => [...prev, ...toAddWithPreview].slice(0, 6));
+                        addMediaFiles(files, "image");
+                        e.target.value = "";
+                      }}
+                    />
+                    <input
+                      ref={videosInputRef}
+                      type="file"
+                      accept={VIDEO_FILE_ACCEPT}
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = e.target.files ? Array.from(e.target.files) : [];
+                        addMediaFiles(files, "video");
+                        e.target.value = "";
                       }}
                     />
                   </div>
                 </div>
-              </Card>
-            ) : null}
+              {mediaError ? (
+                <p className="mt-3 text-center text-sm text-red-500">{mediaError}</p>
+              ) : null}
+            </Card>
+          ) : null}
 
-            {stepIndex === 4 ? (
-              <Card className="rounded-2xl border-border bg-card p-6">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-xl font-semibold tracking-tight">Set your availability</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Add premium booking slots. Guests can only request times you publish.
-                    </p>
-                  </div>
-                  <div className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
-                    {activeAvailabilitySlots.length} active slot{activeAvailabilitySlots.length === 1 ? "" : "s"}
-                  </div>
+          {stepIndex === 3 ? (
+            <Card className="rounded-2xl border-border bg-card p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-semibold tracking-tight">Set your availability</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Add premium booking slots. Guests can only request times you publish.
+                  </p>
                 </div>
+                <div className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
+                  {activeAvailabilitySlots.length} active slot
+                  {activeAvailabilitySlots.length === 1 ? "" : "s"}
+                </div>
+              </div>
 
-                <div className="mt-6 rounded-2xl border border-border bg-muted/20 p-4">
-                  <div className="mb-4 rounded-2xl border border-orange-200 bg-orange-50 p-4">
+              <div className="mt-6 rounded-2xl border border-border bg-muted/20 p-4">
+                <div className="mb-4 rounded-2xl border border-orange-200 bg-orange-50 p-4">
                     <h3 className="text-sm font-semibold">Standard experience pricing</h3>
                     <p className="mt-1 text-xs text-muted-foreground">
                       Set default duration and price used by slots unless overridden.
@@ -1791,12 +2030,11 @@ export default function CreateExperiencePage() {
                     </div>
                   )}
                 </div>
-              </Card>
-            ) : null}
-          </div>
+            </Card>
+          ) : null}
+        </div>
 
-          {/* Bottom actions */}
-          {stepIndex === 0 ? null : (
+        {stepIndex === 0 ? null : (
           <div className="mt-8 flex items-center justify-between gap-3 border-t pt-6">
             <Button
               type="button"
@@ -1836,13 +2074,11 @@ export default function CreateExperiencePage() {
               </Button>
             )}
           </div>
-          )}
-          {loadingExistingData ? (
-            <p className="mt-3 text-sm text-muted-foreground">Loading experience data...</p>
-          ) : null}
-          {submitError ? (
-            <p className="mt-3 text-sm text-red-500">{submitError}</p>
-          ) : null}
+        )}
+        {loadingExistingData ? (
+          <p className="mt-3 text-sm text-muted-foreground">Loading experience data...</p>
+        ) : null}
+        {submitError ? <p className="mt-3 text-sm text-red-500">{submitError}</p> : null}
       </div>
     </div>
   );

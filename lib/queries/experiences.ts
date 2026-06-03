@@ -1,4 +1,14 @@
+import {
+  buildCoverByExperienceId,
+  type ExperienceMediaItem,
+  type ExperienceMediaRowInput,
+} from "@/lib/experience-media";
 import { supabase } from "@/lib/supabase/client";
+
+export type ExperienceCategory = {
+  name: string;
+  slug: string;
+};
 
 export type ExperienceRow = {
   id: string;
@@ -10,13 +20,16 @@ export type ExperienceRow = {
   currency: string;
   meeting_point_name: string | null;
   created_at: string;
+  categories: ExperienceCategory | ExperienceCategory[] | null;
 };
 
-type ExperienceMediaRow = {
-  experience_id: string;
-  storage_path: string;
-  sort_order: number;
-};
+export function pickExperienceCategory(
+  categories: ExperienceRow["categories"],
+): ExperienceCategory | null {
+  if (!categories) return null;
+  if (Array.isArray(categories)) return categories[0] ?? null;
+  return categories;
+}
 
 type ExperienceLocationRow = {
   experience_id: string;
@@ -38,7 +51,7 @@ export const featuredImageTransform = {
 
 export type LandingExperiencesResult = {
   experiences: ExperienceRow[];
-  coverByExperienceId: Record<string, string>;
+  coverByExperienceId: Record<string, ExperienceMediaItem>;
   locationByExperienceId: Record<string, string>;
 };
 
@@ -60,7 +73,7 @@ function subsetLandingResult(result: LandingExperiencesResult, limit: number): L
   const experiences = result.experiences.slice(0, limit);
   const ids = new Set(experiences.map((experience) => experience.id));
 
-  const coverByExperienceId: Record<string, string> = {};
+  const coverByExperienceId: Record<string, ExperienceMediaItem> = {};
   const locationByExperienceId: Record<string, string> = {};
 
   for (const [experienceId, cover] of Object.entries(result.coverByExperienceId)) {
@@ -92,7 +105,10 @@ export async function fetchLandingExperiences(limit: number, transform: { width:
 
   const { data: rows } = await supabase
     .from("experiences")
-    .select("id,title,description,subtitle,duration_minutes,price_amount,currency,meeting_point_name,created_at")
+    .select(
+      "id,title,description,subtitle,duration_minutes,price_amount,currency,meeting_point_name,created_at,categories(name,slug)",
+    )
+    .eq("status", "published")
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -100,7 +116,7 @@ export async function fetchLandingExperiences(limit: number, transform: { width:
   if (experienceRows.length === 0) {
     const emptyResult = {
       experiences: [],
-      coverByExperienceId: {} as Record<string, string>,
+      coverByExperienceId: {} as Record<string, ExperienceMediaItem>,
       locationByExperienceId: {} as Record<string, string>,
     };
     landingExperiencesCache.set(cacheKey, {
@@ -115,7 +131,7 @@ export async function fetchLandingExperiences(limit: number, transform: { width:
   const [{ data: mediaRows }, { data: locationRows }] = await Promise.all([
     supabase
       .from("experience_media")
-      .select("experience_id,storage_path,sort_order")
+      .select("experience_id,storage_path,sort_order,media_type")
       .in("experience_id", ids)
       .order("sort_order", { ascending: true }),
     supabase
@@ -124,14 +140,11 @@ export async function fetchLandingExperiences(limit: number, transform: { width:
       .in("experience_id", ids),
   ]);
 
-  const coverByExperienceId: Record<string, string> = {};
-  for (const mediaRow of (mediaRows ?? []) as ExperienceMediaRow[]) {
-    if (coverByExperienceId[mediaRow.experience_id]) continue;
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("experience-media").getPublicUrl(mediaRow.storage_path, { transform });
-    coverByExperienceId[mediaRow.experience_id] = publicUrl;
-  }
+  const coverByExperienceId = buildCoverByExperienceId(
+    supabase,
+    (mediaRows ?? []) as ExperienceMediaRowInput[],
+    transform,
+  );
 
   const locationByExperienceId: Record<string, string> = {};
   for (const location of (locationRows ?? []) as ExperienceLocationRow[]) {

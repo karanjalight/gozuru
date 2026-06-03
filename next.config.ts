@@ -16,6 +16,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "media.licdn.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "omeztanuxcfpmnpenicd.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },

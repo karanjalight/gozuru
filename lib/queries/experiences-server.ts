@@ -1,11 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
+import {
+  buildCoverByExperienceId,
+  type ExperienceMediaRowInput,
+} from "@/lib/experience-media";
 import type { ExperienceRow, LandingExperiencesResult } from "@/lib/queries/experiences";
-
-type ExperienceMediaRow = {
-  experience_id: string;
-  storage_path: string;
-  sort_order: number;
-};
 
 type ExperienceLocationRow = {
   experience_id: string;
@@ -34,7 +32,10 @@ export async function fetchLandingExperiencesServer(
 
   const { data: rows } = await supabase
     .from("experiences")
-    .select("id,title,description,subtitle,duration_minutes,price_amount,currency,meeting_point_name,created_at")
+    .select(
+      "id,title,description,subtitle,duration_minutes,price_amount,currency,meeting_point_name,created_at,categories(name,slug)",
+    )
+    .eq("status", "published")
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -52,7 +53,7 @@ export async function fetchLandingExperiencesServer(
   const [{ data: mediaRows }, { data: locationRows }] = await Promise.all([
     supabase
       .from("experience_media")
-      .select("experience_id,storage_path,sort_order")
+      .select("experience_id,storage_path,sort_order,media_type")
       .in("experience_id", ids)
       .order("sort_order", { ascending: true }),
     supabase
@@ -61,14 +62,11 @@ export async function fetchLandingExperiencesServer(
       .in("experience_id", ids),
   ]);
 
-  const coverByExperienceId: Record<string, string> = {};
-  for (const mediaRow of (mediaRows ?? []) as ExperienceMediaRow[]) {
-    if (coverByExperienceId[mediaRow.experience_id]) continue;
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("experience-media").getPublicUrl(mediaRow.storage_path, { transform });
-    coverByExperienceId[mediaRow.experience_id] = publicUrl;
-  }
+  const coverByExperienceId = buildCoverByExperienceId(
+    supabase,
+    (mediaRows ?? []) as ExperienceMediaRowInput[],
+    transform,
+  );
 
   const locationByExperienceId: Record<string, string> = {};
   for (const location of (locationRows ?? []) as ExperienceLocationRow[]) {

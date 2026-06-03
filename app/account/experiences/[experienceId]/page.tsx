@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { ExperienceMediaDisplay } from "@/components/experience/ExperienceMediaDisplay";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, CalendarPlus, MapPin, Trash2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { mapExperienceMediaItems, type ExperienceMediaItem } from "@/lib/experience-media";
 import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -71,7 +72,7 @@ export default function ExperienceDetailPage() {
   const params = useParams<{ experienceId: string }>();
   const { user } = useAuth();
   const [experience, setExperience] = useState<ExperienceDetail | null>(null);
-  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
+  const [mediaItems, setMediaItems] = useState<ExperienceMediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
@@ -207,7 +208,7 @@ export default function ExperienceDetailPage() {
 
       const { data: mediaRows, error: mediaError } = await supabase
         .from("experience_media")
-        .select("storage_path")
+        .select("storage_path,media_type,alt_text,sort_order")
         .eq("experience_id", params.experienceId)
         .order("sort_order", { ascending: true });
 
@@ -218,13 +219,7 @@ export default function ExperienceDetailPage() {
         return;
       }
 
-      const urls = (mediaRows ?? []).map((row) => {
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("experience-media").getPublicUrl(row.storage_path as string);
-        return publicUrl;
-      });
-      setMediaUrls(urls);
+      setMediaItems(mapExperienceMediaItems(supabase, mediaRows ?? []));
       await loadSlots(params.experienceId);
       setLoading(false);
     };
@@ -351,19 +346,23 @@ export default function ExperienceDetailPage() {
       </Card>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {mediaUrls.length === 0 ? (
+        {mediaItems.length === 0 ? (
           <Card className="rounded-2xl border-border bg-card p-6 text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">
             No media has been uploaded for this experience yet.
           </Card>
         ) : (
-          mediaUrls.map((url, index) => (
-            <div key={`${url}-${index}`} className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-border bg-muted">
-              <Image
-                src={url}
-                alt={`${experience.title} media ${index + 1}`}
+          mediaItems.map((item, index) => (
+            <div
+              key={`${item.url}-${index}`}
+              className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-border bg-muted"
+            >
+              <ExperienceMediaDisplay
+                media={item}
+                alt={item.alt ?? `${experience.title} media ${index + 1}`}
                 fill
-                className="object-cover"
                 sizes="(max-width: 640px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                videoAutoplay
+                videoControls={item.mediaType === "video"}
               />
             </div>
           ))

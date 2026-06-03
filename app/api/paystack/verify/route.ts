@@ -1,6 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+type PaystackCartItem = {
+  availabilityId: string;
+  guestsCount: number;
+};
+
+function parseCartItems(metadata?: {
+  experienceId?: string;
+  availabilityId?: string;
+  guestsCount?: number;
+  guestNote?: string | null;
+  cartItemsJson?: string;
+}): PaystackCartItem[] {
+  if (metadata?.cartItemsJson) {
+    try {
+      const parsed = JSON.parse(metadata.cartItemsJson) as Array<{ a?: string; g?: number }>;
+      const items = parsed
+        .map((item) => ({
+          availabilityId: item.a ?? "",
+          guestsCount: Number(item.g),
+        }))
+        .filter(
+          (item) => item.availabilityId && Number.isFinite(item.guestsCount) && item.guestsCount > 0,
+        );
+      if (items.length > 0) return items;
+    } catch {
+      // Fall through to legacy single-item metadata.
+    }
+  }
+
+  const availabilityId = metadata?.availabilityId;
+  const guestsCount = Number(metadata?.guestsCount);
+  if (availabilityId && Number.isFinite(guestsCount) && guestsCount > 0) {
+    return [{ availabilityId, guestsCount }];
+  }
+
+  return [];
+}
+
 type PaystackVerifyResponse = {
   status: boolean;
   message?: string;
@@ -12,6 +50,7 @@ type PaystackVerifyResponse = {
       availabilityId?: string;
       guestsCount?: number;
       guestNote?: string | null;
+      cartItemsJson?: string;
     };
   };
 };
@@ -74,11 +113,10 @@ export async function POST(request: NextRequest) {
 
     const metadata = verifyJson.data.metadata;
     const experienceId = metadata?.experienceId;
-    const availabilityId = metadata?.availabilityId;
-    const guestsCount = Number(metadata?.guestsCount);
     const guestNote = metadata?.guestNote ?? null;
+    const cartItems = parseCartItems(metadata);
 
-    if (!experienceId || !availabilityId || !Number.isFinite(guestsCount) || guestsCount < 1) {
+    if (!experienceId || cartItems.length === 0) {
       return NextResponse.json({ error: "Payment metadata is incomplete." }, { status: 400 });
     }
 
@@ -88,18 +126,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: authError?.message ?? "Not authenticated." }, { status: 401 });
     }
 
-    const { data: bookingId, error: bookingError } = await supabase.rpc("request_experience_booking", {
-      p_experience_id: experienceId,
-      p_availability_id: availabilityId,
-      p_guests_count: guestsCount,
-      p_guest_note: guestNote,
-    });
+    const bookingIds: string[] = [];
+    const failures: string[] = [];
 
-    if (bookingError) {
-      return NextResponse.json({ error: bookingError.message }, { status: 400 });
+    for (const item of cartItems) {
+      const { data: bookingId, error: bookingError } = await supabase.rpc("request_experience_booking", {
+        p_experience_id: experienceId,
+        p_availability_id: item.availabilityId,
+        p_guests_count: item.guestsCount,
+        p_guest_note: guestNote,
+      });
+
+      if (bookingError) {
+        failures.push(bookingError.message);
+        continue;
+      }
+      if (bookingId) bookingIds.push(String(bookingId));
     }
 
-    return NextResponse.json({ ok: true, bookingId, alreadyExists: false, reference: verifyJson.data.reference });
+    if (bookingIds.length === 0) {
+      return NextResponse.json(
+        { error: failures[0] || "Could not create booking from payment." },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      bookingIds,
+      bookedCount: bookingIds.length,
+      alreadyExists: false,
+      reference: verifyJson.data.reference,
+      partialFailure: failures.length > 0 ? failures.join(" · ") : null,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to verify payment." },

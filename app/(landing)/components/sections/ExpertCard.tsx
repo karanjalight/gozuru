@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { ExperienceMediaDisplay } from "@/components/experience/ExperienceMediaDisplay";
+import type { ExperienceMediaItem } from "@/lib/experience-media";
 import { motion } from "framer-motion";
 import { MapPin, Star } from "lucide-react";
 import {
@@ -20,6 +22,8 @@ interface ExpertCardProps {
   index?: number;
   /** When set, card links here (e.g. public host profile). Otherwise `/experts/:id`. */
   linkHref?: string;
+  /** Experience cover when host has no avatar (supports video). */
+  headerMedia?: ExperienceMediaItem;
 }
 
 const FALLBACK_IMAGE =
@@ -44,7 +48,7 @@ function getSafeImageSrc(src: string): string {
   return FALLBACK_IMAGE;
 }
 
-export function ExpertCard({ expert, index = 0, linkHref }: ExpertCardProps) {
+export function ExpertCard({ expert, index = 0, linkHref, headerMedia }: ExpertCardProps) {
   const imageSrc = getSafeImageSrc(expert.image);
   const initials = expert.name
     .split(" ")
@@ -70,14 +74,25 @@ export function ExpertCard({ expert, index = 0, linkHref }: ExpertCardProps) {
         >
           <CardHeader className="p-0 -mt-4 ">
             <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
-              <Image
-                src={imageSrc}
-                alt={expert.name}
-                fill
-                unoptimized
-                className="object-cover object-center transition duration-300 group-hover:scale-105"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              />
+              {headerMedia ? (
+                <ExperienceMediaDisplay
+                  media={headerMedia}
+                  alt={expert.name}
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  videoAutoplay
+                  showVideoBadge={false}
+                />
+              ) : (
+                <Image
+                  src={imageSrc}
+                  alt={expert.name}
+                  fill
+                  unoptimized
+                  className="object-cover object-center transition duration-300 group-hover:scale-105"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                />
+              )}
               <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-background/95 px-2.5 py-1 text-xs font-semibold text-foreground shadow backdrop-blur-sm">
                 <Star className="size-3.5 fill-amber-500 text-amber-500" aria-hidden />
                 {expert.rating}

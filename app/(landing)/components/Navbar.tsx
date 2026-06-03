@@ -20,7 +20,7 @@ const NAV_LINKS = [
   },
   {
     href: "/about",
-    label: "How it works",
+    label: "About us",
     isActive: (path: string) => path === "/about" || path.startsWith("/about/"),
   },
   {
@@ -217,19 +217,13 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => setProfileMenuOpen((prev) => !prev)}
-                className="inline-flex rounded-full"
+                className={cn(iconButtonClass, "overflow-hidden p-0")}
                 aria-label="Open profile menu"
               >
-                <Avatar
-                  size="sm"
-                  className={cn(
-                    "ring-1",
-                    isDarkMode ? "ring-white/20" : "ring-slate-300/80",
-                  )}
-                >
+                <Avatar size="lg" className="size-full after:hidden">
                   <AvatarFallback
                     className={cn(
-                      "font-semibold",
+                      "text-sm font-semibold",
                       isDarkMode
                         ? "bg-white/10 text-white"
                         : "bg-slate-100 text-slate-800",

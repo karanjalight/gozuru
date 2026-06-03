@@ -1,23 +1,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CalendarClock,
   CircleCheckBig,
   Clock3,
+  Eye,
   FileText,
   MapPin,
+  MoreHorizontal,
+  Pencil,
   PlusSquare,
   Sparkles,
   Trash2,
   Users,
 } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { ExperienceMediaDisplay } from "@/components/experience/ExperienceMediaDisplay";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/components/auth/AuthProvider";
+import {
+  buildCoverByExperienceId,
+  type ExperienceMediaItem,
+  type ExperienceMediaRowInput,
+} from "@/lib/experience-media";
 import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -48,17 +56,39 @@ type AvailabilityRow = {
   is_cancelled: boolean;
 };
 
+function getCategoryName(categories: HostExperience["categories"]): string | null {
+  if (Array.isArray(categories)) return categories[0]?.name ?? null;
+  return categories?.name ?? null;
+}
+
+const experienceMenuItemClass =
+  "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-muted";
+
+function getStatusStyles(status: string) {
+  if (status === "published") {
+    return "bg-emerald-100 text-emerald-700";
+  }
+  if (status.includes("review") || status === "submitted") {
+    return "bg-amber-100 text-amber-700";
+  }
+  if (status === "rejected") {
+    return "bg-red-100 text-red-700";
+  }
+  return "bg-zinc-100 text-zinc-700";
+}
+
 export default function ExperiencesPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [experiences, setExperiences] = useState<HostExperience[]>([]);
-  const [coverByExperienceId, setCoverByExperienceId] = useState<Record<string, string>>({});
+  const [coverByExperienceId, setCoverByExperienceId] = useState<Record<string, ExperienceMediaItem>>({});
   const [activeSlotsByExperienceId, setActiveSlotsByExperienceId] = useState<Record<string, number>>({});
   const [nextSlotByExperienceId, setNextSlotByExperienceId] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
   const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const publishedCount = experiences.filter((exp) => exp.status === "published").length;
   const inReviewCount = experiences.filter((exp) => exp.status.includes("review")).length;
 
@@ -90,6 +120,7 @@ export default function ExperiencesPage() {
     if (!confirmed) return;
 
     setDeleteLoadingId(experience.id);
+    setOpenMenuId(null);
     setError(null);
     const { error: deleteError } = await supabase
       .from("experiences")
@@ -169,25 +200,12 @@ export default function ExperiencesPage() {
           ]);
 
           if (mounted && mediaRows) {
-            const nextMap: Record<string, string> = {};
-            const typedRows = mediaRows as Array<ExperienceMedia & { sort_order: number }>;
-            for (const mediaRow of typedRows) {
-              if (mediaRow.media_type === "video") continue;
-              if (nextMap[mediaRow.experience_id]) continue;
-              const {
-                data: { publicUrl },
-              } = supabase.storage.from("experience-media").getPublicUrl(mediaRow.storage_path);
-              nextMap[mediaRow.experience_id] = publicUrl;
-            }
-            // Fallback: if an experience has only videos, still show first asset url.
-            for (const mediaRow of typedRows) {
-              if (nextMap[mediaRow.experience_id]) continue;
-              const {
-                data: { publicUrl },
-              } = supabase.storage.from("experience-media").getPublicUrl(mediaRow.storage_path);
-              nextMap[mediaRow.experience_id] = publicUrl;
-            }
-            setCoverByExperienceId(nextMap);
+            setCoverByExperienceId(
+              buildCoverByExperienceId(
+                supabase,
+                mediaRows as Array<ExperienceMediaRowInput & { sort_order: number }>,
+              ),
+            );
           }
           if (mounted) {
             const nextActiveSlots: Record<string, number> = {};
@@ -223,9 +241,22 @@ export default function ExperiencesPage() {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!openMenuId) return;
+    const closeMenu = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!(target instanceof Element)) return;
+      if (!target.closest("[data-experience-actions]")) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", closeMenu);
+    return () => document.removeEventListener("mousedown", closeMenu);
+  }, [openMenuId]);
+
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-8 lg:px-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[11px] font-semibold text-orange-700">
             <Sparkles className="size-3.5" />
@@ -238,7 +269,7 @@ export default function ExperiencesPage() {
         </div>
         <Button
           type="button"
-          className="rounded-full bg-orange-500 text-white hover:bg-orange-600"
+          className="shrink-0 rounded-full bg-orange-500 text-white hover:bg-orange-600"
           onClick={() => router.push("/account/experiences/create")}
         >
           <PlusSquare className="mr-2 size-4" />
@@ -269,28 +300,40 @@ export default function ExperiencesPage() {
         </Card>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-8 space-y-4">
         {error ? (
           <Card className="rounded-2xl border-border bg-card p-6 text-sm text-red-500">
             Failed to load experiences: {error}
           </Card>
         ) : null}
+
         {loading ? (
-          <Card className="rounded-2xl border-border bg-card p-10 text-center">
-            <p className="text-sm text-muted-foreground">Loading experiences...</p>
-          </Card>
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <Card
+                key={idx}
+                className="flex animate-pulse flex-col gap-4 rounded-2xl border-border bg-card p-4 sm:flex-row sm:items-center"
+              >
+                <div className="h-28 w-full rounded-xl bg-muted sm:h-24 sm:w-36" />
+                <div className="flex-1 space-y-3">
+                  <div className="h-5 w-2/3 rounded-lg bg-muted" />
+                  <div className="h-4 w-full rounded-lg bg-muted" />
+                  <div className="h-4 w-1/2 rounded-lg bg-muted" />
+                </div>
+              </Card>
+            ))}
+          </div>
         ) : null}
+
         {!loading && experiences.length === 0 ? (
           <Card className="rounded-2xl border-border bg-card p-12 text-center">
             <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-orange-50 text-orange-600">
-              <FileText className="size-5 text-muted-foreground" />
+              <FileText className="size-5" />
             </div>
-
             <p className="mt-5 text-lg font-semibold text-foreground">No experiences yet</p>
             <p className="mt-1 text-sm text-muted-foreground">
               Start by creating your first premium experience for travelers.
             </p>
-
             <Button
               type="button"
               className="mt-6 rounded-full bg-orange-500 text-white hover:bg-orange-600"
@@ -300,189 +343,191 @@ export default function ExperiencesPage() {
               Create an experience
             </Button>
           </Card>
-        ) : !loading ? (
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {experiences.map((exp) => (
-              <Card
-                key={exp.id}
-                className="group overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-lg"
-              >
-                <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-                  {coverByExperienceId[exp.id] ? (
-                    <Image
-                      src={coverByExperienceId[exp.id]}
-                      alt={exp.title}
-                      fill
-                      className="object-cover transition duration-300 group-hover:scale-105"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-                      No media uploaded
-                    </div>
-                  )}
-                  <div
-                    className={cn(
-                      "absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-semibold capitalize backdrop-blur",
-                      exp.status === "published"
-                        ? "bg-emerald-100/95 text-emerald-700"
-                        : exp.status.includes("review")
-                          ? "bg-amber-100/95 text-amber-700"
-                          : "bg-zinc-100/95 text-zinc-700",
-                    )}
-                  >
-                    {exp.status.replaceAll("_", " ")}
-                  </div>
-                </div>
+        ) : null}
 
-                <div className="space-y-4 p-5">
-                  <div>
-                    <p className="line-clamp-1 text-lg font-semibold">{exp.title}</p>
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                      {exp.subtitle || "Awaiting full review details from your host setup."}
-                    </p>
-                  </div>
+        {!loading && experiences.length > 0 ? (
+          <ul className="space-y-3">
+            {experiences.map((exp) => {
+              const isPublished = exp.status === "published";
+              const isPublishing = statusUpdatingId === exp.id;
+              const isDeleting = deleteLoadingId === exp.id;
+              const categoryName = getCategoryName(exp.categories);
 
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-xl border border-border/70 bg-muted/25 px-3 py-2">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Price</p>
-                      <p className="mt-0.5 font-semibold text-foreground">
-                        {exp.price_amount
-                          ? `${exp.currency} ${Number(exp.price_amount).toFixed(2)}`
-                          : "On request"}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-border/70 bg-muted/25 px-3 py-2">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Duration</p>
-                      <p className="mt-0.5 font-semibold text-foreground">
-                        {exp.duration_minutes && exp.duration_minutes > 0
-                          ? `${(exp.duration_minutes / 60).toLocaleString()}h`
-                          : "Flexible"}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-border/70 bg-muted/25 px-3 py-2">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Guests</p>
-                      <p className="mt-0.5 inline-flex items-center gap-1 font-semibold text-foreground">
-                        <Users className="size-3.5" />
-                        Up to {exp.max_guests || 1}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-border/70 bg-muted/25 px-3 py-2">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Active slots</p>
-                      <p className="mt-0.5 font-semibold text-foreground">
-                        {activeSlotsByExperienceId[exp.id] ?? 0}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 text-xs text-muted-foreground">
-                    {(Array.isArray(exp.categories)
-                      ? exp.categories[0]?.name
-                      : exp.categories?.name) ? (
-                      <p>
-                        Category:{" "}
-                        <span className="font-medium text-foreground">
-                          {Array.isArray(exp.categories)
-                            ? exp.categories[0]?.name
-                            : exp.categories?.name}
+              return (
+                <li key={exp.id} className={cn(openMenuId === exp.id && "relative z-30")}>
+                  <Card className="overflow-visible rounded-2xl border border-border/80 bg-card shadow-sm transition hover:border-orange-200/80 hover:shadow-md">
+                    <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-5 sm:p-5">
+                      <Link
+                        href={`/account/experiences/${exp.id}`}
+                        className="relative block h-36 w-full shrink-0 overflow-hidden rounded-xl bg-muted sm:h-24 sm:w-36"
+                      >
+                        <ExperienceMediaDisplay
+                          media={coverByExperienceId[exp.id]}
+                          alt={exp.title}
+                          fill
+                          sizes="144px"
+                          videoAutoplay
+                          showVideoBadge={false}
+                          emptyLabel="No media"
+                        />
+                        <span
+                          className={cn(
+                            "absolute left-2 top-2 rounded-full px-2.5 py-0.5 text-[10px] font-semibold capitalize",
+                            getStatusStyles(exp.status),
+                          )}
+                        >
+                          {exp.status.replaceAll("_", " ")}
                         </span>
-                      </p>
-                    ) : null}
-                    {exp.requirements?.length ? (
-                      <p>
-                        Requirements:{" "}
-                        <span className="font-medium text-foreground">
-                          {exp.requirements.length} item{exp.requirements.length === 1 ? "" : "s"}
-                        </span>
-                      </p>
-                    ) : null}
-                    {exp.meeting_point_name ? (
-                      <p className="flex items-center gap-1.5">
-                        <MapPin className="size-3.5" />
-                        <span className="line-clamp-1">{exp.meeting_point_name}</span>
-                      </p>
-                    ) : null}
-                    {nextSlotByExperienceId[exp.id] ? (
-                      <p className="flex items-center gap-1.5">
-                        <Clock3 className="size-3.5" />
-                        Next slot {new Date(nextSlotByExperienceId[exp.id] as string).toLocaleString()}
-                      </p>
-                    ) : null}
-                    <p className="flex items-center gap-1.5">
-                      <CalendarClock className="size-3.5" />
-                      Created {new Date(exp.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
+                      </Link>
 
-                  <div className="flex items-center gap-2 pt-1">
-                    <Link
-                      href={`/account/experiences/${exp.id}`}
-                      className={cn(
-                        buttonVariants({ variant: "outline" }),
-                        "h-9 flex-1 rounded-full",
-                      )}
-                    >
-                      View
-                    </Link>
-                    <Link
-                      href={`/account/applied?experienceId=${exp.id}`}
-                      className={cn(
-                        buttonVariants({ variant: "default" }),
-                        "h-9 flex-1 rounded-full bg-orange-500 text-white hover:bg-orange-600",
-                      )}
-                    >
-                      Applied
-                    </Link>
-                  </div>
-                  <Link
-                    href={`/account/experiences/create?edit=${exp.id}`}
-                    className={cn(
-                      buttonVariants({ variant: "outline" }),
-                      "h-9 w-full rounded-full",
-                    )}
-                  >
-                    Edit
-                  </Link>
-                  <Button
-                    type="button"
-                    onClick={() =>
-                      updateExperienceStatus(
-                        exp.id,
-                        exp.status === "published" ? "unpublished" : "published",
-                      )
-                    }
-                    disabled={statusUpdatingId === exp.id}
-                    className={cn(
-                      "h-9 w-full rounded-full",
-                      exp.status === "published"
-                        ? "bg-zinc-700 text-white hover:bg-zinc-800"
-                        : "bg-emerald-600 text-white hover:bg-emerald-700",
-                    )}
-                  >
-                    {statusUpdatingId === exp.id
-                      ? "Updating..."
-                      : exp.status === "published"
-                        ? "Unpublish"
-                        : "Go live"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => deleteExperience(exp)}
-                    disabled={deleteLoadingId === exp.id}
-                    className="h-9 w-full rounded-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                  >
-                    <Trash2 className="mr-2 size-4" />
-                    {deleteLoadingId === exp.id ? "Deleting..." : "Delete experience"}
-                  </Button>
-                </div>
-              </Card>
-            ))}
+                      <div className="min-w-0 flex-1">
+                        <Link
+                          href={`/account/experiences/${exp.id}`}
+                          className="block hover:underline"
+                        >
+                          <h2 className="line-clamp-1 text-lg font-semibold tracking-tight">
+                            {exp.title}
+                          </h2>
+                        </Link>
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                          {exp.subtitle || "No subtitle yet"}
+                        </p>
 
-          </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="rounded-lg bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground">
+                            {exp.price_amount
+                              ? `${exp.currency} ${Number(exp.price_amount).toFixed(2)}`
+                              : "Price TBD"}
+                          </span>
+                          <span className="rounded-lg bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground">
+                            {exp.duration_minutes && exp.duration_minutes > 0
+                              ? `${Math.round(exp.duration_minutes / 60)}h`
+                              : "Flexible"}
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground">
+                            <Users className="size-3" />
+                            Up to {exp.max_guests || 1}
+                          </span>
+                          <span className="rounded-lg bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground">
+                            {activeSlotsByExperienceId[exp.id] ?? 0} slot
+                            {(activeSlotsByExperienceId[exp.id] ?? 0) === 1 ? "" : "s"}
+                          </span>
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                          {categoryName ? <span>{categoryName}</span> : null}
+                          {exp.meeting_point_name ? (
+                            <span className="inline-flex max-w-[200px] items-center gap-1 truncate">
+                              <MapPin className="size-3 shrink-0" />
+                              {exp.meeting_point_name}
+                            </span>
+                          ) : null}
+                          {nextSlotByExperienceId[exp.id] ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Clock3 className="size-3" />
+                              Next{" "}
+                              {new Date(nextSlotByExperienceId[exp.id] as string).toLocaleDateString()}
+                            </span>
+                          ) : null}
+                          <span className="inline-flex items-center gap-1">
+                            <CalendarClock className="size-3" />
+                            Created {new Date(exp.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div
+                        className="relative z-10 flex shrink-0 items-center justify-end gap-2 sm:flex-col sm:items-stretch lg:flex-row lg:items-center"
+                        data-experience-actions
+                      >
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={isPublishing || isDeleting}
+                          onClick={() =>
+                            updateExperienceStatus(
+                              exp.id,
+                              isPublished ? "unpublished" : "published",
+                            )
+                          }
+                          className={cn(
+                            "min-w-[108px] rounded-full px-4 font-semibold",
+                            isPublished
+                              ? "bg-zinc-700 text-white hover:bg-zinc-800"
+                              : "bg-emerald-600 text-white hover:bg-emerald-700",
+                          )}
+                        >
+                          {isPublishing
+                            ? "Updating..."
+                            : isPublished
+                              ? "Unpublish"
+                              : "Publish"}
+                        </Button>
+
+                        <div className="relative z-20">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon-sm"
+                            className="rounded-full"
+                            aria-label={`Actions for ${exp.title}`}
+                            aria-expanded={openMenuId === exp.id}
+                            disabled={isDeleting}
+                            onClick={() =>
+                              setOpenMenuId((prev) => (prev === exp.id ? null : exp.id))
+                            }
+                          >
+                            <MoreHorizontal className="size-4" />
+                          </Button>
+
+                          {openMenuId === exp.id ? (
+                            <div
+                              role="menu"
+                              className="absolute right-0 top-full z-50 mt-2 w-44 rounded-xl border border-border bg-card p-1.5 text-card-foreground shadow-xl ring-1 ring-border/80"
+                            >
+                              <Link
+                                href={`/account/experiences/${exp.id}`}
+                                role="menuitem"
+                                className={cn(experienceMenuItemClass, "text-foreground")}
+                                onClick={() => setOpenMenuId(null)}
+                              >
+                                <Eye className="size-4 text-muted-foreground" />
+                                View
+                              </Link>
+                              <Link
+                                href={`/account/experiences/create?edit=${exp.id}`}
+                                role="menuitem"
+                                className={cn(experienceMenuItemClass, "text-foreground")}
+                                onClick={() => setOpenMenuId(null)}
+                              >
+                                <Pencil className="size-4 text-muted-foreground" />
+                                Edit
+                              </Link>
+                              <button
+                                type="button"
+                                role="menuitem"
+                                className={cn(
+                                  experienceMenuItemClass,
+                                  "text-red-600 hover:bg-red-50 disabled:opacity-50",
+                                )}
+                                disabled={isDeleting}
+                                onClick={() => void deleteExperience(exp)}
+                              >
+                                <Trash2 className="size-4" />
+                                {isDeleting ? "Deleting..." : "Delete"}
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                </li>
+              );
+            })}
+          </ul>
         ) : null}
       </div>
     </div>
   );
 }
-

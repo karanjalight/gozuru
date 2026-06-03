@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { ExperienceMediaDisplay } from "@/components/experience/ExperienceMediaDisplay";
+import {
+  buildCoverByExperienceId,
+  type ExperienceMediaItem,
+  type ExperienceMediaRowInput,
+} from "@/lib/experience-media";
 import { useParams } from "next/navigation";
 import { ArrowUpRight, BriefcaseBusiness, Globe, MapPin, Sparkles, UserRound } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
@@ -31,6 +37,7 @@ type MediaRow = {
   experience_id: string;
   storage_path: string;
   sort_order: number;
+  media_type?: string | null;
 };
 
 type HostProfileRow = {
@@ -122,7 +129,9 @@ export default function HostProfilePage() {
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [socialLinks, setSocialLinks] = useState<HostSocialRow[]>([]);
   const [experiences, setExperiences] = useState<ExperienceListRow[]>([]);
-  const [coverByExperienceId, setCoverByExperienceId] = useState<Record<string, string>>({});
+  const [coverByExperienceId, setCoverByExperienceId] = useState<
+    Record<string, ExperienceMediaItem>
+  >({});
 
   const isInvalidHost = useMemo(() => !hostId || !UUID_RE.test(hostId), [hostId]);
 
@@ -183,20 +192,16 @@ export default function HostProfilePage() {
         ids.length > 0
           ? await supabase
               .from("experience_media")
-              .select("experience_id,storage_path,sort_order")
+              .select("experience_id,storage_path,sort_order,media_type")
               .in("experience_id", ids)
               .order("sort_order", { ascending: true })
           : { data: [] as MediaRow[] };
 
       if (!mounted) return;
 
-      const map: Record<string, string> = {};
-      for (const m of (mediaRows ?? []) as MediaRow[]) {
-        if (map[m.experience_id]) continue;
-        const publicUrl = publicStorageUrl("experience-media", m.storage_path);
-        if (publicUrl) map[m.experience_id] = publicUrl;
-      }
-      setCoverByExperienceId(map);
+      setCoverByExperienceId(
+        buildCoverByExperienceId(supabase, (mediaRows ?? []) as ExperienceMediaRowInput[]),
+      );
       setLoading(false);
     };
 
@@ -207,7 +212,7 @@ export default function HostProfilePage() {
     };
   }, [hostId, isInvalidHost]);
 
-  const heroCover = useMemo(() => {
+  const heroCoverMedia = useMemo(() => {
     const first = experiences[0];
     if (!first) return null;
     return coverByExperienceId[first.id] ?? null;
@@ -289,7 +294,7 @@ export default function HostProfilePage() {
   const profileName =
     `${profile?.first_name ?? ""} ${profile?.last_name ?? ""}`.trim() || displayTitle;
   const avatarUrl = publicStorageUrl("avatars", profile?.avatar_path);
-  const heroImage = heroCover || avatarUrl || FALLBACK_COVER;
+  const heroImage = avatarUrl || heroCoverMedia?.url || FALLBACK_COVER;
   const safeSocialLinks = socialLinks
     .map((social) => ({
       ...social,
@@ -315,15 +320,37 @@ export default function HostProfilePage() {
 
         <section className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm">
           <div className="relative min-h-[420px] bg-muted">
-            <Image
-              src={heroImage}
-              alt={displayTitle}
-              fill
-              unoptimized
-              priority
-              className="object-cover object-top"
-              sizes="100vw"
-            />
+            {avatarUrl ? (
+              <Image
+                src={heroImage}
+                alt={displayTitle}
+                fill
+                unoptimized
+                priority
+                className="object-cover object-top"
+                sizes="100vw"
+              />
+            ) : heroCoverMedia ? (
+              <ExperienceMediaDisplay
+                media={heroCoverMedia}
+                alt={displayTitle}
+                fill
+                sizes="100vw"
+                priority
+                videoAutoplay
+                showVideoBadge={false}
+              />
+            ) : (
+              <Image
+                src={FALLBACK_COVER}
+                alt={displayTitle}
+                fill
+                unoptimized
+                priority
+                className="object-cover object-top"
+                sizes="100vw"
+              />
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/15" />
             <div className="absolute inset-x-0 bottom-0 p-6 text-white md:p-8 lg:p-10">
               <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
@@ -442,7 +469,7 @@ export default function HostProfilePage() {
         ) : (
           <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {experiences.map((exp) => {
-              const cover = coverByExperienceId[exp.id];
+              const coverMedia = coverByExperienceId[exp.id];
               const loc = locationLabel(exp);
               const hours = exp.duration_minutes
                 ? Math.max(1, Math.round(exp.duration_minutes / 60))
@@ -451,20 +478,15 @@ export default function HostProfilePage() {
                 <Link key={exp.id} href={`/experiences/${exp.id}`} className="block">
                   <Card className="h-full overflow-hidden rounded-2xl border-2 border-border transition hover:border-orange-200 hover:shadow-lg">
                     <div className="relative aspect-[4/3] bg-muted">
-                      {cover ? (
-                        <Image
-                          src={cover}
-                          alt={exp.title}
-                          fill
-                          unoptimized
-                          className="object-cover"
-                          sizes="(max-width: 768px) 100vw, 33vw"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
-                          No image
-                        </div>
-                      )}
+                      <ExperienceMediaDisplay
+                        media={coverMedia}
+                        alt={exp.title}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                        videoAutoplay
+                        showVideoBadge={false}
+                        emptyLabel="No media"
+                      />
                     </div>
                     <CardContent className="p-4">
                       <p className="line-clamp-2 font-semibold text-foreground">{exp.title}</p>

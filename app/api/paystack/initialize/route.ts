@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-type InitializePayload = {
-  experienceId: string;
+type CartCheckoutItem = {
   availabilityId: string;
   guestsCount: number;
+};
+
+type InitializePayload = {
+  experienceId: string;
+  availabilityId?: string;
+  guestsCount?: number;
+  items?: CartCheckoutItem[];
   guestNote?: string;
 };
 
@@ -71,15 +77,20 @@ export async function POST(request: NextRequest) {
     }
 
     const body = (await request.json()) as InitializePayload;
-    const guestsCount = Number(body.guestsCount);
-    if (
-      !normalizedEmail ||
-      !body.experienceId ||
-      !body.availabilityId ||
-      !Number.isFinite(guestsCount) ||
-      guestsCount < 1
-    ) {
+    const cartItems: CartCheckoutItem[] = body.items?.length
+      ? body.items
+      : body.availabilityId && Number.isFinite(Number(body.guestsCount))
+        ? [{ availabilityId: body.availabilityId, guestsCount: Number(body.guestsCount) }]
+        : [];
+
+    if (!normalizedEmail || !body.experienceId || cartItems.length === 0) {
       return NextResponse.json({ error: "Invalid booking payload." }, { status: 400 });
+    }
+
+    for (const item of cartItems) {
+      if (!item.availabilityId || !Number.isFinite(item.guestsCount) || item.guestsCount < 1) {
+        return NextResponse.json({ error: "Invalid cart item." }, { status: 400 });
+      }
     }
     if (!emailPattern.test(normalizedEmail)) {
       return NextResponse.json(
@@ -116,26 +127,35 @@ export async function POST(request: NextRequest) {
     }
 
     const exp = experience as ExperienceRow;
-    const availability = ((slot ?? []) as AvailabilityRow[]).find((item) => item.id === body.availabilityId);
-    if (!availability) {
-      const reason = "Availability slot not found or no longer available.";
-      console.error("Paystack init failed: slot missing", {
-        experienceId: body.experienceId,
-        availabilityId: body.availabilityId,
-      });
-      return NextResponse.json({ error: reason }, { status: 400 });
-    }
-    const unitPrice = Number(availability.price_amount);
-    const chargeAmountMajor = unitPrice * guestsCount;
-    if (!Number.isFinite(chargeAmountMajor) || chargeAmountMajor <= 0) {
-      const reason = "Invalid slot amount for checkout. Set a price above 0 on this availability.";
-      console.error("Paystack init failed: invalid amount", {
-        experienceId: body.experienceId,
-        availabilityId: body.availabilityId,
-        unitPrice,
-        guestsCount,
-      });
-      return NextResponse.json({ error: reason }, { status: 400 });
+    const availabilityById = new Map(
+      ((slot ?? []) as AvailabilityRow[]).map((item) => [item.id, item]),
+    );
+
+    let chargeAmountMajor = 0;
+    for (const item of cartItems) {
+      const availability = availabilityById.get(item.availabilityId);
+      if (!availability) {
+        const reason = "One or more selected slots are no longer available.";
+        console.error("Paystack init failed: slot missing", {
+          experienceId: body.experienceId,
+          availabilityId: item.availabilityId,
+        });
+        return NextResponse.json({ error: reason }, { status: 400 });
+      }
+
+      const unitPrice = Number(availability.price_amount ?? exp.price_amount);
+      const lineTotal = unitPrice * item.guestsCount;
+      if (!Number.isFinite(lineTotal) || lineTotal <= 0) {
+        const reason = "Invalid slot amount for checkout. Set a price above 0 on this availability.";
+        console.error("Paystack init failed: invalid amount", {
+          experienceId: body.experienceId,
+          availabilityId: item.availabilityId,
+          unitPrice,
+          guestsCount: item.guestsCount,
+        });
+        return NextResponse.json({ error: reason }, { status: 400 });
+      }
+      chargeAmountMajor += lineTotal;
     }
 
     const amountMinor = Math.round(chargeAmountMajor * 100);
@@ -143,11 +163,18 @@ export async function POST(request: NextRequest) {
     const appBaseUrl = siteUrl || request.nextUrl.origin;
     const callbackUrl = `${appBaseUrl}/experiences/${body.experienceId}`;
 
+    const primaryItem = cartItems[0];
     const metadata = {
       experienceId: body.experienceId,
-      availabilityId: body.availabilityId,
-      guestsCount,
+      availabilityId: primaryItem.availabilityId,
+      guestsCount: primaryItem.guestsCount,
       guestNote: (body.guestNote ?? "").trim() || null,
+      cartItemsJson: JSON.stringify(
+        cartItems.map((item) => ({
+          a: item.availabilityId,
+          g: item.guestsCount,
+        })),
+      ),
     };
 
     const controller = new AbortController();

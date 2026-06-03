@@ -1,25 +1,23 @@
 "use client";
 import { ArrowRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import Image from "next/image";
 import Link from "next/link";
+import { ExperienceMediaDisplay } from "@/components/experience/ExperienceMediaDisplay";
 import { useEffect, useMemo, useState } from "react";
 import {
   fetchLandingExperiences,
   listImageTransform,
+  pickExperienceCategory,
   type LandingExperiencesResult,
 } from "@/lib/queries/experiences";
+import { cn } from "@/lib/utils";
 
-type WhenFilter =
-  | "all"
-  | "tomorrow"
-  | "this-week"
-  | "dinners"
-  | "cooking-classes"
-  | "food-tours";
+type ExperienceFilter = "all" | "latest" | string;
+
+const LATEST_WINDOW_MS = 1000 * 60 * 60 * 24 * 14;
 
 export function ExperiencesGrid({ initialData }: { initialData?: LandingExperiencesResult }) {
-  const [activeFilter, setActiveFilter] = useState<WhenFilter>("all");
+  const [activeFilter, setActiveFilter] = useState<ExperienceFilter>("all");
   const [currentTimestamp, setCurrentTimestamp] = useState(0);
   const { data } = useQuery({
     queryKey: ["landing", "experiences-grid"],
@@ -42,20 +40,9 @@ export function ExperiencesGrid({ initialData }: { initialData?: LandingExperien
   const normalizedExperiences = useMemo(
     () =>
       experiences.map((exp) => {
-        const subtitle = exp.subtitle?.toLowerCase() ?? "";
-        let type: WhenFilter = "food-tours";
-        let tag = "Experience";
-        if (subtitle.includes("dinner")) {
-          type = "dinners";
-          tag = "Dinner";
-        } else if (subtitle.includes("cook")) {
-          type = "cooking-classes";
-          tag = "Cooking class";
-        }
-
+        const category = pickExperienceCategory(exp.categories);
         const createdAt = new Date(exp.created_at).getTime();
-        const twoDaysMs = 1000 * 60 * 60 * 24 * 2;
-        const when: WhenFilter = currentTimestamp - createdAt <= twoDaysMs ? "tomorrow" : "this-week";
+        const isLatest = currentTimestamp - createdAt <= LATEST_WINDOW_MS;
         const durationHours = exp.duration_minutes ? Math.max(1, Math.round(exp.duration_minutes / 60)) : null;
         const durationLabel = durationHours ? `${durationHours}h` : "Flexible";
         const price =
@@ -69,25 +56,42 @@ export function ExperiencesGrid({ initialData }: { initialData?: LandingExperien
           location:
             locationByExperienceId[exp.id] || exp.meeting_point_name || "Location to be confirmed",
           description: exp.description?.trim() || exp.subtitle?.trim() || "Discover this host-led experience.",
-          tag,
-          when,
-          type,
+          tag: category?.name || "Experience",
+          categorySlug: category?.slug ?? null,
+          isLatest,
           rating: 5.0,
           reviews: 0,
           price,
           durationLabel,
-          image: coverByExperienceId[exp.id] || "",
+          coverMedia: coverByExperienceId[exp.id],
         };
       }),
     [coverByExperienceId, currentTimestamp, experiences, locationByExperienceId],
   );
 
+  const categoryFilters = useMemo(() => {
+    const bySlug = new Map<string, string>();
+    for (const exp of normalizedExperiences) {
+      if (exp.categorySlug) {
+        bySlug.set(exp.categorySlug, exp.tag);
+      }
+    }
+    return Array.from(bySlug.entries()).map(([id, label]) => ({ id, label }));
+  }, [normalizedExperiences]);
+
+  const filterOptions = useMemo(
+    () => [
+      { id: "all" as const, label: "All" },
+      { id: "latest" as const, label: "Latest" },
+      ...categoryFilters,
+    ],
+    [categoryFilters],
+  );
+
   const filteredExperiences = normalizedExperiences.filter((exp) => {
     if (activeFilter === "all") return true;
-    if (activeFilter === "tomorrow" || activeFilter === "this-week") {
-      return exp.when === activeFilter;
-    }
-    return exp.type === activeFilter;
+    if (activeFilter === "latest") return exp.isLatest;
+    return exp.categorySlug === activeFilter;
   });
 
   return (
@@ -98,26 +102,26 @@ export function ExperiencesGrid({ initialData }: { initialData?: LandingExperien
       <div className="space-y-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600 dark:text-orange-400">
               Discover experiences
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">
               Learn directly from local experts
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
               Browse real, host-led experiences with clear details on location, duration, and price.
             </p>
           </div>
           <Link
             href="/experiences"
-            className="inline-flex items-center text-sm font-semibold text-orange-500 hover:text-orange-600"
+            className="inline-flex shrink-0 items-center rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground shadow-sm transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 dark:hover:border-orange-500/40 dark:hover:bg-orange-950/30 dark:hover:text-orange-300"
           >
             Browse all experiences
             <ArrowRight className="ml-1 h-4 w-4" />
           </Link>
         </div>
 
-        <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+        <div className="flex flex-wrap gap-2.5 text-sm">
           {[
             "Verified hosts",
             "Transparent pricing",
@@ -126,35 +130,27 @@ export function ExperiencesGrid({ initialData }: { initialData?: LandingExperien
           ].map((item) => (
             <span
               key={item}
-              className="rounded-full border border-border bg-card px-3 py-1.5"
+              className="rounded-full border border-border bg-card px-3 py-1.5 text-muted-foreground shadow-sm"
             >
               {item}
             </span>
           ))}
         </div>
 
-        <div className="flex w-full flex-wrap gap-6 text-sm text-zinc-500 dark:text-zinc-400">
-          {(
-            [
-              { id: "all", label: "All" },
-              { id: "tomorrow", label: "Latest" },
-              { id: "this-week", label: "This week" },
-              { id: "dinners", label: "Dinners" },
-              { id: "cooking-classes", label: "Classes" },
-              { id: "food-tours", label: "Tours" },
-            ] as { id: WhenFilter; label: string }[]
-          ).map((filter) => {
+        <div className="flex w-full flex-wrap gap-x-6 gap-y-2 border-b border-border pb-1">
+          {filterOptions.map((filter) => {
             const isActive = activeFilter === filter.id;
             return (
               <button
                 key={filter.id}
                 type="button"
                 onClick={() => setActiveFilter(filter.id)}
-                className={`pb-1 text-sm font-semibold transition-colors sm:text-md ${
+                className={cn(
+                  "pb-2 text-sm font-semibold transition-colors",
                   isActive
-                    ? "border-b-2 border-orange-500 text-orange-500"
-                    : "border-b-2 border-transparent hover:text-orange-500"
-                }`}
+                    ? "border-b-2 border-orange-500 text-orange-600 dark:text-orange-400"
+                    : "border-b-2 border-transparent text-muted-foreground hover:text-orange-600 dark:hover:text-orange-400",
+                )}
               >
                 {filter.label}
               </button>
@@ -167,60 +163,45 @@ export function ExperiencesGrid({ initialData }: { initialData?: LandingExperien
         {filteredExperiences.map((exp, idx) => (
           <article
             key={exp.id}
-            className="overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm transition hover:-translate-y-1.5 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
+            className="group overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition hover:-translate-y-1 hover:border-orange-300/70 hover:shadow-lg hover:shadow-orange-500/10 dark:hover:border-orange-500/30 dark:hover:shadow-orange-950/20"
           >
-            <div className="relative h-80 w-full">
-              {exp.image ? (
-                <Image
-                  src={exp.image}
-                  alt={exp.title}
-                  fill
-                  unoptimized
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  loading={idx < 4 ? "eager" : "lazy"}
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-                  No media uploaded
-                </div>
-              )}
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-              <div className="absolute bottom-3  left-3 right-3 flex items-end justify-between gap-3 text-xs text-white">
-                <div className="space-y-1  w-full">
-                  <span className="inline-flex items-center rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
-                    {exp.tag}
-                  </span>
-                  <h3 className="line-clamp-1 text-xl  font-semibold">
-                    {exp.title}
-                  </h3>
-                  <p className="line-clamp-1 text-sm text-zinc-200">{exp.description}</p>
-                  {/* <p className="text-lg  uppercase  ">{exp.location}</p> */}
+            <div className="relative h-80 w-full overflow-hidden bg-muted">
+              <ExperienceMediaDisplay
+                media={exp.coverMedia}
+                alt={exp.title}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                priority={idx < 4}
+                videoAutoplay
+                showVideoBadge={false}
+                emptyLabel="No media uploaded"
+              />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+              <div className="absolute inset-x-3 bottom-3 flex flex-col gap-2 text-white">
+                <span className="inline-flex w-fit items-center rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
+                  {exp.tag}
+                </span>
+                <h3 className="line-clamp-2 text-lg font-semibold leading-snug">{exp.title}</h3>
+                <p className="line-clamp-2 text-sm text-white/80">{exp.description}</p>
 
-                  <div className="flex items-center justify-between gap-4 text-[15px] sm:text-md">
-                    <div className="flex items-center gap-1 ">
-                      <span className="text-[13px] text-amber-400">★</span>
-                      <span className="font-semibold">{exp.rating.toFixed(1)}</span>
-                      <span className="text-zinc-700">({exp.reviews.toLocaleString()})</span>
-                    </div>
-                    <div className="text-right text-zinc-100">
-                      <span className="text-sm font-semibold ">
-                        {exp.price}
-                      </span>
-                      <span className="ml-1 text-[11px] text-black dark:text-zinc-100">
-                        /guest • {exp.durationLabel}
-                      </span>
-                    </div>
+                <div className="mt-1 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/35 px-3 py-2 backdrop-blur-sm">
+                  <div className="flex items-center gap-1 text-sm">
+                    <span className="text-amber-300">★</span>
+                    <span className="font-semibold">{exp.rating.toFixed(1)}</span>
+                    <span className="text-white/70">({exp.reviews.toLocaleString()})</span>
                   </div>
-                  <div className="mt-3">
-                    <Link
-                      href={`/experiences/${exp.id}`}
-                      className="inline-flex w-full items-center justify-center rounded-full bg-zinc-900 px-4 py-4 text-[15px] font-semibold tracking-wide text-white shadow-sm transition hover:bg-zinc-800 dark:bg-orange-500 dark:hover:bg-orange-600"
-                    >
-                      View details
-                    </Link>
+                  <div className="text-right text-sm">
+                    <span className="font-semibold">{exp.price}</span>
+                    <span className="ml-1 text-[11px] text-white/75">/guest · {exp.durationLabel}</span>
                   </div>
                 </div>
+
+                <Link
+                  href={`/experiences/${exp.id}`}
+                  className="inline-flex w-full items-center justify-center rounded-full bg-white px-4 py-3 text-sm font-semibold tracking-wide text-zinc-900 shadow-sm transition hover:bg-orange-500 hover:text-white dark:bg-orange-500 dark:text-white dark:hover:bg-orange-400"
+                >
+                  View details
+                </Link>
               </div>
             </div>
           </article>
