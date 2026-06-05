@@ -1,29 +1,40 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import {
+  featuredImageTransform,
+  listImageTransform,
+} from "@/lib/queries/experiences";
+import { fetchLandingExperiencesServer } from "@/lib/queries/experiences-server";
 import { socialPreviewImage } from "@/lib/seo";
 import { CategorySection, ExpertGrid, FeaturedExperiences } from "../components/sections";
 import { ExperienceHero } from "../components/HeroExperience copy";
-import { Navbar } from "../components/Navbar";
+import { ExperiencesGrid } from "../components/sections/ExperiencesSection";
 
 export const metadata: Metadata = {
-  title: "Gozuru – Reward Your Curiosity",
+  title: "Experiences – Gozuru",
   description:
-    "The Gozuru of curious travelers. Connect with local experts, discover hidden gems, and experience the world through human connection and knowledge sharing.",
+    "Browse host-led experiences from local experts. Discover immersive conversations, workshops, and curated journeys worldwide.",
   openGraph: {
-    title: "Gozuru – Reward Your Curiosity",
+    title: "Experiences – Gozuru",
     description:
-      "Connect with local experts. Discover hidden gems, stories, and knowledge — not just sights.",
+      "Browse real, host-led experiences with clear details on location, duration, and price.",
     images: [socialPreviewImage],
   },
 };
 
-export default function LandingPage() {
+export default async function ExperiencesPage() {
+  const [allExperiencesData, featuredExperiencesData] = await Promise.all([
+    fetchLandingExperiencesServer(48, listImageTransform),
+    fetchLandingExperiencesServer(6, featuredImageTransform),
+  ]);
+
   return (
     <>
-      <Navbar />
-      <div className="">
-        <ExperienceHero />
-      </div>
-      <FeaturedExperiences />
+      <ExperienceHero />
+      <Suspense fallback={null}>
+        <ExperiencesGrid initialData={allExperiencesData} />
+      </Suspense>
+      <FeaturedExperiences initialData={featuredExperiencesData} />
       <ExpertGrid />
       <CategorySection />
     </>

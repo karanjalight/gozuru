@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import {
   ExpertGrid,
   CategorySection,
@@ -38,7 +39,9 @@ export default async function LandingPage() {
       <LandingHero initialData={sharedLandingData} />
       {/* <HeroSection /> */}
       {/* <SearchSection /> */}
-      <ExperiencesGrid initialData={sharedLandingData} />
+      <Suspense fallback={null}>
+        <ExperiencesGrid initialData={sharedLandingData} />
+      </Suspense>
       <ExpertGrid />
       <CategorySection />
       <FeaturedExperiences initialData={featuredLandingData} />

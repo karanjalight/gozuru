@@ -2,6 +2,7 @@
 import { ArrowRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ExperienceMediaDisplay } from "@/components/experience/ExperienceMediaDisplay";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -17,6 +18,8 @@ type ExperienceFilter = "all" | "latest" | string;
 const LATEST_WINDOW_MS = 1000 * 60 * 60 * 24 * 14;
 
 export function ExperiencesGrid({ initialData }: { initialData?: LandingExperiencesResult }) {
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get("query")?.trim().toLowerCase() ?? "";
   const [activeFilter, setActiveFilter] = useState<ExperienceFilter>("all");
   const [currentTimestamp, setCurrentTimestamp] = useState(0);
   const { data } = useQuery({
@@ -89,6 +92,10 @@ export function ExperiencesGrid({ initialData }: { initialData?: LandingExperien
   );
 
   const filteredExperiences = normalizedExperiences.filter((exp) => {
+    if (searchQuery) {
+      const haystack = `${exp.title} ${exp.location} ${exp.description} ${exp.tag}`.toLowerCase();
+      if (!haystack.includes(searchQuery)) return false;
+    }
     if (activeFilter === "all") return true;
     if (activeFilter === "latest") return exp.isLatest;
     return exp.categorySlug === activeFilter;
@@ -109,7 +116,9 @@ export function ExperiencesGrid({ initialData }: { initialData?: LandingExperien
               Learn directly from local experts
             </h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Browse real, host-led experiences with clear details on location, duration, and price.
+              {searchQuery
+                ? `Showing experiences matching "${searchParams.get("query")?.trim()}".`
+                : "Browse real, host-led experiences with clear details on location, duration, and price."}
             </p>
           </div>
           <Link
