@@ -187,6 +187,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) throw new Error(error.message);
 
+      const normalizedEmail = email.trim().toLowerCase();
+      const userId = data.user?.id;
+
+      if (userId) {
+        void fetch("/api/emails/welcome", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            email: normalizedEmail,
+            firstName: profile?.firstName?.trim() || undefined,
+          }),
+        }).catch((welcomeEmailError) => {
+          console.error("Failed to send welcome email:", welcomeEmailError);
+        });
+      }
+
       const hasSession = Boolean(data.session);
       return { needsEmailVerification: !hasSession };
     },
