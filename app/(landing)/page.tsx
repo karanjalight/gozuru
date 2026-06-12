@@ -16,6 +16,8 @@ import {
 import { fetchLandingExperiencesServer } from "@/lib/queries/experiences-server";
 import { socialPreviewImage } from "@/lib/seo";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Gozuru – Reward Your Curiosity",
   description:

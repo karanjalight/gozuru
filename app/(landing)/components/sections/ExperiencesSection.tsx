@@ -1,13 +1,10 @@
 "use client";
 import { ArrowRight } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ExperienceMediaDisplay } from "@/components/experience/ExperienceMediaDisplay";
 import { useEffect, useMemo, useState } from "react";
 import {
-  fetchLandingExperiences,
-  listImageTransform,
   pickExperienceCategory,
   type LandingExperiencesResult,
 } from "@/lib/queries/experiences";
@@ -17,22 +14,15 @@ type ExperienceFilter = "all" | "latest" | string;
 
 const LATEST_WINDOW_MS = 1000 * 60 * 60 * 24 * 14;
 
-export function ExperiencesGrid({ initialData }: { initialData?: LandingExperiencesResult }) {
+export function ExperiencesGrid({ initialData }: { initialData: LandingExperiencesResult }) {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get("query")?.trim().toLowerCase() ?? "";
   const [activeFilter, setActiveFilter] = useState<ExperienceFilter>("all");
   const [currentTimestamp, setCurrentTimestamp] = useState(0);
-  const { data } = useQuery({
-    queryKey: ["landing", "experiences-grid"],
-    queryFn: () => fetchLandingExperiences(24, listImageTransform),
-    staleTime: 1000 * 60 * 10,
-    refetchOnMount: false,
-    initialData,
-  });
 
-  const experiences = useMemo(() => data?.experiences ?? [], [data?.experiences]);
-  const coverByExperienceId = useMemo(() => data?.coverByExperienceId ?? {}, [data?.coverByExperienceId]);
-  const locationByExperienceId = useMemo(() => data?.locationByExperienceId ?? {}, [data?.locationByExperienceId]);
+  const experiences = initialData.experiences;
+  const coverByExperienceId = initialData.coverByExperienceId;
+  const locationByExperienceId = initialData.locationByExperienceId;
 
   useEffect(() => {
     queueMicrotask(() => {

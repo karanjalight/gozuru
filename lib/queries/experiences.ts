@@ -55,55 +55,8 @@ export type LandingExperiencesResult = {
   locationByExperienceId: Record<string, string>;
 };
 
-const LANDING_CACHE_TTL_MS = 1000 * 60;
-const landingExperiencesCache = new Map<
-  string,
-  {
-    limit: number;
-    timestamp: number;
-    result: LandingExperiencesResult;
-  }
->();
-
-function getTransformCacheKey(transform: { width: number; height: number; quality: number }) {
-  return `${transform.width}x${transform.height}-q${transform.quality}`;
-}
-
-function subsetLandingResult(result: LandingExperiencesResult, limit: number): LandingExperiencesResult {
-  const experiences = result.experiences.slice(0, limit);
-  const ids = new Set(experiences.map((experience) => experience.id));
-
-  const coverByExperienceId: Record<string, ExperienceMediaItem> = {};
-  const locationByExperienceId: Record<string, string> = {};
-
-  for (const [experienceId, cover] of Object.entries(result.coverByExperienceId)) {
-    if (ids.has(experienceId)) {
-      coverByExperienceId[experienceId] = cover;
-    }
-  }
-
-  for (const [experienceId, location] of Object.entries(result.locationByExperienceId)) {
-    if (ids.has(experienceId)) {
-      locationByExperienceId[experienceId] = location;
-    }
-  }
-
-  return {
-    experiences,
-    coverByExperienceId,
-    locationByExperienceId,
-  };
-}
-
 export async function fetchLandingExperiences(limit: number, transform: { width: number; height: number; quality: number }) {
-  const cacheKey = getTransformCacheKey(transform);
-  const now = Date.now();
-  const cached = landingExperiencesCache.get(cacheKey);
-  if (cached && now - cached.timestamp < LANDING_CACHE_TTL_MS && cached.limit >= limit) {
-    return subsetLandingResult(cached.result, limit);
-  }
-
-  const { data: rows } = await supabase
+  const { data: rows, error } = await supabase
     .from("experiences")
     .select(
       "id,title,description,subtitle,duration_minutes,price_amount,currency,meeting_point_name,created_at,categories(name,slug)",
@@ -112,19 +65,17 @@ export async function fetchLandingExperiences(limit: number, transform: { width:
     .order("created_at", { ascending: false })
     .limit(limit);
 
+  if (error) {
+    throw error;
+  }
+
   const experienceRows = (rows ?? []) as ExperienceRow[];
   if (experienceRows.length === 0) {
-    const emptyResult = {
+    return {
       experiences: [],
       coverByExperienceId: {} as Record<string, ExperienceMediaItem>,
       locationByExperienceId: {} as Record<string, string>,
     };
-    landingExperiencesCache.set(cacheKey, {
-      limit,
-      timestamp: now,
-      result: emptyResult,
-    });
-    return emptyResult;
   }
 
   const ids = experienceRows.map((row) => row.id);
@@ -157,18 +108,10 @@ export async function fetchLandingExperiences(limit: number, transform: { width:
     }
   }
 
-  const result = {
+  return {
     experiences: experienceRows,
     coverByExperienceId,
     locationByExperienceId,
   };
-
-  landingExperiencesCache.set(cacheKey, {
-    limit,
-    timestamp: now,
-    result,
-  });
-
-  return result;
 }
 

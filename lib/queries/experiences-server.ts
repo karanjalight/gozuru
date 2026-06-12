@@ -30,7 +30,7 @@ export async function fetchLandingExperiencesServer(
 ): Promise<LandingExperiencesResult> {
   const supabase = createSupabaseServerClient();
 
-  const { data: rows } = await supabase
+  const { data: rows, error } = await supabase
     .from("experiences")
     .select(
       "id,title,description,subtitle,duration_minutes,price_amount,currency,meeting_point_name,created_at,categories(name,slug)",
@@ -38,6 +38,10 @@ export async function fetchLandingExperiencesServer(
     .eq("status", "published")
     .order("created_at", { ascending: false })
     .limit(limit);
+
+  if (error) {
+    throw error;
+  }
 
   const experienceRows = (rows ?? []) as ExperienceRow[];
   if (experienceRows.length === 0) {

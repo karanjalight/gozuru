@@ -7,9 +7,9 @@ import { ExperienceMediaCarousel } from "@/components/experience/ExperienceMedia
 import { ExperienceBookingPanel } from "@/components/experience/ExperienceBookingPanel";
 import { mapExperienceGalleryMedia } from "@/lib/experience-media";
 import { useParams } from "next/navigation";
-import { Clock3, MapPin, ShieldCheck, Star, Users } from "lucide-react";
+import { ArrowDown, ArrowUpRight, Clock3, MapPin, ShieldCheck, Star, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navbar } from "../../components/Navbar";
@@ -422,6 +422,10 @@ export default function ExperienceDetailPage() {
 
   const durationHours = experience.duration_minutes ? Math.max(1, Math.round(experience.duration_minutes / 60)) : null;
 
+  function scrollToBooking() {
+    document.getElementById("book-slots")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <>
       <Navbar />
@@ -434,11 +438,23 @@ export default function ExperienceDetailPage() {
 
         <section className="overflow-hidden rounded-3xl border border-orange-100 bg-gradient-to-br from-orange-50/80 via-background to-background shadow-sm">
           <div className="border-b border-orange-100/80 px-6 py-5 sm:px-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Experience</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">{experience.title}</h1>
-            {experience.subtitle ? (
-              <p className="mt-3 max-w-3xl text-base text-muted-foreground">{experience.subtitle}</p>
-            ) : null}
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Experience</p>
+                <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">{experience.title}</h1>
+                {experience.subtitle ? (
+                  <p className="mt-3 max-w-3xl text-base text-muted-foreground">{experience.subtitle}</p>
+                ) : null}
+              </div>
+              <Button
+                type="button"
+                onClick={scrollToBooking}
+                className="shrink-0 rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-orange-500/20 hover:bg-orange-600 dark:shadow-orange-950/30"
+              >
+                Choose a time slot
+                <ArrowDown className="ml-2 size-4" />
+              </Button>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-3 px-6 py-4 sm:px-8">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm text-muted-foreground">
@@ -564,63 +580,72 @@ export default function ExperienceDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          <div id="book-slots" className="scroll-mt-28 pt-2">
+            <Suspense
+              fallback={
+                <div className="rounded-3xl border border-border bg-muted/30 px-4 py-12 text-center text-sm text-muted-foreground">
+                  Loading booking options...
+                </div>
+              }
+            >
+              <ExperienceBookingPanel
+                experience={{
+                  id: experience.id,
+                  host_user_id: experience.host_user_id,
+                  title: experience.title,
+                  price_amount: experience.price_amount,
+                  currency: experience.currency,
+                  max_guests: experience.max_guests,
+                  cancellation_policy: experience.cancellation_policy,
+                }}
+                availability={availability}
+                confirmedGuestsBySlotId={confirmedGuestsBySlotId}
+              />
+            </Suspense>
+          </div>
         </div>
 
-        <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-          <Suspense
-            fallback={
-              <div className="rounded-3xl border border-border bg-muted/30 px-4 py-12 text-center text-sm text-muted-foreground">
-                Loading booking options...
-              </div>
-            }
-          >
-            <ExperienceBookingPanel
-              experience={{
-                id: experience.id,
-                host_user_id: experience.host_user_id,
-                title: experience.title,
-                price_amount: experience.price_amount,
-                currency: experience.currency,
-                max_guests: experience.max_guests,
-                cancellation_policy: experience.cancellation_policy,
-              }}
-              availability={availability}
-              confirmedGuestsBySlotId={confirmedGuestsBySlotId}
-            />
-          </Suspense>
-
-          <Card className="rounded-3xl border-border/70 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base">About the host</CardTitle>
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <Card className="overflow-hidden rounded-3xl border-border/70 shadow-sm">
+            <CardHeader className="border-b border-border/70 pb-4">
+              <CardTitle className="text-base">Your expert</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <div className="flex items-center gap-3">
-                <div className="relative size-12 overflow-hidden rounded-full border bg-muted">
+            <CardContent className="space-y-5 p-5">
+              <div className="flex flex-col items-center text-center">
+                <div className="relative size-20 overflow-hidden rounded-full border-2 border-orange-200 bg-muted dark:border-orange-500/30">
                   {hostAvatarUrl ? (
                     <Image src={hostAvatarUrl} alt={hostName} fill unoptimized className="object-cover" />
                   ) : (
-                    <span className="flex h-full w-full items-center justify-center font-semibold text-muted-foreground">
+                    <span className="flex h-full w-full items-center justify-center text-xl font-semibold text-muted-foreground">
                       {hostName.charAt(0).toUpperCase()}
                     </span>
                   )}
                 </div>
-                <div>
-                  <Link
-                    href={`/hosts/${experience.host_user_id}`}
-                    className="font-medium text-foreground hover:text-orange-600 hover:underline"
-                  >
-                    {hostName}
-                  </Link>
-                  <p className="text-xs text-muted-foreground">{hostProfile?.headline || "Local host on Gozuru"}</p>
-                </div>
+                <p className="mt-4 text-lg font-semibold text-foreground">{hostName}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {hostProfile?.headline || "Local expert on Gozuru"}
+                </p>
               </div>
-              <p>
-                <Link href={`/hosts/${experience.host_user_id}`} className="text-sm font-medium text-orange-500 hover:text-orange-600">
-                  View host profile
-                </Link>
+
+              {hostProfile?.expertise ? (
+                <p className="text-center text-sm leading-6 text-muted-foreground">{hostProfile.expertise}</p>
+              ) : null}
+
+              <p className="text-center text-sm leading-6 text-muted-foreground">
+                {hostProfile?.highlight_story || "Passionate about sharing authentic local knowledge and stories."}
               </p>
-              {hostProfile?.expertise ? <p>{hostProfile.expertise}</p> : null}
-              <p>{hostProfile?.highlight_story || "Passionate about sharing authentic local knowledge and stories."}</p>
+
+              <Link
+                href={`/hosts/${experience.host_user_id}`}
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "inline-flex w-full items-center justify-center gap-2 rounded-full border-orange-200 py-2.5 text-sm font-semibold text-orange-700 hover:bg-orange-50 hover:text-orange-800 dark:border-orange-500/30 dark:text-orange-300 dark:hover:bg-orange-950/30",
+                )}
+              >
+                View expert profile
+                <ArrowUpRight className="size-4" />
+              </Link>
             </CardContent>
           </Card>
         </aside>

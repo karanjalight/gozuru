@@ -10,6 +10,8 @@ import { CategorySection, ExpertGrid, FeaturedExperiences } from "../components/
 import { ExperienceHero } from "../components/HeroExperience copy";
 import { ExperiencesGrid } from "../components/sections/ExperiencesSection";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Experiences – Gozuru",
   description:

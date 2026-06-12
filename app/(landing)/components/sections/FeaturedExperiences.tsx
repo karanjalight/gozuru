@@ -5,28 +5,15 @@ import Link from "next/link";
 import { ExperienceMediaDisplay } from "@/components/experience/ExperienceMediaDisplay";
 import { motion } from "framer-motion";
 import { ArrowRight, Clock, MapPin, Sparkles } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  featuredImageTransform,
-  fetchLandingExperiences,
-  type LandingExperiencesResult,
-} from "@/lib/queries/experiences";
+import { type LandingExperiencesResult } from "@/lib/queries/experiences";
 import { cn } from "@/lib/utils";
 import { Section } from "./Section";
 
-export function FeaturedExperiences({ initialData }: { initialData?: LandingExperiencesResult }) {
-  const { data } = useQuery({
-    queryKey: ["landing", "featured-experiences"],
-    queryFn: () => fetchLandingExperiences(6, featuredImageTransform),
-    staleTime: 1000 * 60 * 10,
-    refetchOnMount: false,
-    initialData,
-  });
-
-  const experiences = useMemo(() => data?.experiences ?? [], [data?.experiences]);
-  const coverByExperienceId = useMemo(() => data?.coverByExperienceId ?? {}, [data?.coverByExperienceId]);
-  const locationByExperienceId = useMemo(() => data?.locationByExperienceId ?? {}, [data?.locationByExperienceId]);
+export function FeaturedExperiences({ initialData }: { initialData: LandingExperiencesResult }) {
+  const experiences = initialData.experiences;
+  const coverByExperienceId = initialData.coverByExperienceId;
+  const locationByExperienceId = initialData.locationByExperienceId;
 
   const cards = useMemo(() => {
     return experiences.map((exp) => {

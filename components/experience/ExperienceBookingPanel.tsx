@@ -449,7 +449,7 @@ export function ExperienceBookingPanel({
 
   return (
     <>
-      <div className="space-y-5">
+      <div className="grid gap-5 xl:grid-cols-1 xl:items-start">
         <Card className="overflow-hidden rounded-3xl border border-border bg-transparent py-0 shadow-none ring-0">
           <CardHeader className="border-b border-border/70 pb-4">
             <div className="flex items-start  pt-4 justify-between gap-3">
@@ -596,7 +596,7 @@ export function ExperienceBookingPanel({
 
         <Card
           className={cn(
-            "overflow-hidden rounded-3xl border shadow-lg transition-all",
+            "overflow-hidden rounded-3xl border shadow-lg transition-all xl:sticky xl:top-28",
             cart.length > 0
               ? "border-orange-200/70 bg-card shadow-orange-500/10 dark:border-orange-500/25 dark:bg-card dark:shadow-orange-950/15"
               : "border-dashed border-border bg-muted/20 dark:bg-muted/10",
