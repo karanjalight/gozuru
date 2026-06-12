@@ -1,13 +1,17 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ExperienceMediaCarousel } from "@/components/experience/ExperienceMediaCarousel";
-import { ExperienceBookingPanel } from "@/components/experience/ExperienceBookingPanel";
+import {
+  ExperienceBookingOrderSummary,
+  ExperienceBookingRoot,
+  ExperienceBookingSlots,
+} from "@/components/experience/ExperienceBookingPanel";
 import { mapExperienceGalleryMedia } from "@/lib/experience-media";
 import { useParams } from "next/navigation";
-import { ArrowDown, ArrowUpRight, Clock3, MapPin, ShieldCheck, Star, Users } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Clock3, MapPin, ShieldCheck, Star, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -122,6 +126,56 @@ export default function ExperienceDetailPage() {
   const [reviewerProfiles, setReviewerProfiles] = useState<Record<string, ProfileRow>>({});
   const [reviewerFallbackImages, setReviewerFallbackImages] = useState<Record<string, string>>({});
   const [confirmedGuestsBySlotId, setConfirmedGuestsBySlotId] = useState<Record<string, number>>({});
+  const [bookingMode, setBookingMode] = useState(false);
+
+  useEffect(() => {
+    if (bookingMode) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [bookingMode]);
+
+  const refreshAvailability = useCallback(async () => {
+    if (!experienceId) return;
+
+    try {
+      const rpcResult = await supabase.rpc("get_public_upcoming_slots", {
+        p_experience_id: experienceId,
+        p_limit: 24,
+      });
+      if (rpcResult.error) throw new Error(rpcResult.error.message);
+
+      const nextAvailability = (rpcResult.data ?? []) as ExperienceAvailabilityRow[];
+      setAvailability(nextAvailability);
+
+      const slotIds = nextAvailability.map((slot) => slot.id);
+      if (slotIds.length === 0) {
+        setConfirmedGuestsBySlotId({});
+        return;
+      }
+
+      const { data: bookingRows } = await supabase
+        .from("bookings")
+        .select("availability_id,guests_count,status")
+        .in("availability_id", slotIds)
+        .in("status", ["requested", "confirmed", "completed", "no_show"]);
+
+      const nextCounts: Record<string, number> = {};
+      for (const row of (bookingRows ?? []) as Array<{
+        availability_id: string | null;
+        guests_count: number;
+      }>) {
+        if (!row.availability_id) continue;
+        nextCounts[row.availability_id] = (nextCounts[row.availability_id] ?? 0) + (row.guests_count ?? 0);
+      }
+      setConfirmedGuestsBySlotId(nextCounts);
+    } catch (error) {
+      setLoadError(
+        error instanceof Error
+          ? `Unable to refresh availability: ${error.message}`
+          : "Unable to refresh availability.",
+      );
+    }
+  }, [experienceId]);
 
   useEffect(() => {
     if (!experienceId) return;
@@ -229,7 +283,7 @@ export default function ExperienceDetailPage() {
           .from("bookings")
           .select("availability_id,guests_count,status")
           .in("availability_id", slotIds)
-          .in("status", ["confirmed", "completed", "no_show"]);
+          .in("status", ["requested", "confirmed", "completed", "no_show"]);
         if (mounted && bookingRows) {
           const nextCounts: Record<string, number> = {};
           for (const row of bookingRows as Array<{ availability_id: string | null; guests_count: number }>) {
@@ -422,14 +476,25 @@ export default function ExperienceDetailPage() {
 
   const durationHours = experience.duration_minutes ? Math.max(1, Math.round(experience.duration_minutes / 60)) : null;
 
-  function scrollToBooking() {
-    document.getElementById("book-slots")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
+  const bookingExperience = {
+    id: experience.id,
+    host_user_id: experience.host_user_id,
+    title: experience.title,
+    price_amount: experience.price_amount,
+    currency: experience.currency,
+    max_guests: experience.max_guests,
+    cancellation_policy: experience.cancellation_policy,
+  };
 
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-7xl px-4 py-10 pt-24 sm:px-6 lg:py-12 lg:pt-24">
+      <main
+        className={cn(
+          "mx-auto max-w-7xl px-4 py-10 pt-24 sm:px-6 lg:py-12 lg:pt-24",
+          bookingMode && "pb-28",
+        )}
+      >
         <div className="mb-6">
           <Link href="/experiences" className="text-sm font-medium text-orange-500 hover:text-orange-600">
             Back to experiences
@@ -437,64 +502,101 @@ export default function ExperienceDetailPage() {
         </div>
 
         <section className="overflow-hidden rounded-3xl border border-orange-100 bg-gradient-to-br from-orange-50/80 via-background to-background shadow-sm">
-          <div className="border-b border-orange-100/80 px-6 py-5 sm:px-8">
+          <div className="px-6 py-5 sm:px-8">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Experience</p>
-                <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">{experience.title}</h1>
-                {experience.subtitle ? (
+                {!bookingMode ? (
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Experience</p>
+                ) : null}
+                <h1 className={cn("text-3xl font-bold tracking-tight sm:text-4xl", !bookingMode && "mt-2")}>
+                  {experience.title}
+                </h1>
+                {!bookingMode && experience.subtitle ? (
                   <p className="mt-3 max-w-3xl text-base text-muted-foreground">{experience.subtitle}</p>
                 ) : null}
               </div>
-              <Button
-                type="button"
-                onClick={scrollToBooking}
-                className="shrink-0 rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-orange-500/20 hover:bg-orange-600 dark:shadow-orange-950/30"
-              >
-                Choose a time slot
-                <ArrowDown className="ml-2 size-4" />
-              </Button>
+              {bookingMode ? (
+                <Button
+                  type="button"
+                  onClick={() => setBookingMode(false)}
+                  className="shrink-0 rounded-full border-2 border-zinc-900 bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-zinc-800 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+                >
+                  <ArrowLeft className="mr-2 size-4" />
+                  Experience details
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={() => setBookingMode(true)}
+                  className="shrink-0 rounded-full border-2 border-orange-700 bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-orange-900/25 hover:bg-orange-700 dark:border-orange-500 dark:bg-orange-500 dark:hover:bg-orange-400"
+                >
+                  Book Now
+                </Button>
+              )}
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3 px-6 py-4 sm:px-8">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm text-muted-foreground">
-              <MapPin className="size-4 text-orange-500" />
-              {locationLabel}
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm text-muted-foreground">
-              <Clock3 className="size-4 text-orange-500" />
-              {durationHours ? `${durationHours} hour${durationHours > 1 ? "s" : ""}` : "Flexible duration"}
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm text-muted-foreground">
-              <Users className="size-4 text-orange-500" />
-              Up to {experience.max_guests ?? 1} guests
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-500/10 px-3 py-1.5 text-sm font-semibold text-orange-700 dark:text-orange-300">
-              {formatMoney(experience.price_amount, experience.currency)} / guest
-            </span>
-            {ratingSummary.average ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm font-medium text-foreground">
-                <Star className="size-4 fill-orange-400 text-orange-400" />
-                {ratingSummary.average.toFixed(1)} ({ratingSummary.count} reviews)
+          {!bookingMode ? (
+            <div className="flex flex-wrap items-center gap-3 border-t border-orange-100/80 px-6 py-4 sm:px-8">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm text-muted-foreground">
+                <MapPin className="size-4 text-orange-500" />
+                {locationLabel}
               </span>
-            ) : null}
-          </div>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm text-muted-foreground">
+                <Clock3 className="size-4 text-orange-500" />
+                {durationHours ? `${durationHours} hour${durationHours > 1 ? "s" : ""}` : "Flexible duration"}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm text-muted-foreground">
+                <Users className="size-4 text-orange-500" />
+                Up to {experience.max_guests ?? 1} guests
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-500/10 px-3 py-1.5 text-sm font-semibold text-orange-700 dark:text-orange-300">
+                {formatMoney(experience.price_amount, experience.currency)} / guest
+              </span>
+              {ratingSummary.average ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm font-medium text-foreground">
+                  <Star className="size-4 fill-orange-400 text-orange-400" />
+                  {ratingSummary.average.toFixed(1)} ({ratingSummary.count} reviews)
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </section>
 
-        <div className="mt-8">
-          <ExperienceMediaCarousel
-            items={galleryMedia}
-            emptyLabel={experience.title}
-          />
-        </div>
+        {!bookingMode ? (
+          <div className="mt-8">
+            <ExperienceMediaCarousel items={galleryMedia} emptyLabel={experience.title} />
+          </div>
+        ) : null}
 
-        <section className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px]">
-        <div className="space-y-6">
-          {loadError ? (
-            <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
-              {loadError}
-            </p>
-          ) : null}
+        <ExperienceBookingRoot
+          experience={bookingExperience}
+          availability={availability}
+          confirmedGuestsBySlotId={confirmedGuestsBySlotId}
+          bookingMode={bookingMode}
+          onCheckoutComplete={() => {
+            void refreshAvailability();
+          }}
+        >
+          {bookingMode ? (
+            <section id="book-slots" className="mt-8 scroll-mt-28 grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px]">
+              {loadError ? (
+                <p className="lg:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+                  {loadError}
+                </p>
+              ) : null}
+              <ExperienceBookingSlots />
+              <aside>
+                <ExperienceBookingOrderSummary />
+              </aside>
+            </section>
+          ) : (
+            <section className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px]">
+              <div className="space-y-6">
+                {loadError ? (
+                  <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+                    {loadError}
+                  </p>
+                ) : null}
 
           <Card className="rounded-3xl border-border/70 shadow-sm">
             <CardHeader>
@@ -580,76 +682,54 @@ export default function ExperienceDetailPage() {
               )}
             </CardContent>
           </Card>
-
-          <div id="book-slots" className="scroll-mt-28 pt-2">
-            <Suspense
-              fallback={
-                <div className="rounded-3xl border border-border bg-muted/30 px-4 py-12 text-center text-sm text-muted-foreground">
-                  Loading booking options...
-                </div>
-              }
-            >
-              <ExperienceBookingPanel
-                experience={{
-                  id: experience.id,
-                  host_user_id: experience.host_user_id,
-                  title: experience.title,
-                  price_amount: experience.price_amount,
-                  currency: experience.currency,
-                  max_guests: experience.max_guests,
-                  cancellation_policy: experience.cancellation_policy,
-                }}
-                availability={availability}
-                confirmedGuestsBySlotId={confirmedGuestsBySlotId}
-              />
-            </Suspense>
-          </div>
-        </div>
-
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <Card className="overflow-hidden rounded-3xl border-border/70 shadow-sm">
-            <CardHeader className="border-b border-border/70 pb-4">
-              <CardTitle className="text-base">Your expert</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5 p-5">
-              <div className="flex flex-col items-center text-center">
-                <div className="relative size-20 overflow-hidden rounded-full border-2 border-orange-200 bg-muted dark:border-orange-500/30">
-                  {hostAvatarUrl ? (
-                    <Image src={hostAvatarUrl} alt={hostName} fill unoptimized className="object-cover" />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center text-xl font-semibold text-muted-foreground">
-                      {hostName.charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-4 text-lg font-semibold text-foreground">{hostName}</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {hostProfile?.headline || "Local expert on Gozuru"}
-                </p>
               </div>
 
-              {hostProfile?.expertise ? (
-                <p className="text-center text-sm leading-6 text-muted-foreground">{hostProfile.expertise}</p>
-              ) : null}
+              <aside className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
+                <Card className="overflow-hidden rounded-3xl border-border/70 shadow-sm">
+                  <CardHeader className="border-b border-border/70 pb-4">
+                    <CardTitle className="text-base">Your expert</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-5 p-5">
+                    <div className="flex flex-col items-center text-center">
+                      <div className="relative size-20 overflow-hidden rounded-full border-2 border-orange-200 bg-muted dark:border-orange-500/30">
+                        {hostAvatarUrl ? (
+                          <Image src={hostAvatarUrl} alt={hostName} fill unoptimized className="object-cover" />
+                        ) : (
+                          <span className="flex h-full w-full items-center justify-center text-xl font-semibold text-muted-foreground">
+                            {hostName.charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-4 text-lg font-semibold text-foreground">{hostName}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {hostProfile?.headline || "Local expert on Gozuru"}
+                      </p>
+                    </div>
 
-              <p className="text-center text-sm leading-6 text-muted-foreground">
-                {hostProfile?.highlight_story || "Passionate about sharing authentic local knowledge and stories."}
-              </p>
+                    {hostProfile?.expertise ? (
+                      <p className="text-center text-sm leading-6 text-muted-foreground">{hostProfile.expertise}</p>
+                    ) : null}
 
-              <Link
-                href={`/hosts/${experience.host_user_id}`}
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "inline-flex w-full items-center justify-center gap-2 rounded-full border-orange-200 py-2.5 text-sm font-semibold text-orange-700 hover:bg-orange-50 hover:text-orange-800 dark:border-orange-500/30 dark:text-orange-300 dark:hover:bg-orange-950/30",
-                )}
-              >
-                View expert profile
-                <ArrowUpRight className="size-4" />
-              </Link>
-            </CardContent>
-          </Card>
-        </aside>
-        </section>
+                    <p className="text-center text-sm leading-6 text-muted-foreground">
+                      {hostProfile?.highlight_story || "Passionate about sharing authentic local knowledge and stories."}
+                    </p>
+
+                    <Link
+                      href={`/hosts/${experience.host_user_id}`}
+                      className={cn(
+                        buttonVariants({ variant: "default" }),
+                        "inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-orange-700 bg-orange-600 py-2.5 text-sm font-semibold text-white shadow-md shadow-orange-900/20 hover:bg-orange-700 dark:border-orange-500 dark:bg-orange-500 dark:hover:bg-orange-400",
+                      )}
+                    >
+                      View expert profile
+                      <ArrowUpRight className="size-4" />
+                    </Link>
+                  </CardContent>
+                </Card>
+              </aside>
+            </section>
+          )}
+        </ExperienceBookingRoot>
       </main>
     </>
   );

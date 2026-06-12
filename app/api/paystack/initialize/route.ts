@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { resolvePaystackCurrency } from "@/lib/booking/checkout";
 
 type CartCheckoutItem = {
   availabilityId: string;
@@ -39,6 +40,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 const supabase = createClient(supabaseUrl as string, supabaseAnonKey as string);
+
 function getSupabaseWithAuth(accessToken: string) {
   return createClient(supabaseUrl as string, supabaseAnonKey as string, {
     global: {
@@ -92,6 +94,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid cart item." }, { status: 400 });
       }
     }
+
     if (!emailPattern.test(normalizedEmail)) {
       return NextResponse.json(
         { error: "Invalid email address for Paystack checkout. Update your account email and retry." },
@@ -99,83 +102,61 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const [{ data: experience, error: experienceError }, { data: slot, error: slotError }] = await Promise.all([
-      supabase
-        .from("experiences")
-        .select("id,title,price_amount,currency")
-        .eq("id", body.experienceId)
-        .eq("status", "published")
-        .single(),
-      supabase.rpc("get_public_upcoming_slots", {
-        p_experience_id: body.experienceId,
-        p_limit: 50,
-      }),
-    ]);
+    const [{ data: experience, error: experienceError }, { data: slots, error: slotError }] =
+      await Promise.all([
+        supabase
+          .from("experiences")
+          .select("id,title,price_amount,currency")
+          .eq("id", body.experienceId)
+          .eq("status", "published")
+          .single(),
+        supabase.rpc("get_public_upcoming_slots", {
+          p_experience_id: body.experienceId,
+          p_limit: 50,
+        }),
+      ]);
 
     if (experienceError || !experience) {
       const reason = experienceError?.message ?? "Experience not found.";
-      console.error("Paystack init failed: experience lookup", { experienceId: body.experienceId, reason });
       return NextResponse.json({ error: reason }, { status: 400 });
     }
     if (slotError) {
-      console.error("Paystack init failed: slot rpc error", {
-        experienceId: body.experienceId,
-        availabilityId: body.availabilityId,
-        reason: slotError.message,
-      });
       return NextResponse.json({ error: slotError.message }, { status: 400 });
     }
 
     const exp = experience as ExperienceRow;
     const availabilityById = new Map(
-      ((slot ?? []) as AvailabilityRow[]).map((item) => [item.id, item]),
+      ((slots ?? []) as AvailabilityRow[]).map((item) => [item.id, item]),
     );
 
     let chargeAmountMajor = 0;
+    let checkoutCurrency = exp.currency;
+
     for (const item of cartItems) {
       const availability = availabilityById.get(item.availabilityId);
       if (!availability) {
-        const reason = "One or more selected slots are no longer available.";
-        console.error("Paystack init failed: slot missing", {
-          experienceId: body.experienceId,
-          availabilityId: item.availabilityId,
-        });
-        return NextResponse.json({ error: reason }, { status: 400 });
+        return NextResponse.json(
+          { error: "One or more selected slots are no longer available." },
+          { status: 400 },
+        );
       }
 
       const unitPrice = Number(availability.price_amount ?? exp.price_amount);
       const lineTotal = unitPrice * item.guestsCount;
       if (!Number.isFinite(lineTotal) || lineTotal <= 0) {
-        const reason = "Invalid slot amount for checkout. Set a price above 0 on this availability.";
-        console.error("Paystack init failed: invalid amount", {
-          experienceId: body.experienceId,
-          availabilityId: item.availabilityId,
-          unitPrice,
-          guestsCount: item.guestsCount,
-        });
-        return NextResponse.json({ error: reason }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid slot amount for checkout. Set a price above 0 on this availability." },
+          { status: 400 },
+        );
       }
       chargeAmountMajor += lineTotal;
+      checkoutCurrency = availability.currency ?? exp.currency;
     }
 
+    const paystackCurrency = resolvePaystackCurrency(checkoutCurrency);
     const amountMinor = Math.round(chargeAmountMajor * 100);
-    const currency = "KES";
     const appBaseUrl = siteUrl || request.nextUrl.origin;
     const callbackUrl = `${appBaseUrl}/experiences/${body.experienceId}`;
-
-    const primaryItem = cartItems[0];
-    const metadata = {
-      experienceId: body.experienceId,
-      availabilityId: primaryItem.availabilityId,
-      guestsCount: primaryItem.guestsCount,
-      guestNote: (body.guestNote ?? "").trim() || null,
-      cartItemsJson: JSON.stringify(
-        cartItems.map((item) => ({
-          a: item.availabilityId,
-          g: item.guestsCount,
-        })),
-      ),
-    };
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 12000);
@@ -189,9 +170,18 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         email: normalizedEmail,
         amount: amountMinor,
-        currency,
+        currency: paystackCurrency,
         callback_url: callbackUrl,
-        metadata,
+        metadata: {
+          experienceId: body.experienceId,
+          guestNote: (body.guestNote ?? "").trim() || null,
+          cartItemsJson: JSON.stringify(
+            cartItems.map((item) => ({
+              availabilityId: item.availabilityId,
+              guestsCount: item.guestsCount,
+            })),
+          ),
+        },
       }),
       signal: controller.signal,
     }).finally(() => clearTimeout(timeout));
@@ -202,16 +192,29 @@ export async function POST(request: NextRequest) {
       data?: { authorization_url: string; reference: string; access_code?: string };
     };
 
-    if (!initResponse.ok || !initJson.status || !initJson.data?.authorization_url || !initJson.data?.access_code) {
-      console.error("Paystack init failed: provider response", {
-        status: initResponse.status,
-        message: initJson.message,
-        hasAccessCode: Boolean(initJson.data?.access_code),
-      });
+    if (!initResponse.ok || !initJson.status || !initJson.data?.reference || !initJson.data?.access_code) {
       return NextResponse.json(
         { error: initJson.message || "Failed to initialize Paystack modal transaction." },
         { status: 400 },
       );
+    }
+
+    const sessionItems = cartItems.map((item) => ({
+      availabilityId: item.availabilityId,
+      guestsCount: item.guestsCount,
+    }));
+
+    const { error: sessionError } = await authSupabase.rpc("create_checkout_session", {
+      p_experience_id: body.experienceId,
+      p_paystack_reference: initJson.data.reference,
+      p_items: sessionItems,
+      p_guest_note: (body.guestNote ?? "").trim() || null,
+      p_amount_minor: amountMinor,
+      p_currency: checkoutCurrency,
+    });
+
+    if (sessionError) {
+      return NextResponse.json({ error: sessionError.message }, { status: 400 });
     }
 
     return NextResponse.json({
@@ -219,14 +222,13 @@ export async function POST(request: NextRequest) {
       reference: initJson.data.reference,
       accessCode: initJson.data.access_code ?? null,
       amountMinor,
-      currency,
+      currency: paystackCurrency,
+      itemCount: cartItems.length,
+      ticketCount: cartItems.reduce((sum, item) => sum + item.guestsCount, 0),
     });
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      return NextResponse.json(
-        { error: "Paystack request timed out. Please retry." },
-        { status: 504 },
-      );
+      return NextResponse.json({ error: "Paystack request timed out. Please retry." }, { status: 504 });
     }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to initialize payment." },
