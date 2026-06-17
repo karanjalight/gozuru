@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import {
-  ExpertGrid,
-  CategorySection,
+  ContactTeamSection,
+  ExpertAgentsSection,
   FeaturedExperiences,
+  HowItWorksSection,
+  InvestmentSection,
+  NewPropertiesSection,
   TestimonialsSection,
-  CTASection,
 } from "./components/sections";
 import { LandingHero } from "./components/HeroLanding";
-import { ExperiencesGrid } from "./components/sections/ExperiencesSection";
 import {
   featuredImageTransform,
   listImageTransform,
 } from "@/lib/queries/experiences";
 import { fetchLandingExperiencesServer } from "@/lib/queries/experiences-server";
+import { fetchLandingExpertsServer } from "@/lib/queries/experts-server";
 import { socialPreviewImage } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
@@ -21,34 +22,32 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Gozuru – Reward Your Curiosity",
   description:
-    "The Gozuru of curious travelers. Connect with local experts, discover hidden gems, and experience the world through human connection and knowledge sharing.",
+    "Book hotel partner visits, expert-led experiences, community meetups, social events, and travel expos. Connect with local experts and reward your curiosity on Gozuru.",
   openGraph: {
     title: "Gozuru – Reward Your Curiosity",
     description:
-      "Connect with local experts. Discover hidden gems, stories, and knowledge — not just sights.",
+      "Hotel visits, featured experiences, meetups, expos, and verified local experts — all on Gozuru.",
     images: [socialPreviewImage],
   },
 };
 
 export default async function LandingPage() {
-  const [sharedLandingData, featuredLandingData] = await Promise.all([
+  const [sharedLandingData, featuredLandingData, { experts }] = await Promise.all([
     fetchLandingExperiencesServer(24, listImageTransform),
     fetchLandingExperiencesServer(6, featuredImageTransform),
+    fetchLandingExpertsServer(12),
   ]);
 
   return (
     <>
       <LandingHero initialData={sharedLandingData} />
-      {/* <HeroSection /> */}
-      {/* <SearchSection /> */}
-      <Suspense fallback={null}>
-        <ExperiencesGrid initialData={sharedLandingData} />
-      </Suspense>
-      <ExpertGrid />
-      <CategorySection />
-      <FeaturedExperiences initialData={featuredLandingData} />
+      {/* <FeaturedExperiences initialData={featuredLandingData} /> */}
+      <NewPropertiesSection />
+      <HowItWorksSection />
+      <ExpertAgentsSection experts={experts} />
+      <InvestmentSection />
       <TestimonialsSection />
-      <CTASection />
+      <ContactTeamSection />
     </>
   );
 }

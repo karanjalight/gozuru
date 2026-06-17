@@ -6,9 +6,10 @@ import {
 } from "@/lib/queries/experiences";
 import { fetchLandingExperiencesServer } from "@/lib/queries/experiences-server";
 import { socialPreviewImage } from "@/lib/seo";
-import { CategorySection, ExpertGrid, FeaturedExperiences } from "../components/sections";
 import { ExperienceHero } from "../components/HeroExperience copy";
 import { ExperiencesGrid } from "../components/sections/ExperiencesSection";
+import { FeaturedExperiencesShowcase } from "../components/sections/FeaturedExperiencesShowcase";
+import { UpcomingEventsSection } from "../components/sections/UpcomingEventsSection";
 
 export const dynamic = "force-dynamic";
 
@@ -25,20 +26,26 @@ export const metadata: Metadata = {
 };
 
 export default async function ExperiencesPage() {
-  const [allExperiencesData, featuredExperiencesData] = await Promise.all([
+  const [experiencesData, featuredData] = await Promise.all([
     fetchLandingExperiencesServer(48, listImageTransform),
-    fetchLandingExperiencesServer(6, featuredImageTransform),
+    fetchLandingExperiencesServer(4, featuredImageTransform),
   ]);
 
   return (
     <>
-      <ExperienceHero />
+      <ExperienceHero initialData={experiencesData} />
+      
       <Suspense fallback={null}>
-        <ExperiencesGrid initialData={allExperiencesData} />
+        <UpcomingEventsSection  />
       </Suspense>
-      <FeaturedExperiences initialData={featuredExperiencesData} />
-      <ExpertGrid />
-      <CategorySection />
+      <Suspense fallback={null}>
+        <ExperiencesGrid initialData={experiencesData} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <FeaturedExperiencesShowcase initialData={featuredData} />
+      </Suspense>
+
+      
     </>
   );
 }

@@ -15,9 +15,9 @@ const FOOTER_BACKGROUND_IMAGE =
   "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1800&h=1000&fit=crop";
 
 const explore = [
-  { href: "/about", label: "About us" },
+  { href: "/experts", label: "Browse experts" },
   { href: "/experiences", label: "Browse experiences" },
-  { href: "/#experts", label: "Explore experts" },
+  { href: "/#experts", label: "Featured experts" },
   { href: "/#categories", label: "Interest categories" },
   { href: "/#experiences", label: "Popular trips" },
 ];

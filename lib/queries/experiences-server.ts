@@ -33,7 +33,7 @@ export async function fetchLandingExperiencesServer(
   const { data: rows, error } = await supabase
     .from("experiences")
     .select(
-      "id,title,description,subtitle,duration_minutes,price_amount,currency,meeting_point_name,created_at,categories(name,slug)",
+      "id,title,description,subtitle,duration_minutes,max_guests,price_amount,currency,meeting_point_name,created_at,categories(name,slug)",
     )
     .eq("status", "published")
     .order("created_at", { ascending: false })

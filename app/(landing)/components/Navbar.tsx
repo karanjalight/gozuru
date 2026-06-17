@@ -19,9 +19,9 @@ const NAV_LINKS = [
       path === "/experiences" || path.startsWith("/experiences/"),
   },
   {
-    href: "/about",
-    label: "About us",
-    isActive: (path: string) => path === "/about" || path.startsWith("/about/"),
+    href: "/experts",
+    label: "Experts",
+    isActive: (path: string) => path === "/experts" || path.startsWith("/experts/"),
   },
   {
     href: "/hosts",

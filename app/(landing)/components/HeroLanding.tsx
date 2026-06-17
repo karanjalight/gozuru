@@ -9,12 +9,14 @@ import { Navbar } from "@/app/(landing)/components/Navbar";
 import { type LandingExperiencesResult } from "@/lib/queries/experiences";
 
 const HERO_IMAGES = [
-  "https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg",
-  "https://images.pexels.com/photos/870711/pexels-photo-870711.jpeg",
-  "https://images.pexels.com/photos/775031/pexels-photo-775031.jpeg",
-  "https://images.pexels.com/photos/2961969/pexels-photo-2961969.jpeg",
-  "https://images.pexels.com/photos/1398688/pexels-photo-1398688.jpeg",
+  "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg",
+  "https://images.pexels.com/photos/1267696/pexels-photo-1267696.jpeg",
+  "https://images.pexels.com/photos/2774556/pexels-photo-2774556.jpeg",
+  "https://images.pexels.com/photos/2506923/pexels-photo-2506923.jpeg",
+  "https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg",
+
 ];
+
 
 export function LandingHero({ initialData }: { initialData: LandingExperiencesResult }) {
   const [index, setIndex] = useState(0);
@@ -70,13 +72,12 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
 
   return (
     <section
-      className={`relative flex min-h-[75vh] items-center justify-center overflow-hidden transition-colors ${
+      className={`relative flex min-h-[80vh] items-center justify-center overflow-hidden transition-colors ${
         isDark ? "bg-zinc-900 text-white" : "bg-slate-950 text-white"
       }`}
     >
       <Navbar />
 
-      {/* background carousel sits behind navbar and content */}
       <div className="absolute inset-0 -z-0">
         {HERO_IMAGES.map((src, i) => (
           <div
@@ -87,7 +88,7 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
           >
             <Image
               src={src}
-              alt="People enjoying an experience together"
+              alt="Travelers enjoying a Gozuru experience together"
               fill
               priority={i === 0}
               className="pointer-events-none object-cover"
@@ -98,38 +99,37 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
           className={`absolute inset-0 bg-gradient-to-b transition-colors ${
             isDark
               ? "from-black/90 via-black/65 to-black/90"
-              : "from-black/85 via-slate-950/45 to-black/80"
+              : "from-black/85 via-slate-950/50 to-black/85"
           }`}
         />
       </div>
 
       <div className="relative z-10 mx-auto flex lg:w-[1040px] flex-col items-center gap-8 px-4 pt-20 text-center md:items-start md:text-left">
         <div
-          className={`inline-flex items-center gap-2 rounded-full px-4 py-1 text-xs font-medium backdrop-blur transition-colors ${
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium backdrop-blur transition-colors ${
             isDark
               ? "bg-white/10 text-white"
               : "bg-white/15 text-white ring-1 ring-white/20"
           }`}
         >
           <span className="h-2 w-2 rounded-full bg-emerald-400" />
-          Trusted hosts in cities worldwide
+          Hotel visits · Meetups · Expos · Expert sessions
         </div>
 
         <div className="space-y-4">
           <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl text-white">
-            Access People Who Know. Anywhere.
+            Reward Your Curiosity with Gozuru
           </h1>
           <p
-            className={`max-w-xl text-balance text-sm sm:text-base transition-colors ${
+            className={`max-w-xl text-balance text-sm sm:text-base leading-relaxed transition-colors ${
               isDark ? "text-zinc-100/90" : "text-zinc-100"
             }`}
           >
-            Book time with local experts for real conversations and immersive
-            experiences, in person or virtual.
+            Connect with local experts for hotel partner visits, curated meetups,
+            social events, and travel expos — real conversations, not just sightseeing.
           </p>
         </div>
 
-        {/* primary search bar */}
         <div ref={searchContainerRef} className="relative mt-4 w-full max-w-xl text-zinc-950 [color-scheme:light]">
           <form
             onSubmit={(event) => {
@@ -147,7 +147,7 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
                 setShowSuggestions(true);
               }}
               onFocus={() => setShowSuggestions(true)}
-              placeholder="Search experiences by topic, city, or keyword"
+              placeholder="Search experiences, cities, or experts"
               aria-label="Search experiences"
               className="flex-1 rounded-full border-0 bg-white px-4 py-2 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none [&:-webkit-autofill]:[-webkit-text-fill-color:rgb(9_9_11)] [&:-webkit-autofill]:[box-shadow:0_0_0px_1000px_#fff_inset]"
             />
@@ -163,7 +163,7 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
             <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-2xl border border-zinc-200 bg-white text-zinc-950 shadow-xl">
               {suggestions.length === 0 ? (
                 <p className="px-4 py-3 text-sm text-zinc-600">
-                  No matching experiences yet.
+                  No matching experiences yet — try a city or topic.
                 </p>
               ) : (
                 <ul className="py-1">
@@ -189,7 +189,6 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
           )}
         </div>
 
-        {/* dots indicator */}
         <div
           className={`mt-2 lg:ml-5 p-1 rounded-full flex gap-1.5 transition-colors ${
             isDark ? "bg-black/30" : "bg-black/35"
@@ -209,7 +208,6 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
           ))}
         </div>
       </div>
-
     </section>
   );
 }

@@ -5,15 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { ExperienceMediaCarousel } from "@/components/experience/ExperienceMediaCarousel";
 import {
-  ExperienceBookingOrderSummary,
+  ExperienceBookingPurchasePanel,
   ExperienceBookingRoot,
-  ExperienceBookingSlots,
 } from "@/components/experience/ExperienceBookingPanel";
 import { mapExperienceGalleryMedia } from "@/lib/experience-media";
 import { useParams } from "next/navigation";
-import { ArrowLeft, ArrowUpRight, Clock3, MapPin, ShieldCheck, Star, Users } from "lucide-react";
+import { ArrowUpRight, Clock3, MapPin, ShieldCheck, Star, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navbar } from "../../components/Navbar";
@@ -126,13 +125,6 @@ export default function ExperienceDetailPage() {
   const [reviewerProfiles, setReviewerProfiles] = useState<Record<string, ProfileRow>>({});
   const [reviewerFallbackImages, setReviewerFallbackImages] = useState<Record<string, string>>({});
   const [confirmedGuestsBySlotId, setConfirmedGuestsBySlotId] = useState<Record<string, number>>({});
-  const [bookingMode, setBookingMode] = useState(false);
-
-  useEffect(() => {
-    if (bookingMode) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  }, [bookingMode]);
 
   const refreshAvailability = useCallback(async () => {
     if (!experienceId) return;
@@ -257,111 +249,111 @@ export default function ExperienceDetailPage() {
 
         if (!mounted) return;
 
-      setLocation((locationData as ExperienceLocationRow | null) ?? null);
-      const nextAvailability = slots ?? [];
-      setAvailability(nextAvailability);
-      const nextReviews = (reviewRows ?? []) as ReviewRow[];
-      setReviews(nextReviews);
-      setHostProfile((hostData as HostProfileRow | null) ?? null);
-      setHostUser((hostUserData as ProfileRow | null) ?? null);
+        setLocation((locationData as ExperienceLocationRow | null) ?? null);
+        const nextAvailability = slots ?? [];
+        setAvailability(nextAvailability);
+        const nextReviews = (reviewRows ?? []) as ReviewRow[];
+        setReviews(nextReviews);
+        setHostProfile((hostData as HostProfileRow | null) ?? null);
+        setHostUser((hostUserData as ProfileRow | null) ?? null);
 
-      setGalleryMedia(
-        mapExperienceGalleryMedia(
-          supabase,
-          (mediaRows ?? []) as ExperienceMediaRow[],
-          { width: DETAIL_HERO_WIDTH, height: DETAIL_HERO_HEIGHT, quality: 74 },
-          { width: DETAIL_GRID_WIDTH, height: DETAIL_GRID_HEIGHT, quality: 70 },
-        ).map((item) => ({
-          ...item,
-          alt: item.alt || experienceRow.title,
-        })),
-      );
+        setGalleryMedia(
+          mapExperienceGalleryMedia(
+            supabase,
+            (mediaRows ?? []) as ExperienceMediaRow[],
+            { width: DETAIL_HERO_WIDTH, height: DETAIL_HERO_HEIGHT, quality: 74 },
+            { width: DETAIL_GRID_WIDTH, height: DETAIL_GRID_HEIGHT, quality: 70 },
+          ).map((item) => ({
+            ...item,
+            alt: item.alt || experienceRow.title,
+          })),
+        );
 
-      const slotIds = nextAvailability.map((slot) => slot.id);
-      if (slotIds.length > 0) {
-        const { data: bookingRows } = await supabase
-          .from("bookings")
-          .select("availability_id,guests_count,status")
-          .in("availability_id", slotIds)
-          .in("status", ["requested", "confirmed", "completed", "no_show"]);
-        if (mounted && bookingRows) {
-          const nextCounts: Record<string, number> = {};
-          for (const row of bookingRows as Array<{ availability_id: string | null; guests_count: number }>) {
-            if (!row.availability_id) continue;
-            nextCounts[row.availability_id] = (nextCounts[row.availability_id] ?? 0) + (row.guests_count ?? 0);
+        const slotIds = nextAvailability.map((slot) => slot.id);
+        if (slotIds.length > 0) {
+          const { data: bookingRows } = await supabase
+            .from("bookings")
+            .select("availability_id,guests_count,status")
+            .in("availability_id", slotIds)
+            .in("status", ["requested", "confirmed", "completed", "no_show"]);
+          if (mounted && bookingRows) {
+            const nextCounts: Record<string, number> = {};
+            for (const row of bookingRows as Array<{ availability_id: string | null; guests_count: number }>) {
+              if (!row.availability_id) continue;
+              nextCounts[row.availability_id] = (nextCounts[row.availability_id] ?? 0) + (row.guests_count ?? 0);
+            }
+            setConfirmedGuestsBySlotId(nextCounts);
           }
-          setConfirmedGuestsBySlotId(nextCounts);
+        } else {
+          setConfirmedGuestsBySlotId({});
         }
-      } else {
-        setConfirmedGuestsBySlotId({});
-      }
 
-      const reviewerIds = [...new Set(nextReviews.map((item) => item.reviewer_user_id))];
-      if (reviewerIds.length > 0) {
-        const { data: reviewerRows } = await supabase
-          .from("profiles")
-          .select("user_id,first_name,last_name,avatar_path")
-          .in("user_id", reviewerIds);
-
-        if (!mounted) return;
-
-        const reviewerMap: Record<string, ProfileRow> = {};
-        for (const profile of (reviewerRows ?? []) as ProfileRow[]) {
-          reviewerMap[profile.user_id] = profile;
-        }
-        setReviewerProfiles(reviewerMap);
-
-        const missingAvatarIds = reviewerIds.filter((id) => !reviewerMap[id]?.avatar_path);
-        if (missingAvatarIds.length > 0) {
-          const { data: reviewerHostedExperiences } = await supabase
-            .from("experiences")
-            .select("id,host_user_id")
-            .in("host_user_id", missingAvatarIds)
-            .order("created_at", { ascending: false });
+        const reviewerIds = [...new Set(nextReviews.map((item) => item.reviewer_user_id))];
+        if (reviewerIds.length > 0) {
+          const { data: reviewerRows } = await supabase
+            .from("profiles")
+            .select("user_id,first_name,last_name,avatar_path")
+            .in("user_id", reviewerIds);
 
           if (!mounted) return;
 
-          const hostedRows = (reviewerHostedExperiences ?? []) as { id: string; host_user_id: string }[];
-          const hostedExperienceIds = hostedRows.map((row) => row.id);
+          const reviewerMap: Record<string, ProfileRow> = {};
+          for (const profile of (reviewerRows ?? []) as ProfileRow[]) {
+            reviewerMap[profile.user_id] = profile;
+          }
+          setReviewerProfiles(reviewerMap);
 
-          if (hostedExperienceIds.length > 0) {
-            const { data: fallbackMediaRows } = await supabase
-              .from("experience_media")
-              .select("experience_id,storage_path,sort_order")
-              .in("experience_id", hostedExperienceIds)
-              .order("sort_order", { ascending: true });
+          const missingAvatarIds = reviewerIds.filter((id) => !reviewerMap[id]?.avatar_path);
+          if (missingAvatarIds.length > 0) {
+            const { data: reviewerHostedExperiences } = await supabase
+              .from("experiences")
+              .select("id,host_user_id")
+              .in("host_user_id", missingAvatarIds)
+              .order("created_at", { ascending: false });
 
             if (!mounted) return;
 
-            const experienceToHost: Record<string, string> = {};
-            for (const row of hostedRows) {
-              experienceToHost[row.id] = row.host_user_id;
-            }
+            const hostedRows = (reviewerHostedExperiences ?? []) as { id: string; host_user_id: string }[];
+            const hostedExperienceIds = hostedRows.map((row) => row.id);
 
-            const fallbackByUserId: Record<string, string> = {};
-            for (const media of (fallbackMediaRows ?? []) as {
-              experience_id: string;
-              storage_path: string;
-              sort_order: number;
-            }[]) {
-              const hostId = experienceToHost[media.experience_id];
-              if (!hostId || fallbackByUserId[hostId]) continue;
-              const {
-                data: { publicUrl },
-              } = supabase.storage.from("experience-media").getPublicUrl(media.storage_path);
-              fallbackByUserId[hostId] = publicUrl;
+            if (hostedExperienceIds.length > 0) {
+              const { data: fallbackMediaRows } = await supabase
+                .from("experience_media")
+                .select("experience_id,storage_path,sort_order")
+                .in("experience_id", hostedExperienceIds)
+                .order("sort_order", { ascending: true });
+
+              if (!mounted) return;
+
+              const experienceToHost: Record<string, string> = {};
+              for (const row of hostedRows) {
+                experienceToHost[row.id] = row.host_user_id;
+              }
+
+              const fallbackByUserId: Record<string, string> = {};
+              for (const media of (fallbackMediaRows ?? []) as {
+                experience_id: string;
+                storage_path: string;
+                sort_order: number;
+              }[]) {
+                const hostId = experienceToHost[media.experience_id];
+                if (!hostId || fallbackByUserId[hostId]) continue;
+                const {
+                  data: { publicUrl },
+                } = supabase.storage.from("experience-media").getPublicUrl(media.storage_path);
+                fallbackByUserId[hostId] = publicUrl;
+              }
+              setReviewerFallbackImages(fallbackByUserId);
+            } else {
+              setReviewerFallbackImages({});
             }
-            setReviewerFallbackImages(fallbackByUserId);
           } else {
             setReviewerFallbackImages({});
           }
         } else {
+          setReviewerProfiles({});
           setReviewerFallbackImages({});
         }
-      } else {
-        setReviewerProfiles({});
-        setReviewerFallbackImages({});
-      }
 
         setLoading(false);
       } catch (error) {
@@ -475,6 +467,14 @@ export default function ExperienceDetailPage() {
   }
 
   const durationHours = experience.duration_minutes ? Math.max(1, Math.round(experience.duration_minutes / 60)) : null;
+  const durationLabel = durationHours ? `${durationHours} hour${durationHours > 1 ? "s" : ""}` : "Flexible duration";
+  const maxGuestsLabel = `Up to ${experience.max_guests ?? 1} guest${(experience.max_guests ?? 1) === 1 ? "" : "s"}`;
+  const priceLabel = `${formatMoney(experience.price_amount, experience.currency)} / guest`;
+  const shortDescription =
+    experience.subtitle ||
+    (experience.description
+      ? experience.description.slice(0, 180) + (experience.description.length > 180 ? "…" : "")
+      : null);
 
   const bookingExperience = {
     id: experience.id,
@@ -489,246 +489,229 @@ export default function ExperienceDetailPage() {
   return (
     <>
       <Navbar />
-      <main
-        className={cn(
-          "mx-auto max-w-7xl px-4 py-10 pt-24 sm:px-6 lg:py-12 lg:pt-24",
-          bookingMode && "pb-28",
-        )}
-      >
+      <main className="mx-auto max-w-7xl px-4 py-10 pt-24 pb-28 sm:px-6 lg:py-12 lg:pb-12 lg:pt-24">
         <div className="mb-6">
           <Link href="/experiences" className="text-sm font-medium text-orange-500 hover:text-orange-600">
             Back to experiences
           </Link>
         </div>
 
-        <section className="overflow-hidden rounded-3xl border border-orange-100 bg-gradient-to-br from-orange-50/80 via-background to-background shadow-sm">
-          <div className="px-6 py-5 sm:px-8">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0 flex-1">
-                {!bookingMode ? (
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">Experience</p>
-                ) : null}
-                <h1 className={cn("text-3xl font-bold tracking-tight sm:text-4xl", !bookingMode && "mt-2")}>
-                  {experience.title}
-                </h1>
-                {!bookingMode && experience.subtitle ? (
-                  <p className="mt-3 max-w-3xl text-base text-muted-foreground">{experience.subtitle}</p>
-                ) : null}
-              </div>
-              {bookingMode ? (
-                <Button
-                  type="button"
-                  onClick={() => setBookingMode(false)}
-                  className="shrink-0 rounded-full border-2 border-zinc-900 bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-zinc-800 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-                >
-                  <ArrowLeft className="mr-2 size-4" />
-                  Experience details
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  onClick={() => setBookingMode(true)}
-                  className="shrink-0 rounded-full border-2 border-orange-700 bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-orange-900/25 hover:bg-orange-700 dark:border-orange-500 dark:bg-orange-500 dark:hover:bg-orange-400"
-                >
-                  Book Now
-                </Button>
-              )}
-            </div>
-          </div>
-          {!bookingMode ? (
-            <div className="flex flex-wrap items-center gap-3 border-t border-orange-100/80 px-6 py-4 sm:px-8">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm text-muted-foreground">
-                <MapPin className="size-4 text-orange-500" />
-                {locationLabel}
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm text-muted-foreground">
-                <Clock3 className="size-4 text-orange-500" />
-                {durationHours ? `${durationHours} hour${durationHours > 1 ? "s" : ""}` : "Flexible duration"}
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm text-muted-foreground">
-                <Users className="size-4 text-orange-500" />
-                Up to {experience.max_guests ?? 1} guests
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-500/10 px-3 py-1.5 text-sm font-semibold text-orange-700 dark:text-orange-300">
-                {formatMoney(experience.price_amount, experience.currency)} / guest
-              </span>
-              {ratingSummary.average ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1.5 text-sm font-medium text-foreground">
-                  <Star className="size-4 fill-orange-400 text-orange-400" />
-                  {ratingSummary.average.toFixed(1)} ({ratingSummary.count} reviews)
-                </span>
-              ) : null}
-            </div>
-          ) : null}
-        </section>
-
-        {!bookingMode ? (
-          <div className="mt-8">
-            <ExperienceMediaCarousel items={galleryMedia} emptyLabel={experience.title} />
-          </div>
-        ) : null}
-
         <ExperienceBookingRoot
           experience={bookingExperience}
           availability={availability}
           confirmedGuestsBySlotId={confirmedGuestsBySlotId}
-          bookingMode={bookingMode}
           onCheckoutComplete={() => {
             void refreshAvailability();
           }}
         >
-          {bookingMode ? (
-            <section id="book-slots" className="mt-8 scroll-mt-28 grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px]">
-              {loadError ? (
-                <p className="lg:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
-                  {loadError}
+          {loadError ? (
+            <p className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+              {loadError}
+            </p>
+          ) : null}
+
+          <section className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,420px)] lg:items-start">
+            <div className="min-w-0">
+              <ExperienceMediaCarousel items={galleryMedia} emptyLabel={experience.title} />
+            </div>
+
+            <aside id="book-experience" className="scroll-mt-24 lg:sticky lg:top-24 lg:self-start">
+              <ExperienceBookingPurchasePanel
+                title={experience.title}
+                subtitle={experience.subtitle}
+                priceLabel={priceLabel}
+                ratingAverage={ratingSummary.average}
+                ratingCount={ratingSummary.count}
+                shortDescription={shortDescription}
+                locationLabel={locationLabel}
+                durationLabel={durationLabel}
+                maxGuestsLabel={maxGuestsLabel}
+              />
+            </aside>
+          </section>
+
+          <section className="mt-16 space-y-8 border-t border-border pt-12">
+            <Card className="rounded-2xl border-border/70 shadow-sm">
+              <CardHeader>
+                <CardTitle>About this experience</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 text-sm leading-7 text-muted-foreground">
+                <p>{experience.description || "A host-led experience with local insights, stories, and practical guidance."}</p>
+                <p>
+                  This experience is designed to feel personal and immersive, with enough space for questions and
+                  interaction throughout.
                 </p>
-              ) : null}
-              <ExperienceBookingSlots />
-              <aside>
-                <ExperienceBookingOrderSummary />
-              </aside>
-            </section>
-          ) : (
-            <section className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px]">
-              <div className="space-y-6">
-                {loadError ? (
-                  <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
-                    {loadError}
-                  </p>
-                ) : null}
+              </CardContent>
+            </Card>
 
-          <Card className="rounded-3xl border-border/70 shadow-sm">
-            <CardHeader>
-              <CardTitle>What you will do</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm leading-6 text-muted-foreground">
-              <p>{experience.description || "A host-led experience with local insights, stories, and practical guidance."}</p>
-              <p>
-                This experience is designed to feel personal and immersive, with enough space for questions and
-                interaction throughout.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-3xl border-border/70 shadow-sm">
-            <CardHeader>
-              <CardTitle>What is included</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              {(experience.includes?.length ? experience.includes : ["Guided local experience", "Host support during the session"]).map(
-                (item) => (
-                  <div key={item} className="flex items-start gap-2">
-                    <ShieldCheck className="mt-0.5 size-4 text-orange-500" />
-                    <span>{item}</span>
-                  </div>
-                ),
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-3xl border-border/70 shadow-sm">
-            <CardHeader>
-              <CardTitle>Guest requirements</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>{experience.min_age ? `Minimum age: ${experience.min_age}+` : "Suitable for most guests."}</p>
-              {(experience.requirements?.length
-                ? experience.requirements
-                : ["Comfortable walking shoes", "Phone for communication and directions"]).map((item) => (
-                <p key={item}>- {item}</p>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-3xl border-border/70 shadow-sm">
-            <CardHeader>
-              <CardTitle>Reviews</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {reviewerCards.length ? (
-                reviewerCards.map((review) => (
-                  <div key={review.id} className="rounded-xl border p-4">
-                    <div className="mb-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="relative size-9 overflow-hidden rounded-full border bg-muted">
-                          {review.avatarUrl ? (
-                            <Image src={review.avatarUrl} alt={review.name} fill unoptimized className="object-cover" />
-                          ) : (
-                            <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-muted-foreground">
-                              {review.name.charAt(0).toUpperCase()}
-                            </span>
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{review.name}</p>
-                          <p className="text-xs text-muted-foreground">{new Date(review.created_at).toLocaleDateString()}</p>
-                        </div>
+            <div className="grid gap-8 md:grid-cols-2">
+              <Card className="rounded-2xl border-border/70 shadow-sm">
+                <CardHeader>
+                  <CardTitle>What is included</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  {(experience.includes?.length ? experience.includes : ["Guided local experience", "Host support during the session"]).map(
+                    (item) => (
+                      <div key={item} className="flex items-start gap-2">
+                        <ShieldCheck className="mt-0.5 size-4 shrink-0 text-orange-500" />
+                        <span>{item}</span>
                       </div>
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground">
-                        <Star className="size-3.5 fill-orange-400 text-orange-400" />
-                        {review.rating.toFixed(1)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {review.review_text || "Great host and a memorable experience."}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No reviews yet. Be the first traveler to book and leave feedback.
+                    ),
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl border-border/70 shadow-sm">
+                <CardHeader>
+                  <CardTitle>Guest requirements</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  <p>{experience.min_age ? `Minimum age: ${experience.min_age}+` : "Suitable for most guests."}</p>
+                  {(experience.requirements?.length
+                    ? experience.requirements
+                    : ["Comfortable walking shoes", "Phone for communication and directions"]).map((item) => (
+                    <p key={item}>- {item}</p>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid gap-3 rounded-2xl border border-border bg-muted/20 p-5 text-sm dark:bg-muted/10 sm:grid-cols-3">
+              <div>
+                <p className="font-semibold text-foreground">Location</p>
+                <p className="mt-1 inline-flex items-center gap-2 text-muted-foreground">
+                  <MapPin className="size-4 shrink-0 text-orange-500" />
+                  {locationLabel}
                 </p>
-              )}
-            </CardContent>
-          </Card>
               </div>
+              <div>
+                <p className="font-semibold text-foreground">Duration</p>
+                <p className="mt-1 inline-flex items-center gap-2 text-muted-foreground">
+                  <Clock3 className="size-4 shrink-0 text-orange-500" />
+                  {durationLabel}
+                </p>
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">Group size</p>
+                <p className="mt-1 inline-flex items-center gap-2 text-muted-foreground">
+                  <Users className="size-4 shrink-0 text-orange-500" />
+                  {maxGuestsLabel}
+                </p>
+              </div>
+            </div>
 
-              <aside className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
-                <Card className="overflow-hidden rounded-3xl border-border/70 shadow-sm">
-                  <CardHeader className="border-b border-border/70 pb-4">
-                    <CardTitle className="text-base">Your expert</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-5 p-5">
-                    <div className="flex flex-col items-center text-center">
-                      <div className="relative size-20 overflow-hidden rounded-full border-2 border-orange-200 bg-muted dark:border-orange-500/30">
-                        {hostAvatarUrl ? (
-                          <Image src={hostAvatarUrl} alt={hostName} fill unoptimized className="object-cover" />
-                        ) : (
-                          <span className="flex h-full w-full items-center justify-center text-xl font-semibold text-muted-foreground">
-                            {hostName.charAt(0).toUpperCase()}
-                          </span>
-                        )}
+            <Card className="rounded-2xl border-border/70 shadow-sm">
+              <CardHeader>
+                <CardTitle>Reviews</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {reviewerCards.length ? (
+                  reviewerCards.map((review) => (
+                    <div key={review.id} className="rounded-xl border p-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="relative size-9 overflow-hidden rounded-full border bg-muted">
+                            {review.avatarUrl ? (
+                              <Image src={review.avatarUrl} alt={review.name} fill unoptimized className="object-cover" />
+                            ) : (
+                              <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-muted-foreground">
+                                {review.name.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{review.name}</p>
+                            <p className="text-xs text-muted-foreground">{new Date(review.created_at).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground">
+                          <Star className="size-3.5 fill-orange-400 text-orange-400" />
+                          {review.rating.toFixed(1)}
+                        </span>
                       </div>
-                      <p className="mt-4 text-lg font-semibold text-foreground">{hostName}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
+                        {review.review_text || "Great host and a memorable experience."}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No reviews yet. Be the first traveler to book and leave feedback.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+              <div className="grid md:grid-cols-[minmax(240px,34%)_1fr]">
+                <div className="relative aspect-[4/5] min-h-[280px] bg-muted md:aspect-auto md:min-h-[360px]">
+                  {hostAvatarUrl ? (
+                    <Image
+                      src={hostAvatarUrl}
+                      alt={hostName}
+                      fill
+                      unoptimized
+                      sizes="(max-width: 768px) 100vw, 380px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-950/40 dark:to-background">
+                      <span className="text-5xl font-semibold text-orange-400/80">{hostName.charAt(0).toUpperCase()}</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent md:hidden" />
+                  <div className="absolute inset-x-0 bottom-0 p-5 md:hidden">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/80">Your expert</p>
+                    <p className="mt-1 text-xl font-bold text-white">{hostName}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col justify-between gap-8 p-6 sm:p-8 lg:p-10">
+                  <div className="space-y-4">
+                    <div className="hidden md:block">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600 dark:text-orange-400">
+                        Your expert
+                      </p>
+                      <h3 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{hostName}</h3>
+                      <p className="mt-2 text-base text-muted-foreground">
                         {hostProfile?.headline || "Local expert on Gozuru"}
                       </p>
                     </div>
 
                     {hostProfile?.expertise ? (
-                      <p className="text-center text-sm leading-6 text-muted-foreground">{hostProfile.expertise}</p>
+                      <p className="text-sm leading-7 text-foreground md:text-base">{hostProfile.expertise}</p>
                     ) : null}
 
-                    <p className="text-center text-sm leading-6 text-muted-foreground">
+                    <p className="text-sm leading-7 text-muted-foreground md:text-base">
                       {hostProfile?.highlight_story || "Passionate about sharing authentic local knowledge and stories."}
                     </p>
+                  </div>
 
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                     <Link
                       href={`/hosts/${experience.host_user_id}`}
                       className={cn(
                         buttonVariants({ variant: "default" }),
-                        "inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-orange-700 bg-orange-600 py-2.5 text-sm font-semibold text-white shadow-md shadow-orange-900/20 hover:bg-orange-700 dark:border-orange-500 dark:bg-orange-500 dark:hover:bg-orange-400",
+                        "inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-orange-500 px-6 text-sm font-semibold text-background hover:opacity-90 sm:flex-1",
                       )}
                     >
                       View expert profile
                       <ArrowUpRight className="size-4" />
                     </Link>
-                  </CardContent>
-                </Card>
-              </aside>
-            </section>
-          )}
+                    <a
+                      href="#book-experience"
+                      className={cn(
+                        buttonVariants({ variant: "outline" }),
+                        "inline-flex h-12 items-center justify-center rounded-lg border-border px-6 text-sm font-semibold sm:flex-1",
+                      )}
+                    >
+                      Check availability
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </ExperienceBookingRoot>
       </main>
     </>

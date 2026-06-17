@@ -16,6 +16,7 @@ export type ExperienceRow = {
   description: string | null;
   subtitle: string | null;
   duration_minutes: number | null;
+  max_guests: number | null;
   price_amount: number | null;
   currency: string;
   meeting_point_name: string | null;
@@ -59,7 +60,7 @@ export async function fetchLandingExperiences(limit: number, transform: { width:
   const { data: rows, error } = await supabase
     .from("experiences")
     .select(
-      "id,title,description,subtitle,duration_minutes,price_amount,currency,meeting_point_name,created_at,categories(name,slug)",
+      "id,title,description,subtitle,duration_minutes,max_guests,price_amount,currency,meeting_point_name,created_at,categories(name,slug)",
     )
     .eq("status", "published")
     .order("created_at", { ascending: false })

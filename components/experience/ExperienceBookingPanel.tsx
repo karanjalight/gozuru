@@ -19,8 +19,10 @@ import {
   Minus,
   Plus,
   ShoppingBag,
+  Star,
   Ticket,
   Trash2,
+  Users,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
@@ -31,6 +33,7 @@ import {
   toCheckoutItems,
 } from "@/lib/booking/checkout";
 import { useExperienceCart } from "@/lib/booking/useExperienceCart";
+import { ExperienceTicketModal } from "@/components/experience/ExperienceTicketModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,6 +65,7 @@ type ExperienceBookingRootProps = {
   confirmedGuestsBySlotId: Record<string, number>;
   onCheckoutComplete?: () => void;
   bookingMode?: boolean;
+  demoMode?: boolean;
   children: ReactNode;
 };
 
@@ -148,6 +152,7 @@ export function ExperienceBookingRoot({
   confirmedGuestsBySlotId,
   onCheckoutComplete,
   bookingMode = false,
+  demoMode = false,
   children,
 }: ExperienceBookingRootProps) {
   const router = useRouter();
@@ -303,6 +308,10 @@ export function ExperienceBookingRoot({
   function handleCheckoutClick() {
     setBookingError(null);
     setBookingMessage(null);
+    if (demoMode) {
+      setBookingMessage("This is a sample experience — checkout is disabled. Browse real experiences to book.");
+      return;
+    }
     const validation = validateCheckout();
     if (validation === "login") {
       router.push(`/auth/login?next=${encodeURIComponent(window.location.pathname)}`);
@@ -316,6 +325,10 @@ export function ExperienceBookingRoot({
   }
 
   async function beginPaystackCheckout() {
+    if (demoMode) {
+      setBookingError("This is a sample experience — checkout is disabled.");
+      return;
+    }
     const validation = validateCheckout();
     if (validation) {
       setBookingError(validation === "login" ? "Please log in to continue." : validation);
@@ -855,12 +868,12 @@ function ExperienceBookingOverlays({
   checkingOut: boolean;
   beginPaystackCheckout: () => Promise<void>;
 }) {
-  const { cart, cartLines, cartTotal, cartTicketCount, cartCurrency, handleCheckoutClick, bookingMode } =
+  const { cart, cartLines, cartTotal, cartTicketCount, cartCurrency, handleCheckoutClick } =
     useBookingContext();
 
   return (
     <>
-      {cart.length > 0 && bookingMode ? (
+      {cart.length > 0 ? (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 p-4 shadow-2xl backdrop-blur-md lg:hidden">
           <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
             <div>
@@ -962,7 +975,283 @@ function ExperienceBookingOverlays({
   );
 }
 
-/** @deprecated Use ExperienceBookingRoot + Slots + OrderSummary instead */
+/** E-commerce-style purchase column: slot picker + Buy Ticket + cart */
+export function ExperienceBookingPurchasePanel({
+  title,
+  subtitle,
+  priceLabel,
+  ratingAverage,
+  ratingCount,
+  shortDescription,
+  locationLabel,
+  durationLabel,
+  maxGuestsLabel,
+}: {
+  title: string;
+  subtitle?: string | null;
+  priceLabel: string;
+  ratingAverage?: number | null;
+  ratingCount?: number;
+  shortDescription?: string | null;
+  locationLabel: string;
+  durationLabel: string;
+  maxGuestsLabel: string;
+}) {
+  const {
+    experience,
+    availability,
+    slotsByDate,
+    cartLines,
+    cartTotal,
+    cartTicketCount,
+    cartCurrency,
+    guestNote,
+    setGuestNote,
+    bookingError,
+    setBookingError,
+    bookingMessage,
+    checkingOut,
+    confirmedGuestsBySlotId,
+    getCartTicketsForSlot,
+    getRemainingSpots,
+    getDraftTickets,
+    setDraftTickets,
+    handleAddToCart,
+    updateCartLineTickets,
+    removeFromCart,
+    handleCheckoutClick,
+  } = useBookingContext();
+
+  const [ticketModalOpen, setTicketModalOpen] = useState(false);
+
+  const upcomingCount = availability.length;
+  const nextSlot = availability[0] ?? null;
+
+  function handleBuyTicketClick() {
+    setBookingError(null);
+    if (upcomingCount === 0) {
+      setBookingError("No upcoming slots available right now.");
+      return;
+    }
+    setTicketModalOpen(true);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600 dark:text-orange-400">
+          Experience
+        </p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{title}</h1>
+        {subtitle ? <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p> : null}
+
+        {ratingAverage ? (
+          <div className="mt-3 flex items-center gap-2 text-sm">
+            <span className="inline-flex items-center gap-1 font-medium text-foreground">
+              <Star className="size-4 fill-orange-400 text-orange-400" />
+              {ratingAverage.toFixed(1)}
+            </span>
+            <span className="text-muted-foreground">({ratingCount} reviews)</span>
+          </div>
+        ) : null}
+
+        <p className="mt-4 text-2xl font-bold text-foreground">{priceLabel}</p>
+
+        {shortDescription ? (
+          <p className="mt-4 text-sm leading-relaxed text-muted-foreground line-clamp-3">
+            {shortDescription}
+          </p>
+        ) : null}
+
+        <ul className="mt-4 space-y-2 space-x-4 gap-4 text-sm text-muted-foreground">
+          {/* <li className="inline-flex items-center gap-2">
+            <MapPin className="size-4 shrink-0 text-orange-500" />
+            {locationLabel}
+          </li> */}
+          
+          <li className="inline-flex items-center gap-2">
+            <Clock3 className="size-4 shrink-0 text-orange-500" />
+            {durationLabel}
+          </li>
+          <li className="inline-flex items-center gap-2">
+            <Users className="size-4 shrink-0 text-orange-500" />
+            {maxGuestsLabel}
+          </li>
+        </ul>
+      </div>
+
+      <div className="border-t border-border pt-6">
+        <div className="rounded-2xl border border-border bg-orange-100   p-5 dark:from-zinc-900/40 dark:to-background">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Ready to book?</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {upcomingCount > 0
+                  ? `${upcomingCount} upcoming showtime${upcomingCount === 1 ? "" : "s"} available`
+                  : "No upcoming showtimes right now"}
+              </p>
+              {nextSlot ? (
+                <p className="mt-2 inline-flex items-center gap-2 text-xs text-muted-foreground">
+                  <CalendarDays className="size-3.5 text-orange-500" />
+                  Next: {formatSlotDate(nextSlot.starts_at)} · {formatSlotTime(nextSlot.starts_at)}
+                </p>
+              ) : null}
+            </div>
+            {cartTicketCount > 0 ? (
+              <Badge variant="outline" className="rounded-full">
+                {cartTicketCount} in cart
+              </Badge>
+            ) : null}
+          </div>
+
+          <Button
+            type="button"
+            className="mt-5 h-12 w-full rounded-xl bg-foreground text-sm font-semibold text-background hover:opacity-90"
+            onClick={handleBuyTicketClick}
+            disabled={upcomingCount === 0}
+          >
+            <Ticket className="mr-2 size-4" />
+            Buy ticket
+          </Button>
+        </div>
+      </div>
+
+      <ExperienceTicketModal
+        open={ticketModalOpen}
+        onOpenChange={setTicketModalOpen}
+        title={title}
+        priceLabel={priceLabel}
+        durationLabel={durationLabel}
+        booking={{
+          experience,
+          slotsByDate,
+          getCartTicketsForSlot,
+          getRemainingSpots,
+          getDraftTickets,
+          setDraftTickets,
+          handleAddToCart,
+          setBookingError,
+        }}
+      />
+
+      <div className="rounded-xl border border-border bg-muted/20 p-4 dark:bg-muted/10">
+        <div className="flex items-center justify-between gap-3">
+          <p className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
+            <ShoppingBag className="size-4 text-orange-500" />
+            Your cart
+          </p>
+          {cartTicketCount > 0 ? (
+            <Badge variant="outline" className="rounded-full">
+              {cartTicketCount} ticket{cartTicketCount === 1 ? "" : "s"}
+            </Badge>
+          ) : null}
+        </div>
+
+        {cartLines.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">
+            No tickets yet. Click Buy ticket to choose a date and showtime.
+          </p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {cartLines.map((line) => (
+              <div
+                key={line.slotId}
+                className="flex items-start justify-between gap-3 rounded-lg border border-border bg-background p-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">{formatSlotDate(line.slot.starts_at)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatSlotTime(line.slot.starts_at)} · {line.tickets} ticket{line.tickets === 1 ? "" : "s"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="inline-flex items-center rounded-full border border-border p-0.5">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="size-7 rounded-full"
+                      onClick={() => {
+                        const result = updateCartLineTickets(line.slotId, line.tickets - 1);
+                        if (!result.ok) setBookingError(result.error);
+                      }}
+                    >
+                      <Minus className="size-3.5" />
+                    </Button>
+                    <span className="min-w-6 text-center text-xs font-semibold">{line.tickets}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="size-7 rounded-full"
+                      onClick={() => {
+                        const result = updateCartLineTickets(line.slotId, line.tickets + 1);
+                        if (!result.ok) setBookingError(result.error);
+                      }}
+                      disabled={
+                        line.tickets >= line.slot.capacity - (confirmedGuestsBySlotId[line.slotId] ?? 0)
+                      }
+                    >
+                      <Plus className="size-3.5" />
+                    </Button>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Remove from cart"
+                    onClick={() => removeFromCart(line.slotId)}
+                    className="rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
+              <span className="font-medium text-foreground">Total</span>
+              <span className="text-lg font-bold text-foreground">
+                {formatCheckoutMoney(cartTotal, cartCurrency)}
+              </span>
+            </div>
+
+            <textarea
+              value={guestNote}
+              onChange={(event) => setGuestNote(event.target.value)}
+              rows={2}
+              placeholder="Note to host (optional)"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-orange-400/30"
+            />
+
+            <Button
+              type="button"
+              className="h-11 w-full rounded-lg bg-orange-600 text-sm font-semibold text-white hover:bg-orange-700"
+              onClick={handleCheckoutClick}
+              disabled={checkingOut}
+            >
+              {checkingOut ? "Preparing checkout..." : "Proceed to checkout"}
+            </Button>
+          </div>
+        )}
+
+        {bookingError ? (
+          <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            {bookingError}
+          </p>
+        ) : null}
+        {bookingMessage ? (
+          <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+            {bookingMessage}
+          </p>
+        ) : null}
+      </div>
+
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        {experience.cancellation_policy || "Free cancellation up to 24 hours before start time."}
+      </p>
+    </div>
+  );
+}
+
 export function ExperienceBookingPanel(
   props: Omit<ExperienceBookingRootProps, "children">,
 ) {

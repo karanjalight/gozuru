@@ -62,7 +62,7 @@ export default function ContactPage() {
               "url(https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1800&h=1000&fit=crop)",
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-950/90 to-slate-900/65" />
+        <div className="absolute inset-0 bg-dark/80 gradient-to-br from-slate-600 via-slate-0/90 to-slate-900/65" />
         <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-32 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur">
