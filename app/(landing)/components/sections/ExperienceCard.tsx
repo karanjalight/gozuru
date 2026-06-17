@@ -5,6 +5,7 @@ import { Clock, MapPin, Users } from "lucide-react";
 import { ExperienceMediaDisplay } from "@/components/experience/ExperienceMediaDisplay";
 import type { ExperienceMediaItem } from "@/lib/experience-media";
 import { cn } from "@/lib/utils";
+import { formatDisplayMoney } from "@/lib/currency";
 import { PropertyCTAButton } from "./PropertyCTAButton";
 
 export function mapExperienceToCardData(
@@ -29,7 +30,7 @@ export function mapExperienceToCardData(
     : null;
   const priceLabel =
     exp.price_amount && Number(exp.price_amount) > 0
-      ? `${exp.currency} ${Number(exp.price_amount).toFixed(2)}`
+      ? formatDisplayMoney(Number(exp.price_amount), exp.currency)
       : "Price on request";
   const location =
     locationByExperienceId[exp.id] ||

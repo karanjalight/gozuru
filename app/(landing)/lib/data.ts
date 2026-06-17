@@ -116,7 +116,7 @@ export const experiences: Experience[] = [
     image: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=600&h=400&fit=crop",
     location: "Kyoto",
     duration: "2 hours",
-    price: "From $85",
+    price: "From Ksh 85",
     expertName: "Yuki Tanaka",
   },
   {
@@ -126,7 +126,7 @@ export const experiences: Experience[] = [
     image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&h=400&fit=crop",
     location: "Oaxaca",
     duration: "4 hours",
-    price: "From $72",
+    price: "From Ksh 72",
     expertName: "María Santos",
   },
   {
@@ -136,7 +136,7 @@ export const experiences: Experience[] = [
     image: "https://images.unsplash.com/photo-1489749798305-4fea3ae63d43?w=600&h=400&fit=crop",
     location: "Fes",
     duration: "3 hours",
-    price: "From $65",
+    price: "From Ksh 65",
     expertName: "Ahmed Hassan",
   },
 ];

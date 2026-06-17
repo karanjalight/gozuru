@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase/client";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDisplayMoney } from "@/lib/currency";
 import { Navbar } from "../../components/Navbar";
 
 type ExperienceDetailRow = {
@@ -86,15 +87,6 @@ type ReviewerCardView = {
   name: string;
   avatarUrl: string | null;
 };
-
-function formatMoney(amount: number | null, currency: string) {
-  if (!amount || amount <= 0) return "Price on request";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
 
 const DETAIL_HERO_WIDTH = 1400;
 const DETAIL_HERO_HEIGHT = 900;
@@ -469,7 +461,7 @@ export default function ExperienceDetailPage() {
   const durationHours = experience.duration_minutes ? Math.max(1, Math.round(experience.duration_minutes / 60)) : null;
   const durationLabel = durationHours ? `${durationHours} hour${durationHours > 1 ? "s" : ""}` : "Flexible duration";
   const maxGuestsLabel = `Up to ${experience.max_guests ?? 1} guest${(experience.max_guests ?? 1) === 1 ? "" : "s"}`;
-  const priceLabel = `${formatMoney(experience.price_amount, experience.currency)} / guest`;
+  const priceLabel = `${formatDisplayMoney(experience.price_amount, experience.currency)} / guest`;
   const shortDescription =
     experience.subtitle ||
     (experience.description

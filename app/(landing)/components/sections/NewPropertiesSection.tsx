@@ -24,9 +24,7 @@ export function NewPropertiesSection() {
           </p>
         </div>
         <PropertyCTAButton href="/experiences" variant="outline">
-         <div className="p-4">
-         Browse all experiences
-         </div>
+          Browse all experiences
         </PropertyCTAButton>
       </div>
 
@@ -47,9 +45,7 @@ export function NewPropertiesSection() {
         </div>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
           <PropertyCTAButton href="/experiences" variant="outline">
-            <div className="p-4">
             Browse all experiences
-            </div>
           </PropertyCTAButton>
           <PropertyCTAButton href="#platform-metrics" variant="outline">
             See our metrics

@@ -116,9 +116,7 @@ export function ExpertsGrid({ experts }: { experts: LocalExpert[] }) {
           </p>
         </div>
         <PropertyCTAButton href="/hosts" variant="outline">
-         <div className="p-4">
-         Become a host
-         </div>
+          Become a host
         </PropertyCTAButton>
       </div>
     </section>

@@ -35,8 +35,9 @@ export function PropertyCTAButton({
       <span
         className={cn(
           "flex items-center px-5 text-sm font-semibold tracking-wide transition-colors",
-          variant === "primary" && "bg-foreground text-background",
-          variant === "outline" && "bg-background text-foreground group-hover:bg-foreground group-hover:text-background",
+          variant === "primary" && "flex-1 bg-foreground text-background",
+          variant === "outline" &&
+            "flex-1 bg-background text-foreground group-hover:bg-foreground group-hover:text-background",
           variant === "card" && "flex-1 py-2.5 text-foreground",
         )}
       >

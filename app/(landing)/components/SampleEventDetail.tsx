@@ -7,7 +7,7 @@ import {
   ExperienceBookingPurchasePanel,
   ExperienceBookingRoot,
 } from "@/components/experience/ExperienceBookingPanel";
-import type { ResolvedSampleExperience } from "@/app/(landing)/lib/sample-experiences";
+import type { ResolvedSampleEvent } from "@/app/(landing)/lib/sample-events";
 import { ArrowUpRight, Clock3, MapPin, ShieldCheck, Star, Users } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -15,53 +15,56 @@ import { formatDisplayMoney } from "@/lib/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navbar } from "./Navbar";
 
-export function SampleExperienceDetail({ experience }: { experience: ResolvedSampleExperience }) {
+export function SampleEventDetail({ event }: { event: ResolvedSampleEvent }) {
   const durationLabel =
-    experience.durationHours === 1 ? "1 hour" : `${experience.durationHours} hours`;
-  const maxGuestsLabel = `Up to ${experience.maxGuests} guest${experience.maxGuests === 1 ? "" : "s"}`;
-  const priceLabel = `${formatDisplayMoney(experience.priceFrom, experience.currency)} / guest`;
-  const locationLabel = `${experience.city}, ${experience.countryRegion}`;
+    event.durationHours === 1 ? "1 hour" : `${event.durationHours} hours`;
+  const maxAttendeesLabel = `Up to ${event.maxAttendees} attendee${event.maxAttendees === 1 ? "" : "s"}`;
+  const priceLabel = `${formatDisplayMoney(event.priceFrom, event.currency)} / ticket`;
+  const locationLabel =
+    event.city === "Rotating" || event.city === "Global"
+      ? event.location
+      : `${event.city}, ${event.countryRegion}`;
   const shortDescription =
-    experience.subtitle ||
-    (experience.description.length > 180
-      ? `${experience.description.slice(0, 180)}…`
-      : experience.description);
+    event.subtitle ||
+    (event.description.length > 180
+      ? `${event.description.slice(0, 180)}…`
+      : event.description);
 
   return (
     <>
       <Navbar />
       <main className="mx-auto max-w-7xl px-4 py-10 pt-24 pb-28 sm:px-6 lg:py-12 lg:pb-12 lg:pt-24">
         <div className="mb-6 flex flex-wrap items-center gap-3">
-          <Link href="/" className="text-sm font-medium text-orange-500 hover:text-orange-600">
-            Back to home
+          <Link href="/experiences" className="text-sm font-medium text-orange-500 hover:text-orange-600">
+            Back to experiences
           </Link>
           <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-orange-700 dark:bg-orange-950/50 dark:text-orange-300">
-            Sample experience
+            Upcoming event
           </span>
         </div>
 
         <ExperienceBookingRoot
-          experience={experience.bookingExperience}
-          availability={experience.availability}
-          confirmedGuestsBySlotId={experience.confirmedGuestsBySlotId}
+          experience={event.bookingExperience}
+          availability={event.availability}
+          confirmedGuestsBySlotId={event.confirmedGuestsBySlotId}
           demoMode
         >
           <section className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,420px)] lg:items-start">
             <div className="min-w-0">
-              <ExperienceMediaCarousel items={experience.galleryMedia} emptyLabel={experience.title} />
+              <ExperienceMediaCarousel items={event.galleryMedia} emptyLabel={event.title} />
             </div>
 
             <aside id="book-experience" className="scroll-mt-24 lg:sticky lg:top-24 lg:self-start">
               <ExperienceBookingPurchasePanel
-                title={experience.title}
-                subtitle={experience.subtitle}
+                title={event.title}
+                subtitle={event.subtitle}
                 priceLabel={priceLabel}
-                ratingAverage={experience.ratingAverage}
-                ratingCount={experience.ratingCount}
+                ratingAverage={event.ratingAverage}
+                ratingCount={event.ratingCount}
                 shortDescription={shortDescription}
                 locationLabel={locationLabel}
                 durationLabel={durationLabel}
-                maxGuestsLabel={maxGuestsLabel}
+                maxGuestsLabel={maxAttendeesLabel}
               />
             </aside>
           </section>
@@ -69,13 +72,12 @@ export function SampleExperienceDetail({ experience }: { experience: ResolvedSam
           <section className="mt-16 space-y-8 border-t border-border pt-12">
             <Card className="rounded-2xl border-border/70 shadow-sm">
               <CardHeader>
-                <CardTitle>About this experience</CardTitle>
+                <CardTitle>About this event</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-sm leading-7 text-muted-foreground">
-                <p>{experience.description}</p>
+                <p>{event.description}</p>
                 <p className="rounded-xl border border-dashed border-orange-200 bg-orange-50/50 px-4 py-3 text-xs text-orange-800 dark:border-orange-500/30 dark:bg-orange-950/20 dark:text-orange-200">
-                  This is a sample listing for demo purposes. Slots and checkout are simulated — browse live
-                  experiences on Gozuru to book for real.
+                  This is a sample event listing for demo purposes. Ticket slots and checkout are simulated.
                 </p>
               </CardContent>
             </Card>
@@ -86,7 +88,7 @@ export function SampleExperienceDetail({ experience }: { experience: ResolvedSam
                   <CardTitle>What is included</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm text-muted-foreground">
-                  {experience.includes.map((item) => (
+                  {event.includes.map((item) => (
                     <div key={item} className="flex items-start gap-2">
                       <ShieldCheck className="mt-0.5 size-4 shrink-0 text-orange-500" />
                       <span>{item}</span>
@@ -97,11 +99,11 @@ export function SampleExperienceDetail({ experience }: { experience: ResolvedSam
 
               <Card className="rounded-2xl border-border/70 shadow-sm">
                 <CardHeader>
-                  <CardTitle>Guest requirements</CardTitle>
+                  <CardTitle>Attendee requirements</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm text-muted-foreground">
-                  <p>Minimum age: {experience.minAge}+</p>
-                  {experience.requirements.map((item) => (
+                  <p>Minimum age: {event.minAge}+</p>
+                  {event.requirements.map((item) => (
                     <p key={item}>- {item}</p>
                   ))}
                 </CardContent>
@@ -113,7 +115,7 @@ export function SampleExperienceDetail({ experience }: { experience: ResolvedSam
                 <p className="font-semibold text-foreground">Location</p>
                 <p className="mt-1 inline-flex items-center gap-2 text-muted-foreground">
                   <MapPin className="size-4 shrink-0 text-orange-500" />
-                  {experience.location}
+                  {event.location}
                 </p>
               </div>
               <div>
@@ -124,10 +126,10 @@ export function SampleExperienceDetail({ experience }: { experience: ResolvedSam
                 </p>
               </div>
               <div>
-                <p className="font-semibold text-foreground">Group size</p>
+                <p className="font-semibold text-foreground">Capacity</p>
                 <p className="mt-1 inline-flex items-center gap-2 text-muted-foreground">
                   <Users className="size-4 shrink-0 text-orange-500" />
-                  {maxGuestsLabel}
+                  {maxAttendeesLabel}
                 </p>
               </div>
             </div>
@@ -137,7 +139,7 @@ export function SampleExperienceDetail({ experience }: { experience: ResolvedSam
                 <CardTitle>Reviews</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {experience.reviews.map((review) => (
+                {event.reviews.map((review) => (
                   <div key={review.id} className="rounded-xl border p-4">
                     <div className="mb-3 flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -172,8 +174,8 @@ export function SampleExperienceDetail({ experience }: { experience: ResolvedSam
               <div className="grid md:grid-cols-[minmax(240px,34%)_1fr]">
                 <div className="relative aspect-[4/5] min-h-[280px] bg-muted md:aspect-auto md:min-h-[360px]">
                   <Image
-                    src={experience.host.avatarUrl}
-                    alt={experience.host.name}
+                    src={event.organizer.avatarUrl}
+                    alt={event.organizer.name}
                     fill
                     unoptimized
                     sizes="(max-width: 768px) 100vw, 380px"
@@ -181,8 +183,10 @@ export function SampleExperienceDetail({ experience }: { experience: ResolvedSam
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent md:hidden" />
                   <div className="absolute inset-x-0 bottom-0 p-5 md:hidden">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/80">Your expert</p>
-                    <p className="mt-1 text-xl font-bold text-white">{experience.host.name}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/80">
+                      Event organizer
+                    </p>
+                    <p className="mt-1 text-xl font-bold text-white">{event.organizer.name}</p>
                   </div>
                 </div>
 
@@ -190,17 +194,17 @@ export function SampleExperienceDetail({ experience }: { experience: ResolvedSam
                   <div className="space-y-4">
                     <div className="hidden md:block">
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600 dark:text-orange-400">
-                        Your expert
+                        Event organizer
                       </p>
                       <h3 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                        {experience.host.name}
+                        {event.organizer.name}
                       </h3>
-                      <p className="mt-2 text-base text-muted-foreground">{experience.host.headline}</p>
+                      <p className="mt-2 text-base text-muted-foreground">{event.organizer.headline}</p>
                     </div>
 
-                    <p className="text-sm leading-7 text-foreground md:text-base">{experience.host.expertise}</p>
+                    <p className="text-sm leading-7 text-foreground md:text-base">{event.organizer.expertise}</p>
                     <p className="text-sm leading-7 text-muted-foreground md:text-base">
-                      {experience.host.highlightStory}
+                      {event.organizer.highlightStory}
                     </p>
                   </div>
 
@@ -222,7 +226,7 @@ export function SampleExperienceDetail({ experience }: { experience: ResolvedSam
                         "inline-flex h-12 items-center justify-center rounded-lg border-border px-6 text-sm font-semibold sm:flex-1",
                       )}
                     >
-                      Check availability
+                      Buy ticket
                     </a>
                   </div>
                 </div>

@@ -6,6 +6,7 @@ const sizeClasses = {
   md: "h-9",
   lg: "h-11",
   xl: "h-14",
+  nav: "h-10 sm:h-11",
   "2xl": "h-[4.25rem] sm:h-[4.75rem]",
 } as const;
 

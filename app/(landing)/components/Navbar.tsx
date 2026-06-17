@@ -57,9 +57,18 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen]);
+
   const closeMobile = () => setMobileOpen(false);
   const isHome = pathname === "/";
-  const isTransparent = isHome && !scrolled;
+  const isTransparent = isHome && !scrolled && !mobileOpen;
   const isDarkMode = (theme === "system" ? resolvedTheme : theme) === "dark";
   const userInitial = user?.email?.trim().charAt(0).toUpperCase() || "U";
 
@@ -114,18 +123,18 @@ export function Navbar() {
         isTransparent
           ? "border-white/10 bg-slate-950/25 text-white shadow-lg shadow-black/10 backdrop-blur-md"
           : isDarkMode
-            ? "border-white/10 bg-slate-950/95 text-white shadow-lg shadow-black/20 backdrop-blur-md"
-            : "border-slate-200/80 bg-white/95 text-slate-950 shadow-sm backdrop-blur-md"
+            ? "border-white/10 bg-slate-950 text-white shadow-lg shadow-black/20"
+            : "border-slate-200 bg-white text-slate-950 shadow-sm",
       )}
     >
-      <nav className="mx-auto flex h-[4.75rem] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link
           href="/"
-          className="group flex shrink-0 items-center rounded-xl py-1 pr-2 transition-transform hover:scale-[1.02]"
+          className="group flex shrink-0 items-center rounded-xl py-1 pr-2 transition-opacity hover:opacity-90"
           aria-label="Gozuru home"
         >
           <BrandLogo
-            size="2xl"
+            size="nav"
             priority
             className={cn(
               "drop-shadow-sm",
@@ -272,22 +281,16 @@ export function Navbar() {
         </div>
       </nav>
 
-      {/* mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
-          onClick={closeMobile}
-        />
-      )}
-
-      {/* mobile slide-over menu */}
+      {/* mobile full-screen menu */}
       <div
-        className={`fixed inset-y-0 right-0 z-50 w-72 max-w-[80%] transform border-l border-slate-200 bg-white p-5 text-sm text-slate-950 shadow-xl transition-transform duration-300 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950 dark:text-white ${
-          mobileOpen ? "translate-x-0" : "translate-x-full"
-        } lg:hidden`}
+        className={cn(
+          "fixed inset-0 z-[60] flex flex-col bg-white text-slate-950 transition-transform duration-300 ease-out dark:bg-slate-950 dark:text-white lg:hidden",
+          mobileOpen ? "translate-x-0" : "pointer-events-none translate-x-full",
+        )}
+        aria-hidden={!mobileOpen}
       >
-        <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-white/10">
-          <BrandLogo size="2xl" />
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-4 dark:border-white/10 sm:px-6">
+          <BrandLogo size="nav" />
           <button
             type="button"
             onClick={closeMobile}
@@ -298,27 +301,50 @@ export function Navbar() {
           </button>
         </div>
 
-        <nav className="space-y-1 text-slate-950 dark:text-white" aria-label="Mobile navigation">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                "block rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                link.isActive(pathname ?? "")
-                  ? "bg-slate-950 text-white dark:bg-white dark:text-slate-950"
-                  : "hover:bg-slate-100 dark:hover:bg-white/10",
-              )}
-              onClick={closeMobile}
-            >
-              {link.label}
-            </Link>
-          ))}
+        <nav
+          className="flex-1 overflow-y-auto px-4 py-6 sm:px-6"
+          aria-label="Mobile navigation"
+        >
+          <div className="space-y-1">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "block rounded-xl px-4 py-3 text-base font-medium transition-colors",
+                  link.isActive(pathname ?? "")
+                    ? "bg-slate-950 text-white dark:bg-white dark:text-slate-950"
+                    : "text-slate-900 hover:bg-slate-100 dark:text-white dark:hover:bg-white/10",
+                )}
+                onClick={closeMobile}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          {mounted ? (
+            <div className="mt-6 border-t border-slate-200 pt-6 dark:border-white/10">
+              <button
+                type="button"
+                aria-label="Toggle theme"
+                onClick={() => setTheme(isDarkMode ? "light" : "dark")}
+                className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-base font-medium text-slate-900 transition-colors hover:bg-slate-100 dark:text-white dark:hover:bg-white/10"
+              >
+                <span>Appearance</span>
+                <span className="inline-flex size-9 items-center justify-center rounded-full border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/10">
+                  {isDarkMode ? (
+                    <Sun className="size-4" aria-hidden="true" />
+                  ) : (
+                    <Moon className="size-4" aria-hidden="true" />
+                  )}
+                </span>
+              </button>
+            </div>
+          ) : null}
 
           {!loading && !user ? (
-            <div
-              className="mt-6 space-y-3 border-t border-border pt-4"
-            >
+            <div className="mt-6 space-y-3 border-t border-slate-200 pt-6 dark:border-white/10">
               <Link
                 href="#"
                 onClick={(event) => {
@@ -326,7 +352,7 @@ export function Navbar() {
                   closeMobile();
                   openLandingAuthModal("login");
                 }}
-              className="block w-full rounded-full border border-slate-300 px-4 py-2 text-center text-sm font-medium text-slate-900 shadow-sm transition hover:bg-slate-100 dark:border-white/15 dark:text-white dark:hover:bg-white/10"
+                className="block w-full rounded-full border border-slate-300 px-4 py-3 text-center text-base font-medium text-slate-900 transition hover:bg-slate-100 dark:border-white/15 dark:text-white dark:hover:bg-white/10"
               >
                 Log in
               </Link>
@@ -337,7 +363,7 @@ export function Navbar() {
                   closeMobile();
                   openLandingAuthModal("signup");
                 }}
-                className="block w-full rounded-full bg-slate-950 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
+                className="block w-full rounded-full bg-slate-950 px-4 py-3 text-center text-base font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
               >
                 Sign up
               </Link>
@@ -345,17 +371,17 @@ export function Navbar() {
           ) : null}
 
           {!loading && user ? (
-            <div className="mt-6 space-y-2 border-t border-border pt-4">
+            <div className="mt-6 space-y-1 border-t border-slate-200 pt-6 dark:border-white/10">
               <Link
                 href="/account/profile"
                 onClick={closeMobile}
-                className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted/70"
+                className="block rounded-xl px-4 py-3 text-base font-medium text-slate-900 transition-colors hover:bg-slate-100 dark:text-white dark:hover:bg-white/10"
               >
                 Profile
               </Link>
               <button
                 type="button"
-                className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-muted/70"
+                className="block w-full rounded-xl px-4 py-3 text-left text-base font-medium text-slate-900 transition-colors hover:bg-slate-100 dark:text-white dark:hover:bg-white/10"
                 onClick={() => {
                   closeMobile();
                   logout();

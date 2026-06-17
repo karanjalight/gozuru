@@ -59,9 +59,17 @@ export function formatCheckoutMoney(
   options?: { maximumFractionDigits?: number },
 ) {
   if (!amount || amount <= 0) return "Price on request";
-  return new Intl.NumberFormat("en-US", {
+
+  const normalized = (currency || "KES").toUpperCase();
+  if (normalized === "KES" || normalized === "USD") {
+    return `Ksh ${amount.toLocaleString("en-KE", {
+      maximumFractionDigits: options?.maximumFractionDigits ?? 0,
+    })}`;
+  }
+
+  return new Intl.NumberFormat("en-KE", {
     style: "currency",
-    currency,
+    currency: normalized,
     maximumFractionDigits: options?.maximumFractionDigits ?? 0,
   }).format(amount);
 }

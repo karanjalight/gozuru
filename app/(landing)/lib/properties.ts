@@ -1,3 +1,5 @@
+import { formatFromKsh } from "@/lib/currency";
+
 export type FeaturedExperience = {
   id: string;
   name: string;
@@ -80,5 +82,5 @@ export const FEATURED_EXPERIENCES: FeaturedExperience[] = [
 ];
 
 export function formatExperiencePrice(price: number): string {
-  return `From $${price.toLocaleString("en-US")}`;
+  return formatFromKsh(price);
 }

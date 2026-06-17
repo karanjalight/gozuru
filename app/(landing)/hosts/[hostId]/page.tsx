@@ -26,6 +26,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { formatDisplayMoney } from "@/lib/currency";
 import { Navbar } from "../../components/Navbar";
 
 type ExperienceListRow = {
@@ -122,15 +123,6 @@ function socialLabel(url: string): string {
   } catch {
     return "Website";
   }
-}
-
-function formatPrice(amount: number | null, currency: string) {
-  if (!amount || amount <= 0) return "Price on request";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amount);
 }
 
 function pickLocationRow(row: ExperienceListRow): { city: string | null; country_region: string | null } | null {
@@ -528,7 +520,7 @@ export default function HostProfilePage() {
                                   </Badge>
                                 ) : null}
                                 <span className="text-xs text-muted-foreground">
-                                  {formatPrice(exp.price_amount, exp.currency)}
+                                  {formatDisplayMoney(exp.price_amount, exp.currency)}
                                   {hours ? ` · ${hours}h` : ""}
                                 </span>
                               </div>
