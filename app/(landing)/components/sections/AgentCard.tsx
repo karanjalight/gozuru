@@ -1,8 +1,20 @@
 import Image from "next/image";
 import Link from "next/link";
-import { AtSign, Star } from "lucide-react";
+import { ArrowUpRight, BadgeCheck } from "lucide-react";
 import { type LocalExpert } from "@/app/(landing)/lib/agents";
 import { cn } from "@/lib/utils";
+
+const CATEGORY_STYLES: Record<string, string> = {
+  "Hotel visit": "bg-blue-600/90 text-white",
+  Meetup: "bg-orange-600/90 text-white",
+  "Social event": "bg-purple-600/90 text-white",
+  Expo: "bg-emerald-600/90 text-white",
+  "Expert session": "bg-rose-600/90 text-white",
+};
+
+function categoryStyle(category: string) {
+  return CATEGORY_STYLES[category] ?? "bg-foreground/80 text-background";
+}
 
 export function AgentCard({
   agent,
@@ -16,55 +28,64 @@ export function AgentCard({
   return (
     <article
       className={cn(
-        "flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm",
-        layout === "grid" ? "h-full w-full" : "w-[260px] shrink-0 sm:w-[280px]",
+        "group relative flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm",
+        "transition-[transform,box-shadow,border-color] duration-500 ease-out",
+        "hover:-translate-y-2 hover:border-orange-300/60 hover:shadow-[0_24px_48px_-12px_rgba(249,115,22,0.18)]",
+        "dark:hover:border-orange-500/30 dark:hover:shadow-[0_24px_48px_-12px_rgba(249,115,22,0.12)]",
+        layout === "grid" ? "h-full w-full" : "w-[272px] shrink-0 sm:w-[300px]",
       )}
     >
-      <div className="relative h-[220px] w-full bg-zinc-100 dark:bg-zinc-800">
-        <Image
-          src={agent.image}
-          alt={agent.name}
-          fill
-          sizes="320px"
-          className="object-cover"
-        />
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-4 pb-3 pt-8">
-          <p className="text-xs font-medium text-white/90">{agent.specialty}</p>
-        </div>
-      </div>
+      <Link href={profileHref} className="relative block overflow-hidden">
+        <div className="relative aspect-[4/5] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+          <Image
+            src={agent.image}
+            alt={agent.name}
+            fill
+            sizes="320px"
+            className="object-cover transition-transform duration-700 ease-out will-change-transform group-hover:scale-[1.05]"
+          />
 
-      <div className="flex flex-1 flex-col p-4">
-        <h3 className="text-base font-bold text-foreground">{agent.name}</h3>
-        <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{agent.title}</p>
-        <p className="mt-2 inline-flex items-center gap-1 text-sm text-foreground">
-          {agent.reviewCount > 0 ? (
-            <>
-              <Star className="size-3.5 fill-orange-500 text-orange-500" aria-hidden />
-              {agent.rating.toFixed(1)} · {agent.reviewCount} reviews
-            </>
-          ) : (
-            <span className="text-muted-foreground">Gozuru expert</span>
-          )}
-        </p>
+          {/* Overlays sit above the image, not on it — avoids the washed-out hover look */}
+          <div className="pointer-events-none absolute inset-0 z-[1]" aria-hidden>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/5" />
+            <div className="absolute inset-0 bg-black/0 transition-colors duration-500 group-hover:bg-black/15" />
+            <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+          </div>
 
-        <div className="mt-4 flex gap-2">
-          <Link
-            href={profileHref}
-            className="flex flex-1 items-center justify-center rounded-lg bg-foreground px-3 py-2.5 text-xs font-medium text-background transition-opacity hover:opacity-90"
+          <span
+            className={cn(
+              "absolute left-3 top-3 z-[2] rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide backdrop-blur-sm",
+              categoryStyle(agent.category),
+            )}
           >
-            View profile
-          </Link>
-          {agent.email ? (
-            <a
-              href={`mailto:${agent.email}`}
-              aria-label={`Email ${agent.name}`}
-              className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-foreground text-foreground transition-colors hover:bg-foreground hover:text-background"
-            >
-              <AtSign className="size-4" aria-hidden />
-            </a>
-          ) : null}
+            {agent.category}
+          </span>
+
+          <span className="absolute right-3 top-3 z-[2] inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/35 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-md">
+            <BadgeCheck className="size-3 text-orange-300" aria-hidden />
+            Verified
+          </span>
+
+          <div className="absolute inset-x-0 bottom-0 z-[2] p-4 transition-transform duration-500 group-hover:translate-y-[-2px]">
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/75">
+              {agent.specialty}
+            </p>
+            <h3 className="mt-1 text-lg font-bold tracking-tight text-white">{agent.name}</h3>
+            <p className="mt-0.5 line-clamp-1 text-sm text-white/85">{agent.title}</p>
+          </div>
         </div>
-      </div>
+      </Link>
+
+      <Link
+        href={profileHref}
+        className="group/btn relative flex w-full items-center justify-center gap-2 bg-foreground px-4 py-3.5 text-sm font-semibold text-background transition-colors duration-300 group-hover:bg-orange-600"
+      >
+        <span>View profile</span>
+        <ArrowUpRight
+          className="size-4 transition-transform duration-300 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5"
+          aria-hidden
+        />
+      </Link>
     </article>
   );
 }

@@ -42,9 +42,10 @@ export default async function LandingPage() {
     <>
       <LandingHero initialData={sharedLandingData} />
       {/* <FeaturedExperiences initialData={featuredLandingData} /> */}
+      <ExpertAgentsSection experts={experts} />
+
       <NewPropertiesSection />
       <HowItWorksSection />
-      <ExpertAgentsSection experts={experts} />
       <InvestmentSection />
       <TestimonialsSection />
       <ContactTeamSection />
