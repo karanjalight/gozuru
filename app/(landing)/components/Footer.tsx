@@ -33,6 +33,7 @@ const company = [
 
 const support = [
   { href: "/contact", label: "Contact support" },
+  { href: "/terms", label: "Terms and conditions" },
   { href: "/about", label: "Trust and safety" },
   { href: "/hosts", label: "Host resources" },
   { href: "/experiences", label: "Booking questions" },

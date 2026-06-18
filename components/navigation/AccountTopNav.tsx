@@ -9,17 +9,26 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { useIsClientAccount } from "@/lib/auth/useAccountRole";
+import { useAffiliateStatus } from "@/lib/affiliate/useAffiliateStatus";
 
-const primaryNavLinks = [
+const hostPrimaryNavLinks = [
   { href: "/account/experiences", label: "Explore" },
-  // { href: "/account/experiences/create", label: "Host" },
-  // { href: "/account/calendar", label: "Calendar" },
   { href: "/account/applied", label: "Applied" },
   { href: "/account/messages", label: "Messages" },
   { href: "/account/payments", label: "Payments" },
 ];
 
-const secondaryNavLinks = [
+const clientPrimaryNavLinks = [
+  { href: "/account/profile", label: "Profile" },
+  { href: "/account/affiliate", label: "Affiliate" },
+  { href: "/account/messages", label: "Messages" },
+  { href: "/account/payments", label: "Payments" },
+];
+
+const affiliateNavLink = { href: "/account/affiliate", label: "Affiliate" };
+
+const hostSecondaryNavLinks = [
   { href: "/account/profile", label: "Profile" },
 ] as const;
 
@@ -27,6 +36,8 @@ export function AccountTopNav() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { isClient } = useIsClientAccount();
+  const { isAffiliate } = useAffiliateStatus();
   const { setTheme, resolvedTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -47,9 +58,23 @@ export function AccountTopNav() {
     setTheme(isDark ? "light" : "dark");
   };
 
+  const primaryNavLinks = useMemo(() => {
+    if (isClient) {
+      return clientPrimaryNavLinks;
+    }
+
+    if (isAffiliate || pathname?.startsWith("/account/affiliate")) {
+      return [...hostPrimaryNavLinks, affiliateNavLink];
+    }
+
+    return hostPrimaryNavLinks;
+  }, [isAffiliate, isClient, pathname]);
+
+  const secondaryNavLinks = isClient ? [] : hostSecondaryNavLinks;
+
   const topLinks = useMemo(
     () => [...primaryNavLinks, ...secondaryNavLinks],
-    [],
+    [primaryNavLinks, secondaryNavLinks],
   );
 
   return (

@@ -24,3 +24,27 @@ export function formatDisplayMoney(
 ): string {
   return formatKsh(amount, options);
 }
+
+export function parseMoneyAmount(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number.parseFloat(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return 0;
+}
+
+export function formatBalanceKsh(amount: unknown): string {
+  const value = Math.max(parseMoneyAmount(amount), 0);
+
+  return `Ksh ${value.toLocaleString("en-KE", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })}`;
+}

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { processPendingAffiliateEnrollment } from "@/lib/affiliate/enroll";
+import { attributeStoredReferral, normalizeReferralCode } from "@/lib/affiliate/referral";
 import { supabase } from "@/lib/supabase/client";
 
 type SupabaseAuthUser = {
@@ -44,6 +46,7 @@ type AuthContextValue = {
       phone?: string;
       location?: string;
       role?: "client" | "expert";
+      referralCode?: string;
     },
   ) => Promise<{ needsEmailVerification: boolean }>;
   updateProfile: (profile: AuthUser["metadata"]) => Promise<void>;
@@ -142,6 +145,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         setUser(mapAuthUser(data.user));
+        void attributeStoredReferral();
+        void processPendingAffiliateEnrollment();
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -152,6 +157,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
       setUser(mapAuthUser(session?.user ?? null));
+      if (session?.user) {
+        void attributeStoredReferral();
+        void processPendingAffiliateEnrollment();
+      }
     });
 
     return () => {
@@ -171,6 +180,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw new Error(error.message);
     },
     signup: async (email: string, password: string, profile) => {
+      const referralCode = normalizeReferralCode(profile?.referralCode);
+
       const { data, error } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
@@ -181,6 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             phone: profile?.phone?.trim() || undefined,
             location: profile?.location?.trim() || undefined,
             role: profile?.role ?? "client",
+            referral_code: referralCode || undefined,
           },
         },
       });
@@ -205,6 +217,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const hasSession = Boolean(data.session);
+      if (hasSession) {
+        void attributeStoredReferral();
+      }
       return { needsEmailVerification: !hasSession };
     },
     updateProfile: async (profile) => {
