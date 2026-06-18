@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { Outfit } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { ReferralCapture } from "@/components/referral/ReferralCapture";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import {
   defaultMetadata,
@@ -43,6 +44,7 @@ export default function RootLayout({
           }}
         />
         <AuthProvider>
+          <ReferralCapture />
           <QueryProvider>
             <ThemeProvider
               attribute="class"

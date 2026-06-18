@@ -33,7 +33,7 @@ export function HowItWorksSection() {
   return (
     <Section
       id="how-it-works"
-      className="border-t border-gray-100 bg-orange-100"
+      className="border-t border-orange-200/70 bg-orange-100 dark:border-border dark:bg-gradient-to-br dark:from-orange-950/40 dark:via-background dark:to-background"
       containerClassName="max-w-7xl"
     >
       <div
@@ -56,7 +56,7 @@ export function HowItWorksSection() {
         </p>
       </div>
 
-      <p className="mt-6 text-xs font-medium uppercase tracking-[0.16em] text-orange-700/80 dark:text-orange-300/80">
+      <p className="mt-6 text-xs font-medium uppercase tracking-[0.16em] text-orange-700/80 dark:text-orange-600">
         Tap a step below or use the arrows — slides auto-advance
       </p>
 

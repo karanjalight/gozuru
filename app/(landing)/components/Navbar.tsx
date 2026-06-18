@@ -108,14 +108,6 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const openLandingAuthModal = (mode: "login" | "signup") => {
-    window.dispatchEvent(
-      new CustomEvent("gozuru-auth-modal-open", {
-        detail: { mode },
-      }),
-    );
-  };
-
   return (
     <header
       className={cn(
@@ -185,11 +177,7 @@ export function Navbar() {
           {!loading && !user ? (
             <div className="hidden items-center gap-2 lg:flex">
               <Link
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  openLandingAuthModal("login");
-                }}
+                href="/auth/client/login"
                 className={cn(
                   "rounded-full px-5 py-2.5 text-sm font-semibold transition-colors inline-flex items-center justify-center",
                   isTransparent
@@ -202,11 +190,7 @@ export function Navbar() {
                 Log in
               </Link>
               <Link
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  openLandingAuthModal("signup");
-                }}
+                href="/auth/client/signup"
                 className={cn(
                   "rounded-full px-5 py-2.5 text-sm font-semibold shadow-md transition inline-flex items-center justify-center",
                   isTransparent
@@ -346,23 +330,15 @@ export function Navbar() {
           {!loading && !user ? (
             <div className="mt-6 space-y-3 border-t border-slate-200 pt-6 dark:border-white/10">
               <Link
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  closeMobile();
-                  openLandingAuthModal("login");
-                }}
+                href="/auth/client/login"
+                onClick={closeMobile}
                 className="block w-full rounded-full border border-slate-300 px-4 py-3 text-center text-base font-medium text-slate-900 transition hover:bg-slate-100 dark:border-white/15 dark:text-white dark:hover:bg-white/10"
               >
                 Log in
               </Link>
               <Link
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  closeMobile();
-                  openLandingAuthModal("signup");
-                }}
+                href="/auth/client/signup"
+                onClick={closeMobile}
                 className="block w-full rounded-full bg-slate-950 px-4 py-3 text-center text-base font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
               >
                 Sign up
