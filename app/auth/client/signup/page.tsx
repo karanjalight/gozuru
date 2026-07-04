@@ -16,6 +16,7 @@ import {
   setPendingAffiliateEnrollment,
 } from "@/lib/affiliate/enroll";
 import {
+  appendReferralQuery,
   attributeStoredReferral,
   captureReferralFromUrl,
   getActiveReferralCode,

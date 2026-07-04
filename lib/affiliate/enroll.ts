@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase/client";
 import { getAccountHomePath } from "@/lib/auth/useAccountRole";
+import { checkIsAdmin } from "@/lib/auth/admin";
 
 const PENDING_AFFILIATE_ENROLLMENT_KEY = "gozuru_pending_affiliate_enrollment";
 
@@ -47,6 +48,11 @@ export function getClientPostSignupPath(signUpAsAffiliate: boolean): string {
 }
 
 export async function resolveClientPostAuthPath(role?: string): Promise<string> {
+  // Admins always land in the admin dashboard, regardless of metadata role.
+  if (await checkIsAdmin()) {
+    return "/admin";
+  }
+
   const enrolledFromPending = await processPendingAffiliateEnrollment();
   if (enrolledFromPending) {
     return "/account/affiliate";
