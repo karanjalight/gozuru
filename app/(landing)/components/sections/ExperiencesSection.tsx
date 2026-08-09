@@ -17,7 +17,8 @@ const LATEST_WINDOW_MS = 1000 * 60 * 60 * 24 * 14;
 export function ExperiencesGrid({ initialData }: { initialData: LandingExperiencesResult }) {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get("query")?.trim().toLowerCase() ?? "";
-  const [activeFilter, setActiveFilter] = useState<ExperienceFilter>("all");
+  const categoryParam = searchParams.get("category")?.trim() ?? "";
+  const [activeFilter, setActiveFilter] = useState<ExperienceFilter>(categoryParam || "all");
   const [currentTimestamp, setCurrentTimestamp] = useState(0);
 
   const experiences = initialData.experiences;
