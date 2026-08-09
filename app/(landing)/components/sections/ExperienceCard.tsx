@@ -101,7 +101,7 @@ export function ExperienceCard({
           <span
             className={cn(
               "absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm",
-              categoryBadgeClass(experience.category),
+              categoryBadgeClass(experience.category) ?? "bg-orange-600/90",
             )}
           >
             {experience.category}

@@ -14,7 +14,7 @@ export function InvestmentOfferCard({ offer }: { offer: FeaturedEvent }) {
   const ticketHref = getSampleEventTicketHref(offer.id);
 
   return (
-    <article className="grid overflow-hidden rounded-2xl border border-border bg-white shadow-sm dark:bg-card lg:grid-cols-[minmax(0,280px)_1fr_auto]">
+    <article className="grid overflow-hidden rounded-2xl border border-border bg-white shadow-sm dark:bg-card lg:grid-cols-[minmax(0,280px)_1fr]">
       <Link href={detailHref} className="relative aspect-[16/10] w-full bg-zinc-100 lg:aspect-auto lg:min-h-[220px]">
         <Image
           src={offer.image}
@@ -67,15 +67,6 @@ export function InvestmentOfferCard({ offer }: { offer: FeaturedEvent }) {
           >
             Learn more
           </Link>
-        </div>
-      </div>
-
-      <div className="flex flex-row items-center justify-center gap-6 border-t border-border p-5 sm:p-6 lg:flex-col lg:border-l lg:border-t-0 lg:px-8">
-        <div className="text-center">
-          <p className="text-xl font-bold text-foreground sm:text-2xl">
-            Up to {offer.maxAttendees}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">Spots</p>
         </div>
       </div>
     </article>

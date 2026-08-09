@@ -639,7 +639,7 @@ export default function CreateExperiencePage() {
     setSlotEndsAt(getTwoHoursFromNowLocalInputValue());
     setSlotCapacity("1");
     setSlotPrice("");
-    setSlotCurrency(currency || "USD");
+    setSlotCurrency(currency || "KES");
     if (availableMeetingPlaces.length > 0) {
       setSlotMeetingPlaceMode("existing");
       setSlotMeetingPlace(availableMeetingPlaces[0]);

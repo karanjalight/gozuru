@@ -39,13 +39,11 @@ export default async function ExperiencesPage() {
         <ExperiencesGrid initialData={experiencesData} />
       </Suspense>
       <Suspense fallback={null}>
-        <UpcomingEventsSection  />
+        <UpcomingEventsSection />
       </Suspense>
       <Suspense fallback={null}>
         <FeaturedExperiencesShowcase initialData={featuredData} />
       </Suspense>
-
-      
     </>
   );
 }

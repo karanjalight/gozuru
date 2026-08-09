@@ -31,6 +31,10 @@ export function ExperiencesGrid({ initialData }: { initialData: LandingExperienc
     });
   }, []);
 
+  useEffect(() => {
+    setActiveFilter(categoryParam || "all");
+  }, [categoryParam]);
+
   const normalizedExperiences = useMemo(
     () =>
       experiences.map((exp) => {

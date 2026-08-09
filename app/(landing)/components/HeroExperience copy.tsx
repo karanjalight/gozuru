@@ -123,7 +123,7 @@ export function ExperienceHero({ initialData }: { initialData: LandingExperience
               type="submit"
               className="inline-flex items-center justify-center rounded-full border border-orange-500/80 bg-orange-600 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-orange-700 sm:text-sm"
             >
-              Search
+              Explore
             </button>
           </form>
 
