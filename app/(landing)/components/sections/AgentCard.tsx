@@ -6,7 +6,23 @@ import { categoryBadgeClass } from "@/lib/category-styles";
 import { cn } from "@/lib/utils";
 
 function categoryStyle(category: string) {
-  return `${categoryBadgeClass(category)} text-white`;
+  const normalized = category.toLowerCase();
+
+  // Check if the category matches one of the known keywords
+  if (
+    normalized.includes("hotel") ||
+    normalized.includes("meetup") ||
+    normalized.includes("social") ||
+    normalized.includes("expo") ||
+    normalized.includes("expert") ||
+    normalized.includes("culture")
+  ) {
+    // For known categories, use the shared badge class with white text
+    return `${categoryBadgeClass(category)} text-white`;
+  }
+
+  // For unknown categories, use the original neutral fallback
+  return "bg-foreground/80 text-background";
 }
 
 export function AgentCard({
