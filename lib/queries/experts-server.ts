@@ -33,7 +33,9 @@ export async function fetchLandingExpertsServer(
 
   const { data: hostRows, error: hostError } = await supabase
     .from("host_profiles")
-    .select("user_id,headline,expertise,years_experience,career_highlight,highlight_story")
+    .select(
+      "user_id,headline,expertise,years_experience,career_highlight,highlight_story,verification_status",
+    )
     .order("created_at", { ascending: false })
     .limit(limit);
 

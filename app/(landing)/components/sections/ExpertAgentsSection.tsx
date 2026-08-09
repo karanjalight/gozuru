@@ -32,7 +32,7 @@ export function ExpertAgentsSection({ experts }: { experts: LocalExpert[] }) {
             Meet the people behind the experiences
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Every host is vetted by our team and rated by the travelers who&apos;ve met them.
+            Every host applies and is reviewed by our team before their profile goes live.
           </p>
         </div>
 
