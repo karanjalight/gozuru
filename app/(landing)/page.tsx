@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import {
   ContactTeamSection,
   ExpertAgentsSection,
-  FeaturedExperiences,
   HowItWorksSection,
-  InvestmentSection,
   NewPropertiesSection,
   TestimonialsSection,
 } from "./components/sections";
@@ -46,7 +44,6 @@ export default async function LandingPage() {
 
       <NewPropertiesSection />
       <HowItWorksSection />
-      <InvestmentSection />
       <TestimonialsSection />
       <ContactTeamSection />
     </>
