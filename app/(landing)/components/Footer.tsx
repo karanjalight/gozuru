@@ -89,7 +89,7 @@ export function Footer() {
               Reward your curiosity with people-led experiences, practical local
               knowledge, and conversations that go deeper than a typical tour.
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
               <Link
                 href="/experiences"
                 className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-950/40 transition hover:bg-orange-400"
@@ -97,12 +97,17 @@ export function Footer() {
                 Explore experiences
                 <ArrowRight className="size-4" aria-hidden />
               </Link>
-              <Link
-                href="/hosts"
-                className="inline-flex items-center gap-2 rounded-full border border-orange-300/30 bg-white/10 px-5 py-2.5 text-sm font-semibold text-orange-50 backdrop-blur transition hover:border-orange-300/50 hover:bg-white/15"
-              >
-                Become a host
-              </Link>
+              <div className="flex items-center gap-3">
+                <p className="text-sm text-orange-50/80">
+                  Or turn what you know into someone else&apos;s best afternoon.
+                </p>
+                <Link
+                  href="/hosts"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-full border border-orange-300/30 bg-white/10 px-5 py-2.5 text-sm font-semibold text-orange-50 backdrop-blur transition hover:border-orange-300/50 hover:bg-white/15"
+                >
+                  Start hosting
+                </Link>
+              </div>
             </div>
           </div>
 
