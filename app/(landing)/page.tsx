@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import {
   ContactTeamSection,
   ExpertAgentsSection,
+  FeaturedExperiences,
   HowItWorksSection,
-  NewPropertiesSection,
   TestimonialsSection,
 } from "./components/sections";
 import { LandingHero } from "./components/HeroLanding";
@@ -39,10 +39,9 @@ export default async function LandingPage() {
   return (
     <>
       <LandingHero initialData={sharedLandingData} />
-      {/* <FeaturedExperiences initialData={featuredLandingData} /> */}
       <ExpertAgentsSection experts={experts} />
 
-      <NewPropertiesSection />
+      <FeaturedExperiences initialData={featuredLandingData} />
       <HowItWorksSection />
       <TestimonialsSection />
       <ContactTeamSection />
