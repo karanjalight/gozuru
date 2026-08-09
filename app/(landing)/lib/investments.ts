@@ -24,9 +24,6 @@ export type FeaturedEvent = {
   maxAttendees: number;
   description: string;
   image: string;
-  attendeeCount: number;
-  rating: number;
-  satisfactionPercent: number;
 };
 
 export const PLATFORM_STATS: PlatformStat[] = [
@@ -71,9 +68,6 @@ export const FEATURED_EVENTS: FeaturedEvent[] = [
     description:
       "Meet Gozuru experts, hotel partners, and fellow travelers at East Africa's largest curiosity-driven travel gathering — keynotes, tastings, and live bookings.",
     image: "https://images.pexels.com/photos/2774556/pexels-photo-2774556.jpeg",
-    attendeeCount: 480,
-    rating: 4.9,
-    satisfactionPercent: 98,
   },
   {
     id: "hotel-partner-series",
@@ -85,9 +79,6 @@ export const FEATURED_EVENTS: FeaturedEvent[] = [
     description:
       "Exclusive behind-the-scenes visits at partner hotels — meet the concierge team, explore signature spaces, and connect with a local Gozuru expert on arrival.",
     image: "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg",
-    attendeeCount: 2400,
-    rating: 4.8,
-    satisfactionPercent: 96,
   },
   {
     id: "curators-meetup",
@@ -99,15 +90,5 @@ export const FEATURED_EVENTS: FeaturedEvent[] = [
     description:
       "A relaxed social evening where travelers swap stories, experts share insider tips, and the Gozuru community grows one conversation at a time.",
     image: "https://images.pexels.com/photos/1267696/pexels-photo-1267696.jpeg",
-    attendeeCount: 860,
-    rating: 5.0,
-    satisfactionPercent: 99,
   },
 ];
-
-export function formatAttendeeCount(count: number): string {
-  if (count >= 1000) {
-    return `${(count / 1000).toFixed(count >= 10000 ? 0 : 1).replace(/\.0$/, "")}k+`;
-  }
-  return `${count}+`;
-}

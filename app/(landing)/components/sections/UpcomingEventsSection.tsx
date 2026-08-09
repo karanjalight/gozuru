@@ -14,11 +14,11 @@ export function UpcomingEventsSection() {
           Meetups & expos
         </p>
         <h2 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
-          Upcoming events
+          Events & gatherings
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-white/85 sm:text-base">
-          Join social events, hotel partner series, and travel expos where the Gozuru
-          community comes together.
+          Meetups, expos, and welcome visits — different from a 1:1 session with a
+          host. Browse those in the experiences grid above.
         </p>
       </div>
 
