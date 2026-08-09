@@ -26,7 +26,7 @@ const explore = [
 const company = [
   { href: "/about", label: "About us" },
   { href: "/about#team", label: "The team" },
-  { href: "/hosts", label: "Become a host" },
+  { href: "/hosts", label: "Start hosting" },
   { href: "/auth/signup", label: "Create account" },
   { href: "/auth/login", label: "Sign in" },
 ];

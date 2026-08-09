@@ -68,7 +68,7 @@ export function ExpertAgentsSection({ experts }: { experts: LocalExpert[] }) {
             href="/hosts"
             className="mt-4 inline-flex text-sm font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400"
           >
-            Become a host
+            Start hosting
           </Link>
         </div>
       ) : (
