@@ -161,7 +161,7 @@ export default function CreateExperiencePage() {
   const [expertise, setExpertise] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
   const [durationHours, setDurationHours] = useState("1");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState("KES");
   const [audienceType, setAudienceType] = useState<
     "group" | "female_only" | "male_only" | "private"
   >("group");
@@ -178,7 +178,7 @@ export default function CreateExperiencePage() {
   const [slotEndsAt, setSlotEndsAt] = useState(getTwoHoursFromNowLocalInputValue);
   const [slotCapacity, setSlotCapacity] = useState("1");
   const [slotPrice, setSlotPrice] = useState("");
-  const [slotCurrency, setSlotCurrency] = useState("USD");
+  const [slotCurrency, setSlotCurrency] = useState("KES");
   const [slotMeetingPlaceMode, setSlotMeetingPlaceMode] = useState<"existing" | "new">("existing");
   const [slotMeetingPlace, setSlotMeetingPlace] = useState("");
   const [newMeetingPlace, setNewMeetingPlace] = useState("");
@@ -1096,7 +1096,7 @@ export default function CreateExperiencePage() {
       setHourlyRate(
         experience.price_amount ? String(Number(experience.price_amount)) : "",
       );
-      setCurrency(experience.currency ?? "USD");
+      setCurrency(experience.currency ?? "KES");
       setMaxGuests(String(experience.max_guests ?? 5));
       setAudienceType(getAudienceFromRequirements(experience.requirements) as typeof audienceType);
 
@@ -1123,7 +1123,7 @@ export default function CreateExperiencePage() {
           priceAmount: slot.price_amount !== null && slot.price_amount !== undefined
             ? String(slot.price_amount)
             : "",
-          currency: String(slot.currency ?? experience.currency ?? "USD"),
+          currency: String(slot.currency ?? experience.currency ?? "KES"),
           meetingPlaceName: String(slot.meeting_place_name ?? ""),
           isCancelled: Boolean(slot.is_cancelled),
         })),
@@ -1152,7 +1152,7 @@ export default function CreateExperiencePage() {
         setSlotMeetingPlaceMode("new");
         setSlotMeetingPlace("");
       }
-      setSlotCurrency(experience.currency ?? "USD");
+      setSlotCurrency(experience.currency ?? "KES");
 
       setStepIndex(1);
       setLoadingExistingData(false);
@@ -1652,20 +1652,12 @@ export default function CreateExperiencePage() {
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-muted-foreground">Currency</label>
-                        <select
-                          value={currency}
-                          onChange={(e) => {
-                            setCurrency(e.target.value);
-                            setSlotCurrency(e.target.value);
-                          }}
-                          className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                        >
-                          <option value="USD">USD</option>
-                          <option value="EUR">EUR</option>
-                          <option value="GBP">GBP</option>
-                          <option value="CAD">CAD</option>
-                          <option value="KES">KES</option>
-                        </select>
+                        <div className="flex h-10 w-full items-center rounded-xl border border-input bg-muted/30 px-3 text-sm text-foreground">
+                          {currency}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          Gozuru currently prices all listings in Kenyan Shillings.
+                        </p>
                       </div>
                     </div>
                     <p className="mt-3 text-xs text-muted-foreground">
@@ -1720,17 +1712,9 @@ export default function CreateExperiencePage() {
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-muted-foreground">Currency</label>
-                        <select
-                          value={slotCurrency}
-                          onChange={(e) => setSlotCurrency(e.target.value)}
-                          className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                        >
-                          <option value="USD">USD</option>
-                          <option value="EUR">EUR</option>
-                          <option value="GBP">GBP</option>
-                          <option value="CAD">CAD</option>
-                          <option value="KES">KES</option>
-                        </select>
+                        <div className="flex h-10 w-full items-center rounded-xl border border-input bg-muted/30 px-3 text-sm text-foreground">
+                          {slotCurrency}
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2 md:col-span-2">
