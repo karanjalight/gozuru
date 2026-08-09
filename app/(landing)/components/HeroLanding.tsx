@@ -6,21 +6,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { Navbar } from "@/app/(landing)/components/Navbar";
-import { type LandingExperiencesResult } from "@/lib/queries/experiences";
+import {
+  pickExperienceCategory,
+  type LandingExperiencesResult,
+} from "@/lib/queries/experiences";
 
-const HERO_IMAGES = [
-  "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg",
-  "https://images.pexels.com/photos/1267696/pexels-photo-1267696.jpeg",
-  "https://images.pexels.com/photos/2774556/pexels-photo-2774556.jpeg",
-  "https://images.pexels.com/photos/2506923/pexels-photo-2506923.jpeg",
-  "https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg",
-
-];
-
+const HERO_BACKGROUND_IMAGE =
+  "https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg";
 
 export function LandingHero({ initialData }: { initialData: LandingExperiencesResult }) {
-  const [index, setIndex] = useState(0);
   const [searchValue, setSearchValue] = useState("");
+  const [cityValue, setCityValue] = useState("Nairobi");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
   const { theme, resolvedTheme } = useTheme();
@@ -49,13 +45,17 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
       }));
   }, [initialData.experiences, initialData.locationByExperienceId, normalizedQuery]);
 
-  useEffect(() => {
-    const id = setInterval(
-      () => setIndex((prev) => (prev + 1) % HERO_IMAGES.length),
-      6000
-    );
-    return () => clearInterval(id);
-  }, []);
+  const interestCategories = useMemo(() => {
+    const seen = new Map<string, { name: string; slug: string }>();
+    for (const exp of initialData.experiences) {
+      const category = pickExperienceCategory(exp.categories);
+      if (category && !seen.has(category.slug)) {
+        seen.set(category.slug, category);
+      }
+      if (seen.size >= 4) break;
+    }
+    return Array.from(seen.values());
+  }, [initialData.experiences]);
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
@@ -70,6 +70,15 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
+  function goToExperiences() {
+    const params = new URLSearchParams();
+    if (searchValue.trim()) params.set("query", searchValue.trim());
+    if (cityValue.trim()) params.set("city", cityValue.trim());
+    if (!params.toString()) return;
+    router.push(`/experiences?${params.toString()}`);
+    setShowSuggestions(false);
+  }
+
   return (
     <section
       className={`relative flex min-h-[80vh] items-center justify-center overflow-hidden transition-colors ${
@@ -79,22 +88,13 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
       <Navbar />
 
       <div className="absolute inset-0 -z-0">
-        {HERO_IMAGES.map((src, i) => (
-          <div
-            key={src}
-            className={`absolute inset-0 transition-opacity duration-1000 ${
-              i === index ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            <Image
-              src={src}
-              alt="Travelers enjoying a Gozuru experience together"
-              fill
-              priority={i === 0}
-              className="pointer-events-none object-cover"
-            />
-          </div>
-        ))}
+        <Image
+          src={HERO_BACKGROUND_IMAGE}
+          alt="Travelers enjoying a Gozuru experience together"
+          fill
+          priority
+          className="pointer-events-none object-cover"
+        />
         <div
           className={`absolute inset-0 bg-gradient-to-b transition-colors ${
             isDark
@@ -104,7 +104,7 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
         />
       </div>
 
-      <div className="relative z-10 mx-auto flex lg:w-[1040px] flex-col items-center gap-8 px-4 pt-20 text-center md:items-start md:text-left">
+      <div className="relative z-10 mx-auto flex lg:w-[1040px] flex-col items-center gap-6 px-4 pt-20 text-center md:items-start md:text-left">
         <div
           className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium backdrop-blur transition-colors ${
             isDark
@@ -113,7 +113,7 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
           }`}
         >
           <span className="h-2 w-2 rounded-full bg-emerald-400" />
-          Hotel visits · Meetups · Expos · Expert sessions
+          Nairobi · Real people, real conversations
         </div>
 
         <div className="space-y-4">
@@ -125,18 +125,15 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
               isDark ? "text-zinc-100/90" : "text-zinc-100"
             }`}
           >
-            Connect with local experts for hotel partner visits, curated meetups,
-            social events, and travel expos — real conversations, not just sightseeing.
+            Real people, real conversations — not just sightseeing.
           </p>
         </div>
 
-        <div ref={searchContainerRef} className="relative mt-4 w-full max-w-xl text-zinc-950 [color-scheme:light]">
+        <div ref={searchContainerRef} className="relative mt-2 w-full max-w-xl text-zinc-950 [color-scheme:light]">
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              if (!searchValue.trim()) return;
-              router.push(`/experiences?query=${encodeURIComponent(searchValue.trim())}`);
-              setShowSuggestions(false);
+              goToExperiences();
             }}
             className="flex w-full items-stretch gap-2 rounded-full border border-zinc-200 bg-white px-3 py-2 text-left shadow-lg shadow-black/20 outline-none transition focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-400/40 hover:border-zinc-300"
           >
@@ -147,15 +144,23 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
                 setShowSuggestions(true);
               }}
               onFocus={() => setShowSuggestions(true)}
-              placeholder="Search experiences, cities, or experts"
+              placeholder="What are you curious about?"
               aria-label="Search experiences"
-              className="flex-1 rounded-full border-0 bg-white px-4 py-2 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none [&:-webkit-autofill]:[-webkit-text-fill-color:rgb(9_9_11)] [&:-webkit-autofill]:[box-shadow:0_0_0px_1000px_#fff_inset]"
+              className="min-w-0 flex-[65] rounded-full border-0 bg-white px-4 py-2 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none [&:-webkit-autofill]:[-webkit-text-fill-color:rgb(9_9_11)] [&:-webkit-autofill]:[box-shadow:0_0_0px_1000px_#fff_inset]"
+            />
+            <div className="w-px shrink-0 self-stretch bg-zinc-200" aria-hidden />
+            <input
+              value={cityValue}
+              onChange={(event) => setCityValue(event.target.value)}
+              placeholder="City"
+              aria-label="City"
+              className="min-w-0 flex-[35] rounded-full border-0 bg-white px-3 py-2 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none"
             />
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-full border border-orange-500/80 bg-orange-600 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-orange-700 sm:text-sm"
+              className="inline-flex shrink-0 items-center justify-center rounded-full border border-orange-500/80 bg-orange-600 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-orange-700 sm:text-sm"
             >
-              Search
+              Explore
             </button>
           </form>
 
@@ -189,24 +194,28 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
           )}
         </div>
 
-        <div
-          className={`mt-2 lg:ml-5 p-1 rounded-full flex gap-1.5 transition-colors ${
-            isDark ? "bg-black/30" : "bg-black/35"
+        {interestCategories.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {interestCategories.map((category) => (
+              <Link
+                key={category.slug}
+                href={`/experiences?category=${encodeURIComponent(category.slug)}`}
+                className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur transition hover:border-white/40 hover:bg-white/20"
+              >
+                {category.name}
+              </Link>
+            ))}
+          </div>
+        ) : null}
+
+        <Link
+          href="/hosts"
+          className={`text-xs font-medium underline-offset-4 transition hover:underline ${
+            isDark ? "text-white/70 hover:text-white" : "text-white/80 hover:text-white"
           }`}
         >
-          {HERO_IMAGES.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setIndex(i)}
-              aria-label={`Show slide ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all ${
-                i === index
-                  ? "w-4 bg-white"
-                  : "w-2 bg-white/50 hover:bg-white/80"
-              }`}
-            />
-          ))}
-        </div>
+          Are you the expert? Start hosting →
+        </Link>
       </div>
     </section>
   );
