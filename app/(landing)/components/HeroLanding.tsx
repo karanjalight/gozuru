@@ -5,11 +5,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
+import { motion } from "framer-motion";
+import { MapPin, Search } from "lucide-react";
 import { Navbar } from "@/app/(landing)/components/Navbar";
 import {
   pickExperienceCategory,
   type LandingExperiencesResult,
 } from "@/lib/queries/experiences";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 14 },
+  show: (delay: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+  }),
+};
 
 const HERO_BACKGROUND_IMAGE =
   "https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg";
@@ -81,7 +92,7 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
 
   return (
     <section
-      className={`relative flex min-h-[80vh] items-center justify-center overflow-hidden transition-colors ${
+      className={`relative flex min-h-[80dvh] items-center justify-center overflow-hidden transition-colors ${
         isDark ? "bg-zinc-900 text-white" : "bg-slate-950 text-white"
       }`}
     >
@@ -105,7 +116,11 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
       </div>
 
       <div className="relative z-10 mx-auto flex lg:w-[1040px] flex-col items-center gap-6 px-4 pt-20 text-center md:items-start md:text-left">
-        <div
+        <motion.div
+          initial="hidden"
+          animate="show"
+          custom={0}
+          variants={fadeUp}
           className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium backdrop-blur transition-colors ${
             isDark
               ? "bg-white/10 text-white"
@@ -114,9 +129,15 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
         >
           <span className="h-2 w-2 rounded-full bg-emerald-400" />
           Nairobi · Real people, real conversations
-        </div>
+        </motion.div>
 
-        <div className="space-y-4">
+        <motion.div
+          initial="hidden"
+          animate="show"
+          custom={0.08}
+          variants={fadeUp}
+          className="space-y-4"
+        >
           <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl text-white">
             Reward Your Curiosity with Gozuru
           </h1>
@@ -127,9 +148,16 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
           >
             Real people, real conversations — not just sightseeing.
           </p>
-        </div>
+        </motion.div>
 
-        <div ref={searchContainerRef} className="relative mt-2 w-full max-w-xl text-zinc-950 [color-scheme:light]">
+        <motion.div
+          ref={searchContainerRef}
+          initial="hidden"
+          animate="show"
+          custom={0.16}
+          variants={fadeUp}
+          className="relative mt-2 w-full max-w-xl text-zinc-950 [color-scheme:light]"
+        >
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -137,28 +165,40 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
             }}
             className="flex w-full items-stretch gap-2 rounded-full border border-zinc-200 bg-white px-3 py-2 text-left shadow-lg shadow-black/20 outline-none transition focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-400/40 hover:border-zinc-300"
           >
-            <input
-              value={searchValue}
-              onChange={(event) => {
-                setSearchValue(event.target.value);
-                setShowSuggestions(true);
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              placeholder="What are you curious about?"
-              aria-label="Search experiences"
-              className="min-w-0 flex-[65] rounded-full border-0 bg-white px-4 py-2 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none [&:-webkit-autofill]:[-webkit-text-fill-color:rgb(9_9_11)] [&:-webkit-autofill]:[box-shadow:0_0_0px_1000px_#fff_inset]"
-            />
+            <div className="relative min-w-0 flex-[65]">
+              <Search
+                className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
+                aria-hidden
+              />
+              <input
+                value={searchValue}
+                onChange={(event) => {
+                  setSearchValue(event.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                placeholder="What are you curious about?"
+                aria-label="Search experiences"
+                className="w-full rounded-full border-0 bg-white py-2 pl-10 pr-4 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none [&:-webkit-autofill]:[-webkit-text-fill-color:rgb(9_9_11)] [&:-webkit-autofill]:[box-shadow:0_0_0px_1000px_#fff_inset]"
+              />
+            </div>
             <div className="w-px shrink-0 self-stretch bg-zinc-200" aria-hidden />
-            <input
-              value={cityValue}
-              onChange={(event) => setCityValue(event.target.value)}
-              placeholder="City"
-              aria-label="City"
-              className="min-w-0 flex-[35] rounded-full border-0 bg-white px-3 py-2 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none"
-            />
+            <div className="relative min-w-0 flex-[35]">
+              <MapPin
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
+                aria-hidden
+              />
+              <input
+                value={cityValue}
+                onChange={(event) => setCityValue(event.target.value)}
+                placeholder="City"
+                aria-label="City"
+                className="w-full rounded-full border-0 bg-white py-2 pl-9 pr-3 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none"
+              />
+            </div>
             <button
               type="submit"
-              className="inline-flex shrink-0 items-center justify-center rounded-full border border-orange-500/80 bg-orange-600 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-orange-700 sm:text-sm"
+              className="inline-flex shrink-0 items-center justify-center rounded-full border border-orange-500/80 bg-orange-600 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-orange-700 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 sm:text-sm"
             >
               Explore
             </button>
@@ -192,30 +232,38 @@ export function LandingHero({ initialData }: { initialData: LandingExperiencesRe
               )}
             </div>
           )}
-        </div>
+        </motion.div>
 
         {interestCategories.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
+          <motion.div
+            initial="hidden"
+            animate="show"
+            custom={0.24}
+            variants={fadeUp}
+            className="flex flex-wrap gap-2"
+          >
             {interestCategories.map((category) => (
               <Link
                 key={category.slug}
                 href={`/experiences?category=${encodeURIComponent(category.slug)}`}
-                className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur transition hover:border-white/40 hover:bg-white/20"
+                className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur transition hover:border-white/40 hover:bg-white/20 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
               >
                 {category.name}
               </Link>
             ))}
-          </div>
+          </motion.div>
         ) : null}
 
-        <Link
-          href="/hosts"
-          className={`text-xs font-medium underline-offset-4 transition hover:underline ${
-            isDark ? "text-white/70 hover:text-white" : "text-white/80 hover:text-white"
-          }`}
-        >
-          Are you the expert? Start hosting →
-        </Link>
+        <motion.div initial="hidden" animate="show" custom={0.32} variants={fadeUp}>
+          <Link
+            href="/hosts"
+            className={`text-xs font-medium underline-offset-4 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:rounded-sm ${
+              isDark ? "text-white/70 hover:text-white" : "text-white/80 hover:text-white"
+            }`}
+          >
+            Are you the expert? Start hosting →
+          </Link>
+        </motion.div>
       </div>
     </section>
   );
