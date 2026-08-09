@@ -11,10 +11,10 @@ export const HOW_IT_WORKS_STEPS: HowItWorksStep[] = [
   {
     id: "discover",
     navLabel: "Discover experiences",
-    title: "Discover experiences that reward your curiosity",
+    title: "Browse by curiosity, city, or expert",
     description:
-      "Browse hotel partner visits, expert-led sessions, meetups, social dinners, and travel expos — curated for travelers who want more than a checklist.",
-    image: "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg",
+      "Find someone worth meeting — search by topic, tap an interest chip, or browse hosts directly. No generic checklist, just people worth talking to.",
+    image: "https://images.pexels.com/photos/1319854/pexels-photo-1319854.jpeg",
     detailImage: "https://images.pexels.com/photos/2774556/pexels-photo-2774556.jpeg",
   },
   {
