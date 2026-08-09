@@ -70,9 +70,20 @@ export function AgentCard({
             {agent.category}
           </span>
 
-          <span className="absolute right-3 top-3 z-[2] inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/35 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-md">
-            <BadgeCheck className="size-3 text-orange-300" aria-hidden />
-            Verified
+          <span className="group/verified absolute right-3 top-3 z-[2]">
+            <span
+              tabIndex={0}
+              className="inline-flex cursor-default items-center gap-1 rounded-full border border-white/20 bg-black/35 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-md"
+            >
+              <BadgeCheck className="size-3 text-orange-300" aria-hidden />
+              Verified
+            </span>
+            <span
+              role="tooltip"
+              className="pointer-events-none absolute right-0 top-full z-10 mt-1.5 w-44 origin-top-right scale-95 rounded-lg bg-black/90 px-2.5 py-2 text-[11px] font-normal leading-snug text-white opacity-0 shadow-lg backdrop-blur-sm transition-all duration-200 group-hover/verified:scale-100 group-hover/verified:opacity-100 group-focus-within/verified:scale-100 group-focus-within/verified:opacity-100"
+            >
+              ID verified + in-person vetted
+            </span>
           </span>
 
           <div className="absolute inset-x-0 bottom-0 z-[2] p-4 transition-transform duration-500 group-hover:translate-y-[-2px]">
