@@ -2,18 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, BadgeCheck } from "lucide-react";
 import { type LocalExpert } from "@/app/(landing)/lib/agents";
+import { categoryBadgeClass } from "@/lib/category-styles";
 import { cn } from "@/lib/utils";
 
-const CATEGORY_STYLES: Record<string, string> = {
-  "Hotel visit": "bg-blue-600/90 text-white",
-  Meetup: "bg-orange-600/90 text-white",
-  "Social event": "bg-purple-600/90 text-white",
-  Expo: "bg-emerald-600/90 text-white",
-  "Expert session": "bg-rose-600/90 text-white",
-};
-
 function categoryStyle(category: string) {
-  return CATEGORY_STYLES[category] ?? "bg-foreground/80 text-background";
+  return `${categoryBadgeClass(category)} text-white`;
 }
 
 export function AgentCard({
