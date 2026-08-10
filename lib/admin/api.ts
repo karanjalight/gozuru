@@ -21,6 +21,27 @@ import type {
 
 export const ADMIN_PAGE_SIZE = 12;
 
+// --- Delete impact types -------------------------------------------------------
+
+export type ExperienceDeleteImpact = {
+  title: string;
+  bookingsCount: number;
+  paymentsCount: number;
+  reviewsCount: number;
+  mediaCount: number;
+  availabilityCount: number;
+};
+
+export type UserDeleteImpact = {
+  isHost: boolean;
+  isAdmin: boolean;
+  experiencesCount: number;
+  bookingsAsGuestCount: number;
+  bookingsAsHostCount: number;
+  paymentsAsPayerCount: number;
+  reviewsCount: number;
+};
+
 async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.rpc(fn, args ?? {});
   if (error) throw new Error(error.message);
@@ -131,6 +152,26 @@ export function useAdminReviews(params: ListParams) {
   });
 }
 
+export function useExperienceDeleteImpact(experienceId: string | null) {
+  return useQuery({
+    queryKey: ["admin", "experience-delete-impact", experienceId],
+    queryFn: () =>
+      rpc<ExperienceDeleteImpact>("admin_get_experience_delete_impact", {
+        p_experience_id: experienceId,
+      }),
+    enabled: Boolean(experienceId),
+  });
+}
+
+export function useUserDeleteImpact(userId: string | null) {
+  return useQuery({
+    queryKey: ["admin", "user-delete-impact", userId],
+    queryFn: () =>
+      rpc<UserDeleteImpact>("admin_get_user_delete_impact", { p_user_id: userId }),
+    enabled: Boolean(userId),
+  });
+}
+
 // --- Moderation mutations -----------------------------------------------------
 
 export function useAdminMutation() {
@@ -138,6 +179,31 @@ export function useAdminMutation() {
   return useMutation({
     mutationFn: async (input: { fn: string; args: Record<string, unknown> }) =>
       rpc(input.fn, input.args),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin"] });
+    },
+  });
+}
+
+export function useDeleteUserMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Your session expired. Please log in again.");
+
+      const response = await fetch("/api/admin/delete-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ userId }),
+      });
+      const payload = (await response.json()) as { ok?: boolean; error?: string };
+      if (!response.ok || payload.error) {
+        throw new Error(payload.error ?? "Failed to delete user.");
+      }
+      return payload;
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["admin"] });
     },
@@ -160,6 +226,10 @@ export const adminActions = {
   deleteReview: (reviewId: string) => ({
     fn: "admin_delete_review",
     args: { p_review_id: reviewId },
+  }),
+  deleteExperience: (experienceId: string) => ({
+    fn: "admin_delete_experience",
+    args: { p_experience_id: experienceId },
   }),
   updateCashoutStatus: (cashoutId: string, status: string) => ({
     fn: "admin_update_cashout_status",
