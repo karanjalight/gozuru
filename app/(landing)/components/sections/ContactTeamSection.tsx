@@ -22,7 +22,7 @@ function ChannelIcon({ type }: { type: "chat" | "mail" | "x" | "phone" | "map" }
   if (type === "mail") return <Mail className="size-5 shrink-0" aria-hidden />;
   if (type === "phone") return <Phone className="size-5 shrink-0" aria-hidden />;
   if (type === "map") return <MapPin className="size-5 shrink-0" aria-hidden />;
-  return (
+  return (  
     <span className="flex size-5 shrink-0 items-center justify-center text-sm font-bold" aria-hidden>
       𝕏
     </span>

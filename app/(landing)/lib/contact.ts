@@ -15,17 +15,17 @@ export const CONTACT_CHANNELS = [
     links: [
       { label: "Start a live chat", href: "/contact", icon: "chat" as const },
       { label: "hello@gozuru.com", href: "mailto:hello@gozuru.com", icon: "mail" as const },
-      { label: "Message us on X", href: "https://x.com/gozuru", icon: "x" as const },
+      // { label: "Message us on X", href: "https://x.com/gozuru", icon: "x" as const },
     ],
   },
-  {
-    id: "call",
-    title: "Call us",
-    description: "Speak with our team Mon–Fri, 8am–6pm EAT.",
-    links: [
-      { label: "+254 700 000 000", href: "tel:+254700000000", icon: "phone" as const },
-    ],
-  },
+  // {
+  //   id: "call",
+  //   title: "Call us",
+  //   description: "Speak with our team Mon–Fri, 8am–6pm EAT.",
+  //   links: [
+  //     { label: "+254 700 000 000", href: "tel:+254700000000", icon: "phone" as const },
+  //   ],
+  // },
   {
     id: "visit",
     title: "Meet us at an event",

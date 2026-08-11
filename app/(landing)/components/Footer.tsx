@@ -76,7 +76,7 @@ export function Footer() {
       />
 
       <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="grid gap-10 border-b border-white/10 pb-12 lg:grid-cols-[1fr_0.9fr] lg:items-end">
+        <div className="grid gap-10 border-b border-white/10 pb-12 l g:grid-cols-[1fr_0.9fr] lg:items-end">
           <div>
             <Link
               href="/"
@@ -111,7 +111,7 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-orange-400/20 bg-gradient-to-br from-orange-950/40 to-stone-950/50 p-6 shadow-xl shadow-black/20 backdrop-blur-md">
+          {/* <div className="rounded-3xl border border-orange-400/20 bg-gradient-to-br from-orange-950/40 to-stone-950/50 p-6 shadow-xl shadow-black/20 backdrop-blur-md">
             <div className="flex items-start gap-4">
               <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-orange-500/20 text-orange-200 ring-1 ring-orange-400/25">
                 <Compass className="size-5" aria-hidden />
@@ -129,7 +129,7 @@ export function Footer() {
                 </p>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
 
         <div className="mt-12 grid gap-10 lg:grid-cols-[1.15fr_0.8fr_0.8fr_0.9fr]">

@@ -1430,7 +1430,7 @@ export default function CreateExperiencePage() {
                           }
                           className={`rounded-xl border px-4 py-3 text-left text-sm transition ${
                             audienceType === option.id
-                              ? "border-orange-500 bg-orange-50"
+                              ? "border-orange-500 bg-orange-50 text-orange-900 dark:bg-orange-500/15 dark:text-orange-200"
                               : "border-input bg-background hover:bg-muted/60"
                           }`}
                         >
@@ -1561,7 +1561,7 @@ export default function CreateExperiencePage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full rounded-full border-orange-200 bg-orange-50 text-orange-800 hover:bg-orange-100 sm:w-auto"
+                      className="w-full rounded-full border-orange-200 bg-orange-50 text-orange-800 hover:bg-orange-100 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300 dark:hover:bg-orange-500/20 sm:w-auto"
                       onClick={() => {
                         setMediaError(null);
                         videosInputRef.current?.click();
@@ -1612,15 +1612,15 @@ export default function CreateExperiencePage() {
                     Add premium booking slots. Guests can only request times you publish.
                   </p>
                 </div>
-                <div className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
+                <div className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300">
                   {activeAvailabilitySlots.length} active slot
                   {activeAvailabilitySlots.length === 1 ? "" : "s"}
                 </div>
               </div>
 
               <div className="mt-6 rounded-2xl border border-border bg-muted/20 p-4">
-                <div className="mb-4 rounded-2xl border border-orange-200 bg-orange-50 p-4">
-                    <h3 className="text-sm font-semibold">Standard experience pricing</h3>
+                <div className="mb-4 rounded-2xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-500/20 dark:bg-orange-500/5">
+                    <h3 className="text-sm font-semibold text-orange-900 dark:text-orange-200">Standard experience pricing</h3>
                     <p className="mt-1 text-xs text-muted-foreground">
                       Set default duration and price used by slots unless overridden.
                     </p>
