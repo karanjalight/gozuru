@@ -33,6 +33,7 @@ export function ExperienceMediaCarousel({
   const goTo = useCallback(
     (nextIndex: number) => {
       if (slideCount === 0) return;
+
       setActiveIndex((nextIndex + slideCount) % slideCount);
     },
     [slideCount],
@@ -52,11 +53,18 @@ export function ExperienceMediaCarousel({
     return () => window.clearInterval(timer);
   }, [autoplayMs, isPaused, slideCount]);
 
+  /*
+   * Empty state
+   */
   if (slideCount === 0) {
     return (
-      <section className="overflow-hidden rounded-2xl border bg-muted">
-        <div className="relative h-64 bg-muted md:h-[420px]">
-          <ExperienceMediaDisplay media={null} alt={emptyLabel} fill emptyLabel={emptyLabel} />
+      <section className="overflow-hidden rounded-2xl border bg-">
+        <div className="flex min-h-[280px] items-center justify-center md:min-h-[420px]">
+          <ExperienceMediaDisplay
+            media={null}
+            alt={emptyLabel}
+            emptyLabel={emptyLabel}
+          />
         </div>
       </section>
     );
@@ -69,63 +77,155 @@ export function ExperienceMediaCarousel({
       onMouseLeave={() => setIsPaused(false)}
       onFocusCapture={() => setIsPaused(true)}
       onBlurCapture={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+        if (
+          !event.currentTarget.contains(
+            event.relatedTarget as Node | null,
+          )
+        ) {
           setIsPaused(false);
         }
       }}
     >
-      <div className="group relative h-64 overflow-hidden rounded-2xl bg-muted md:h-[420px]">
-        {items.map((item, index) => (
-          <div
-            key={`${item.url}-${index}`}
-            className={cn(
-              "absolute inset-0 transition-opacity duration-500",
-              index === activeIndex ? "z-10 opacity-100" : "z-0 opacity-0",
-            )}
-            aria-hidden={index !== activeIndex}
-          >
-            {index === activeIndex ? (
-              <ExperienceMediaDisplay
-                key={`slide-${index}-${item.url}`}
-                media={{ url: item.url, mediaType: item.mediaType }}
-                alt={item.alt}
-                fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 100vw, 1400px"
-                priority={index === 0}
-                videoAutoplay={item.mediaType === "video"}
-                videoControls={item.mediaType === "video"}
-                showVideoBadge={false}
-                emptyLabel={emptyLabel}
-              />
-            ) : null}
-          </div>
-        ))}
+      {/* ============================================================
+          MAIN MEDIA
+          ============================================================ */}
+      <div className="group relative w-full overflow-hidden rounded-2xl bgmuted">
+        {items.map((item, index) => {
+          const isActive = index === activeIndex;
 
-        {slideCount > 1 ? (
-          <>
-            <button
-              type="button"
-              aria-label="Previous media"
-              onClick={() => goTo(activeIndex - 1)}
-              className="absolute left-3 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/45 p-2 text-white opacity-0 backdrop-blur-sm transition hover:bg-black/60 group-hover:opacity-100 focus-visible:opacity-100"
+          return (
+            <div
+              key={`${item.url}-${index}`}
+              className={cn(
+                "transition-opacity duration-500",
+                isActive
+                  ? "relative z-10 opacity-100"
+                  : "pointer-events-none absolute inset-0 z-0 opacity-0",
+              )}
+              aria-hidden={!isActive}
             >
-              <ChevronLeft className="size-5" />
-            </button>
-            <button
-              type="button"
-              aria-label="Next media"
-              onClick={() => goTo(activeIndex + 1)}
-              className="absolute right-3 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/45 p-2 text-white opacity-0 backdrop-blur-sm transition hover:bg-black/60 group-hover:opacity-100 focus-visible:opacity-100"
-            >
-              <ChevronRight className="size-5" />
-            </button>
-            <div className="absolute bottom-3 right-3 z-20 rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm">
-              {activeIndex + 1} / {slideCount}
+              {isActive ? (
+                <ExperienceMediaDisplay
+                  key={`slide-${index}-${item.url}`}
+                  media={{
+                    url: item.url,
+                    mediaType: item.mediaType,
+                  }}
+                  alt={item.alt}
+                  className="h-auto max-h-[75vh] w-full object-contain"
+                  sizes="100vw"
+                  priority={index === 0}
+                  videoAutoplay={item.mediaType === "video"}
+                  videoControls={item.mediaType === "video"}
+                  showVideoBadge={false}
+                  emptyLabel={emptyLabel}
+                />
+              ) : null}
             </div>
-          </>
+          );
+        })}
+
+        {/* ============================================================
+            PREVIOUS BUTTON
+            ============================================================ */}
+        {slideCount > 1 ? (
+          <button
+            type="button"
+            aria-label="Previous media"
+            onClick={() => goTo(activeIndex - 1)}
+            className="
+              absolute
+              left-3
+              top-1/2
+              z-30
+              flex
+              size-10
+              -translate-y-1/2
+              items-center
+              justify-center
+              rounded-full
+              bg-black/50
+              text-white
+              shadow-lg
+              backdrop-blur-sm
+              transition
+              hover:bg-black/70
+              focus-visible:outline-none
+              focus-visible:ring-2
+              focus-visible:ring-white
+              md:left-4
+              md:size-11
+            "
+          >
+            <ChevronLeft className="size-5 md:size-6" />
+          </button>
+        ) : null}
+
+        {/* ============================================================
+            NEXT BUTTON
+            ============================================================ */}
+        {slideCount > 1 ? (
+          <button
+            type="button"
+            aria-label="Next media"
+            onClick={() => goTo(activeIndex + 1)}
+            className="
+              absolute
+              right-3
+              top-1/2
+              z-30
+              flex
+              size-10
+              -translate-y-1/2
+              items-center
+              justify-center
+              rounded-full
+              bg-black/50
+              text-white
+              shadow-lg
+              backdrop-blur-sm
+              transition
+              hover:bg-black/70
+              focus-visible:outline-none
+              focus-visible:ring-2
+              focus-visible:ring-white
+              md:right-4
+              md:size-11
+            "
+          >
+            <ChevronRight className="size-5 md:size-6" />
+          </button>
+        ) : null}
+
+        {/* ============================================================
+            IMAGE COUNTER
+            ============================================================ */}
+        {slideCount > 1 ? (
+          <div
+            className="
+              absolute
+              bottom-3
+              right-3
+              z-30
+              rounded-full
+              bg-black/60
+              px-3
+              py-1.5
+              text-xs
+              font-semibold
+              text-white
+              shadow-sm
+              backdrop-blur-sm
+            "
+          >
+            {activeIndex + 1} / {slideCount}
+          </div>
         ) : null}
       </div>
 
+      {/* ==============================================================
+          THUMBNAILS
+          ============================================================== */}
       {slideCount > 1 ? (
         <div
           className="flex gap-2 overflow-x-auto pb-1"
@@ -134,6 +234,7 @@ export function ExperienceMediaCarousel({
         >
           {items.map((item, index) => {
             const isActive = index === activeIndex;
+
             return (
               <button
                 key={`thumb-${item.url}-${index}`}
@@ -157,19 +258,44 @@ export function ExperienceMediaCarousel({
                       muted
                       playsInline
                       preload="metadata"
-                      aria-hidden
+                      aria-hidden="true"
                     />
-                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
-                      <span className="flex size-7 items-center justify-center rounded-full bg-white/90 shadow-sm">
+
+                    <span
+                      className="
+                        pointer-events-none
+                        absolute
+                        inset-0
+                        flex
+                        items-center
+                        justify-center
+                        bg-black/25
+                      "
+                    >
+                      <span
+                        className="
+                          flex
+                          size-7
+                          items-center
+                          justify-center
+                          rounded-full
+                          bg-white/90
+                          shadow-sm
+                        "
+                      >
                         <Play className="ml-0.5 size-3.5 fill-orange-600 text-orange-600" />
                       </span>
                     </span>
                   </>
                 ) : (
                   <ExperienceMediaDisplay
-                    media={{ url: item.previewUrl, mediaType: "image" }}
+                    media={{
+                      url: item.previewUrl,
+                      mediaType: "image",
+                    }}
                     alt={item.alt}
-                    className="h-full w-full"
+                    fill
+                    className="object-cover"
                     sizes="96px"
                     videoAutoplay={false}
                     showVideoBadge={false}
