@@ -32,8 +32,7 @@ export function ExpertAgentsSection({ experts }: { experts: LocalExpert[] }) {
             Meet the people behind the experiences
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Hotel curators, culture guides, event hosts, and community builders —
-            each expert is rated by travelers and backed by Gozuru.
+            Every host applies and is reviewed by our team before their profile goes live.
           </p>
         </div>
 
@@ -69,7 +68,7 @@ export function ExpertAgentsSection({ experts }: { experts: LocalExpert[] }) {
             href="/hosts"
             className="mt-4 inline-flex text-sm font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400"
           >
-            Become a host
+            Start hosting
           </Link>
         </div>
       ) : (

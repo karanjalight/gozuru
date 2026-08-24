@@ -25,7 +25,7 @@ const NAV_LINKS = [
   },
   {
     href: "/hosts",
-    label: "Become a host",
+    label: "Start hosting",
     isActive: (path: string) => path === "/hosts" || path.startsWith("/hosts/"),
   },
   {

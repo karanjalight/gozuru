@@ -161,7 +161,7 @@ export default function CreateExperiencePage() {
   const [expertise, setExpertise] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
   const [durationHours, setDurationHours] = useState("1");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState("KES");
   const [audienceType, setAudienceType] = useState<
     "group" | "female_only" | "male_only" | "private"
   >("group");
@@ -178,7 +178,7 @@ export default function CreateExperiencePage() {
   const [slotEndsAt, setSlotEndsAt] = useState(getTwoHoursFromNowLocalInputValue);
   const [slotCapacity, setSlotCapacity] = useState("1");
   const [slotPrice, setSlotPrice] = useState("");
-  const [slotCurrency, setSlotCurrency] = useState("USD");
+  const [slotCurrency, setSlotCurrency] = useState("KES");
   const [slotMeetingPlaceMode, setSlotMeetingPlaceMode] = useState<"existing" | "new">("existing");
   const [slotMeetingPlace, setSlotMeetingPlace] = useState("");
   const [newMeetingPlace, setNewMeetingPlace] = useState("");
@@ -639,7 +639,7 @@ export default function CreateExperiencePage() {
     setSlotEndsAt(getTwoHoursFromNowLocalInputValue());
     setSlotCapacity("1");
     setSlotPrice("");
-    setSlotCurrency(currency || "USD");
+    setSlotCurrency(currency || "KES");
     if (availableMeetingPlaces.length > 0) {
       setSlotMeetingPlaceMode("existing");
       setSlotMeetingPlace(availableMeetingPlaces[0]);
@@ -1096,7 +1096,7 @@ export default function CreateExperiencePage() {
       setHourlyRate(
         experience.price_amount ? String(Number(experience.price_amount)) : "",
       );
-      setCurrency(experience.currency ?? "USD");
+      setCurrency(experience.currency ?? "KES");
       setMaxGuests(String(experience.max_guests ?? 5));
       setAudienceType(getAudienceFromRequirements(experience.requirements) as typeof audienceType);
 
@@ -1123,7 +1123,7 @@ export default function CreateExperiencePage() {
           priceAmount: slot.price_amount !== null && slot.price_amount !== undefined
             ? String(slot.price_amount)
             : "",
-          currency: String(slot.currency ?? experience.currency ?? "USD"),
+          currency: String(slot.currency ?? experience.currency ?? "KES"),
           meetingPlaceName: String(slot.meeting_place_name ?? ""),
           isCancelled: Boolean(slot.is_cancelled),
         })),
@@ -1152,7 +1152,7 @@ export default function CreateExperiencePage() {
         setSlotMeetingPlaceMode("new");
         setSlotMeetingPlace("");
       }
-      setSlotCurrency(experience.currency ?? "USD");
+      setSlotCurrency(experience.currency ?? "KES");
 
       setStepIndex(1);
       setLoadingExistingData(false);
@@ -1430,7 +1430,7 @@ export default function CreateExperiencePage() {
                           }
                           className={`rounded-xl border px-4 py-3 text-left text-sm transition ${
                             audienceType === option.id
-                              ? "border-orange-500 bg-orange-50"
+                              ? "border-orange-500 bg-orange-50 text-orange-900 dark:bg-orange-500/15 dark:text-orange-200"
                               : "border-input bg-background hover:bg-muted/60"
                           }`}
                         >
@@ -1561,7 +1561,7 @@ export default function CreateExperiencePage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full rounded-full border-orange-200 bg-orange-50 text-orange-800 hover:bg-orange-100 sm:w-auto"
+                      className="w-full rounded-full border-orange-200 bg-orange-50 text-orange-800 hover:bg-orange-100 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300 dark:hover:bg-orange-500/20 sm:w-auto"
                       onClick={() => {
                         setMediaError(null);
                         videosInputRef.current?.click();
@@ -1612,15 +1612,15 @@ export default function CreateExperiencePage() {
                     Add premium booking slots. Guests can only request times you publish.
                   </p>
                 </div>
-                <div className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
+                <div className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300">
                   {activeAvailabilitySlots.length} active slot
                   {activeAvailabilitySlots.length === 1 ? "" : "s"}
                 </div>
               </div>
 
               <div className="mt-6 rounded-2xl border border-border bg-muted/20 p-4">
-                <div className="mb-4 rounded-2xl border border-orange-200 bg-orange-50 p-4">
-                    <h3 className="text-sm font-semibold">Standard experience pricing</h3>
+                <div className="mb-4 rounded-2xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-500/20 dark:bg-orange-500/5">
+                    <h3 className="text-sm font-semibold text-orange-900 dark:text-orange-200">Standard experience pricing</h3>
                     <p className="mt-1 text-xs text-muted-foreground">
                       Set default duration and price used by slots unless overridden.
                     </p>
@@ -1652,20 +1652,12 @@ export default function CreateExperiencePage() {
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-muted-foreground">Currency</label>
-                        <select
-                          value={currency}
-                          onChange={(e) => {
-                            setCurrency(e.target.value);
-                            setSlotCurrency(e.target.value);
-                          }}
-                          className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                        >
-                          <option value="USD">USD</option>
-                          <option value="EUR">EUR</option>
-                          <option value="GBP">GBP</option>
-                          <option value="CAD">CAD</option>
-                          <option value="KES">KES</option>
-                        </select>
+                        <div className="flex h-10 w-full items-center rounded-xl border border-input bg-muted/30 px-3 text-sm text-foreground">
+                          {currency}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          Gozuru currently prices all listings in Kenyan Shillings.
+                        </p>
                       </div>
                     </div>
                     <p className="mt-3 text-xs text-muted-foreground">
@@ -1720,17 +1712,9 @@ export default function CreateExperiencePage() {
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-muted-foreground">Currency</label>
-                        <select
-                          value={slotCurrency}
-                          onChange={(e) => setSlotCurrency(e.target.value)}
-                          className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                        >
-                          <option value="USD">USD</option>
-                          <option value="EUR">EUR</option>
-                          <option value="GBP">GBP</option>
-                          <option value="CAD">CAD</option>
-                          <option value="KES">KES</option>
-                        </select>
+                        <div className="flex h-10 w-full items-center rounded-xl border border-input bg-muted/30 px-3 text-sm text-foreground">
+                          {slotCurrency}
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2 md:col-span-2">

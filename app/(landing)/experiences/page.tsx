@@ -34,18 +34,16 @@ export default async function ExperiencesPage() {
   return (
     <>
       <ExperienceHero initialData={experiencesData} />
-      
-      <Suspense fallback={null}>
-        <UpcomingEventsSection  />
-      </Suspense>
+
       <Suspense fallback={null}>
         <ExperiencesGrid initialData={experiencesData} />
       </Suspense>
       <Suspense fallback={null}>
+        <UpcomingEventsSection />
+      </Suspense>
+      <Suspense fallback={null}>
         <FeaturedExperiencesShowcase initialData={featuredData} />
       </Suspense>
-
-      
     </>
   );
 }

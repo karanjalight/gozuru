@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase/client";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { HostProfilePortfolio } from "../../components/HostProfilePortfolio";
+import { HostProfilePortfolioSkeleton } from "../../components/LoadingSkeletons";
 import { Navbar } from "../../components/Navbar";
 
 type ExperienceListRow = {
@@ -266,8 +267,8 @@ export default function HostProfilePage() {
 
   if (loading) {
     return (
-      <PageShell className="mx-auto max-w-5xl px-4 pb-16 sm:px-6">
-        <p className="pt-8 text-sm text-muted-foreground">Loading profile...</p>
+      <PageShell>
+        <HostProfilePortfolioSkeleton />
       </PageShell>
     );
   }

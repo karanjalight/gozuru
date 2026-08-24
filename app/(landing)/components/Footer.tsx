@@ -26,7 +26,7 @@ const explore = [
 const company = [
   { href: "/about", label: "About us" },
   { href: "/about#team", label: "The team" },
-  { href: "/hosts", label: "Become a host" },
+  { href: "/hosts", label: "Start hosting" },
   { href: "/auth/signup", label: "Create account" },
   { href: "/auth/login", label: "Sign in" },
 ];
@@ -76,7 +76,7 @@ export function Footer() {
       />
 
       <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="grid gap-10 border-b border-white/10 pb-12 lg:grid-cols-[1fr_0.9fr] lg:items-end">
+        <div className="grid gap-10 border-b border-white/10 pb-12 l g:grid-cols-[1fr_0.9fr] lg:items-end">
           <div>
             <Link
               href="/"
@@ -89,7 +89,7 @@ export function Footer() {
               Reward your curiosity with people-led experiences, practical local
               knowledge, and conversations that go deeper than a typical tour.
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
               <Link
                 href="/experiences"
                 className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-950/40 transition hover:bg-orange-400"
@@ -97,16 +97,21 @@ export function Footer() {
                 Explore experiences
                 <ArrowRight className="size-4" aria-hidden />
               </Link>
-              <Link
-                href="/hosts"
-                className="inline-flex items-center gap-2 rounded-full border border-orange-300/30 bg-white/10 px-5 py-2.5 text-sm font-semibold text-orange-50 backdrop-blur transition hover:border-orange-300/50 hover:bg-white/15"
-              >
-                Become a host
-              </Link>
+              <div className="flex items-center gap-3">
+                <p className="text-sm text-orange-50/80">
+                  Or turn what you know into someone else&apos;s best afternoon.
+                </p>
+                <Link
+                  href="/hosts"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-full border border-orange-300/30 bg-white/10 px-5 py-2.5 text-sm font-semibold text-orange-50 backdrop-blur transition hover:border-orange-300/50 hover:bg-white/15"
+                >
+                  Start hosting
+                </Link>
+              </div>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-orange-400/20 bg-gradient-to-br from-orange-950/40 to-stone-950/50 p-6 shadow-xl shadow-black/20 backdrop-blur-md">
+          {/* <div className="rounded-3xl border border-orange-400/20 bg-gradient-to-br from-orange-950/40 to-stone-950/50 p-6 shadow-xl shadow-black/20 backdrop-blur-md">
             <div className="flex items-start gap-4">
               <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-orange-500/20 text-orange-200 ring-1 ring-orange-400/25">
                 <Compass className="size-5" aria-hidden />
@@ -124,7 +129,7 @@ export function Footer() {
                 </p>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
 
         <div className="mt-12 grid gap-10 lg:grid-cols-[1.15fr_0.8fr_0.8fr_0.9fr]">

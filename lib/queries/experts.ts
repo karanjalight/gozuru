@@ -11,6 +11,7 @@ export type HostProfileRow = {
   years_experience: number | null;
   career_highlight: string | null;
   highlight_story: string | null;
+  verification_status: string | null;
 };
 
 export type ProfileRow = {
@@ -119,6 +120,8 @@ export function mapHostToLocalExpert(
 
   const specialty = categoryName ? `${categoryName} · ${location}` : location;
 
+  const isVerified = host?.verification_status === "approved";
+
   return {
     id: hostId,
     name: fullName,
@@ -131,6 +134,7 @@ export function mapHostToLocalExpert(
     email: profile?.email?.trim() || "",
     image: image || PLACEHOLDER_IMAGE,
     profileHref: `/hosts/${hostId}`,
+    isVerified,
   };
 }
 

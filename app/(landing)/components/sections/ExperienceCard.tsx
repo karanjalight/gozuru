@@ -6,6 +6,7 @@ import { ExperienceMediaDisplay } from "@/components/experience/ExperienceMediaD
 import type { ExperienceMediaItem } from "@/lib/experience-media";
 import { cn } from "@/lib/utils";
 import { formatDisplayMoney } from "@/lib/currency";
+import { categoryBadgeClass } from "@/lib/category-styles";
 import { PropertyCTAButton } from "./PropertyCTAButton";
 
 export function mapExperienceToCardData(
@@ -63,16 +64,6 @@ export type ExperienceCardData = {
   coverMedia?: ExperienceMediaItem;
 };
 
-function categoryBadgeClass(category: string): string {
-  const normalized = category.toLowerCase();
-  if (normalized.includes("hotel")) return "bg-blue-600/90";
-  if (normalized.includes("meetup")) return "bg-orange-600/90";
-  if (normalized.includes("social")) return "bg-purple-600/90";
-  if (normalized.includes("expo")) return "bg-emerald-600/90";
-  if (normalized.includes("expert") || normalized.includes("culture")) return "bg-rose-600/90";
-  return "bg-orange-600/90";
-}
-
 export function ExperienceCard({
   experience,
   priority = false,
@@ -110,7 +101,7 @@ export function ExperienceCard({
           <span
             className={cn(
               "absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm",
-              categoryBadgeClass(experience.category),
+              categoryBadgeClass(experience.category) ?? "bg-orange-600/90",
             )}
           >
             {experience.category}

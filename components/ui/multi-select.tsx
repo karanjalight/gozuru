@@ -135,7 +135,9 @@ export function MultiSelect({
                     onClick={() => toggleOption(option.id)}
                     className={cn(
                       "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition",
-                      selected ? "bg-orange-50 text-foreground" : "hover:bg-muted/60",
+                      selected
+                        ? "bg-orange-50 text-orange-900 dark:bg-orange-500/15 dark:text-orange-200"
+                        : "hover:bg-muted/60",
                     )}
                   >
                     <span
@@ -176,7 +178,7 @@ export function MultiSelect({
                     type="button"
                     onClick={handleAddCustom}
                     disabled={!customValue.trim()}
-                    className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg border border-orange-200 bg-orange-50 px-3 text-xs font-semibold text-orange-700 transition hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg border border-orange-200 bg-orange-50 px-3 text-xs font-semibold text-orange-700 transition hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300 dark:hover:bg-orange-500/20"
                   >
                     <Plus className="size-3.5" />
                   </button>
@@ -192,13 +194,13 @@ export function MultiSelect({
           {selectedOptions.map((option) => (
             <span
               key={option.id}
-              className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-800"
+              className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-800 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-200"
             >
               {option.label}
               <button
                 type="button"
                 onClick={() => removeSelected(option.id)}
-                className="rounded-full p-0.5 text-orange-700 hover:bg-orange-100"
+                className="rounded-full p-0.5 text-orange-700 hover:bg-orange-100 dark:text-orange-300 dark:hover:bg-orange-500/20"
                 aria-label={`Remove ${option.label}`}
               >
                 <X className="size-3" />

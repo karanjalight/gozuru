@@ -8,12 +8,14 @@ import { supabase } from "@/lib/supabase/client";
 type SupabaseAuthUser = {
   id: string;
   email?: string | null;
+  created_at?: string;
   user_metadata?: Record<string, unknown>;
 };
 
 export type AuthUser = {
   id: string;
   email: string;
+  createdAt?: string;
   metadata: {
     firstName?: string;
     lastName?: string;
@@ -61,6 +63,7 @@ const mapAuthUser = (authUser: SupabaseAuthUser | null): AuthUser | null => {
   return {
     id: authUser.id,
     email: authUser.email,
+    createdAt: authUser.created_at,
     metadata: {
       firstName: typeof metadata.first_name === "string" ? metadata.first_name : undefined,
       lastName: typeof metadata.last_name === "string" ? metadata.last_name : undefined,
@@ -231,7 +234,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           last_name: profile.lastName?.trim() || null,
           phone: profile.phone?.trim() || null,
           location: profile.location?.trim() || null,
-          role: profile.role?.trim() || "client",
+          role: profile.role?.trim() || user.metadata.role || "client",
           headline: profile.headline?.trim() || null,
           bio: profile.bio?.trim() || null,
           professional_title: profile.professionalTitle?.trim() || null,

@@ -4,8 +4,6 @@ import {
   ExpertAgentsSection,
   FeaturedExperiences,
   HowItWorksSection,
-  InvestmentSection,
-  NewPropertiesSection,
   TestimonialsSection,
 } from "./components/sections";
 import { LandingHero } from "./components/HeroLanding";
@@ -41,12 +39,10 @@ export default async function LandingPage() {
   return (
     <>
       <LandingHero initialData={sharedLandingData} />
-      {/* <FeaturedExperiences initialData={featuredLandingData} /> */}
       <ExpertAgentsSection experts={experts} />
 
-      <NewPropertiesSection />
+      <FeaturedExperiences initialData={featuredLandingData} />
       <HowItWorksSection />
-      <InvestmentSection />
       <TestimonialsSection />
       <ContactTeamSection />
     </>

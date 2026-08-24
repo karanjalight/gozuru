@@ -8,16 +8,10 @@ import { useTheme } from "next-themes";
 import { Navbar } from "@/app/(landing)/components/Navbar";
 import { type LandingExperiencesResult } from "@/lib/queries/experiences";
 
-const HERO_IMAGES = [
-  "https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg",
-  "https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg",
-  "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg",
-  "https://images.pexels.com/photos/2506923/pexels-photo-2506923.jpeg",
-  "https://images.pexels.com/photos/1267696/pexels-photo-1267696.jpeg",
-];
+const HERO_BACKGROUND_IMAGE =
+  "https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg";
 
 export function ExperienceHero({ initialData }: { initialData: LandingExperiencesResult }) {
-  const [index, setIndex] = useState(0);
   const [searchValue, setSearchValue] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
@@ -48,14 +42,6 @@ export function ExperienceHero({ initialData }: { initialData: LandingExperience
   }, [initialData.experiences, initialData.locationByExperienceId, normalizedQuery]);
 
   useEffect(() => {
-    const id = setInterval(
-      () => setIndex((prev) => (prev + 1) % HERO_IMAGES.length),
-      6000,
-    );
-    return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
       if (!searchContainerRef.current) return;
       if (!searchContainerRef.current.contains(event.target as Node)) {
@@ -75,22 +61,13 @@ export function ExperienceHero({ initialData }: { initialData: LandingExperience
       <Navbar />
 
       <div className="absolute inset-0 -z-0">
-        {HERO_IMAGES.map((src, i) => (
-          <div
-            key={src}
-            className={`absolute inset-0 transition-opacity duration-1000 ${
-              i === index ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            <Image
-              src={src}
-              alt="People enjoying a Gozuru experience"
-              fill
-              priority={i === 0}
-              className="pointer-events-none object-cover"
-            />
-          </div>
-        ))}
+        <Image
+          src={HERO_BACKGROUND_IMAGE}
+          alt="People enjoying a Gozuru experience"
+          fill
+          priority
+          className="pointer-events-none object-cover"
+        />
         <div
           className={`absolute inset-0 bg-gradient-to-b transition-colors ${
             isDark
@@ -131,15 +108,22 @@ export function ExperienceHero({ initialData }: { initialData: LandingExperience
                 setShowSuggestions(true);
               }}
               onFocus={() => setShowSuggestions(true)}
-              placeholder="Search by city, topic, or keyword"
+              placeholder="What are you curious about?"
               aria-label="Search experiences"
-              className="flex-1 rounded-full border-0 bg-white px-4 py-2 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none"
+              className="min-w-0 flex-[65] rounded-full border-0 bg-white px-4 py-2 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none"
+            />
+            <div className="w-px shrink-0 self-stretch bg-zinc-200" aria-hidden />
+            <input
+              defaultValue="Nairobi"
+              placeholder="City"
+              aria-label="City"
+              className="min-w-0 flex-[35] rounded-full border-0 bg-white px-3 py-2 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none"
             />
             <button
               type="submit"
               className="inline-flex items-center justify-center rounded-full border border-orange-500/80 bg-orange-600 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-orange-700 sm:text-sm"
             >
-              Search
+              Explore
             </button>
           </form>
 
@@ -165,23 +149,6 @@ export function ExperienceHero({ initialData }: { initialData: LandingExperience
               )}
             </div>
           )}
-        </div>
-
-        <div
-          className={`mt-2 lg:ml-5 p-1 rounded-full flex gap-1.5 transition-colors ${
-            isDark ? "bg-black/30" : "bg-black/35"
-          }`}
-        >
-          {HERO_IMAGES.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setIndex(i)}
-              aria-label={`Show slide ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all ${
-                i === index ? "w-4 bg-white" : "w-2 bg-white/50 hover:bg-white/80"
-              }`}
-            />
-          ))}
         </div>
       </div>
     </section>

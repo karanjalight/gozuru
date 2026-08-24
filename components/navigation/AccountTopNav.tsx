@@ -21,6 +21,7 @@ const hostPrimaryNavLinks = [
 
 const clientPrimaryNavLinks = [
   { href: "/account/profile", label: "Profile" },
+  { href: "/account/experiences", label: "Experiences" },
   { href: "/account/affiliate", label: "Affiliate" },
   { href: "/account/messages", label: "Messages" },
   { href: "/account/payments", label: "Payments" },

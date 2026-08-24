@@ -33,7 +33,7 @@ export function HowItWorksSection() {
   return (
     <Section
       id="how-it-works"
-      className="border-t border-orange-200/70 bg-orange-100 dark:border-border dark:bg-gradient-to-br dark:from-orange-950/40 dark:via-background dark:to-background"
+      className="border-t border-orange-200/70 bg-orange-100 dark:border-border dark:bg-gradient-to-br dark:from-orange-300 dark:via-background dark:to-orange-300"
       containerClassName="max-w-7xl"
     >
       <div

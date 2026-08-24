@@ -10,6 +10,7 @@ export type LocalExpert = {
   email: string;
   image: string;
   profileHref?: string;
+  isVerified?: boolean;
 };
 
 export const LOCAL_EXPERTS: LocalExpert[] = [

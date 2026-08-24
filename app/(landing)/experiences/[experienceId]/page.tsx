@@ -16,6 +16,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDisplayMoney } from "@/lib/currency";
+import { ExperienceDetailSkeleton } from "../../components/LoadingSkeletons";
 import { Navbar } from "../../components/Navbar";
 
 type ExperienceDetailRow = {
@@ -428,9 +429,7 @@ export default function ExperienceDetailPage() {
     return (
       <>
         <Navbar />
-        <main className="mx-auto max-w-6xl px-4 py-16 pt-24 sm:px-6">
-          <p className="text-sm text-muted-foreground">Loading experience...</p>
-        </main>
+        <ExperienceDetailSkeleton />
       </>
     );
   }

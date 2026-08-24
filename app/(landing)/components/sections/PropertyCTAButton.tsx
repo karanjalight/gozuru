@@ -22,13 +22,13 @@ export function PropertyCTAButton({
     <Link
       href={href}
       className={cn(
-        "group relative inline-flex items-stretch overflow-hidden transition-shadow duration-300",
+        "group relative inline-flex items-stretch overflow-hidden rounded-full transition-shadow duration-300",
         variant === "primary" &&
-          "shadow-[4px_4px_0_0_rgba(0,0,0,0.9)] hover:shadow-[6px_6px_0_0_rgba(0,0,0,0.75)] dark:shadow-[4px_4px_0_0_rgba(255,255,255,0.15)] dark:hover:shadow-[6px_6px_0_0_rgba(255,255,255,0.25)]",
+          "shadow-sm hover:shadow-md",
         variant === "outline" &&
-          "border-2 border-foreground shadow-[3px_3px_0_0_transparent] hover:shadow-[4px_4px_0_0_rgba(0,0,0,0.12)] dark:hover:shadow-[4px_4px_0_0_rgba(255,255,255,0.1)]",
+          "border border-foreground/20 shadow-sm hover:border-foreground/35 hover:shadow-md",
         variant === "card" &&
-          "w-full border border-foreground/15 bg-muted/20 hover:border-foreground/30 hover:bg-muted/40 dark:bg-muted/10",
+          "w-full rounded-xl border border-foreground/15 bg-muted/20 hover:border-foreground/30 hover:bg-muted/40 dark:bg-muted/10",
         className,
       )}
     >
@@ -48,11 +48,11 @@ export function PropertyCTAButton({
         className={cn(
           "flex items-center justify-center transition-all duration-300 ease-out",
           variant === "primary" &&
-            "w-11 bg-orange-400 text-white group-hover:w-14",
+            "w-11 rounded-r-full bg-orange-400 text-white group-hover:w-14",
           variant === "outline" &&
-            "w-11 bg-orange-400 text-white group-hover:w-14",
+            "w-11 rounded-r-full bg-orange-400 text-white group-hover:w-14",
           variant === "card" &&
-            "w-10 bg-orange-400 text-white group-hover:w-12",
+            "w-10 rounded-r-xl bg-orange-400 text-white group-hover:w-12",
         )}
         aria-hidden
       >
