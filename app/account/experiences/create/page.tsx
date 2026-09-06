@@ -1,14 +1,17 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, ImageIcon, Play, Plus, Upload, Video, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImageIcon, Play, Upload, Video, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/lib/supabase/client";
+import { AvailabilityStep } from "./availability/AvailabilityStep";
+import type { AvailabilityDraftSlot } from "./availability/types";
+import { parseNumericInput, toLocalInputValue } from "./availability/slotUtils";
 
 type Choice = {
   id: string;
@@ -22,66 +25,11 @@ type UploadedMediaPreview = {
   mediaType: "image" | "video";
 };
 
-type AvailabilityDraftSlot = {
-  localId: string;
-  id?: string;
-  startsAt: string;
-  endsAt: string;
-  capacity: string;
-  priceAmount: string;
-  currency: string;
-  meetingPlaceName: string;
-  isCancelled: boolean;
-};
-
-type CalendarView = "day" | "week" | "month" | "year";
-
-const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MAX_MEDIA_FILE_BYTES = 15 * 1024 * 1024;
 const ACCEPTED_IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const ACCEPTED_VIDEO_MIME_TYPES = new Set(["video/mp4", "video/quicktime"]);
 const PHOTO_FILE_ACCEPT = "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
 const VIDEO_FILE_ACCEPT = "video/mp4,video/quicktime,.mp4,.mov";
-function toLocalInputValue(date: Date): string {
-  const pad = (v: number) => String(v).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function getNextHourLocalInputValue(): string {
-  const date = new Date();
-  date.setMinutes(0, 0, 0);
-  date.setHours(date.getHours() + 1);
-  return toLocalInputValue(date);
-}
-
-function getTwoHoursFromNowLocalInputValue(): string {
-  const date = new Date();
-  date.setMinutes(0, 0, 0);
-  date.setHours(date.getHours() + 2);
-  return toLocalInputValue(date);
-}
-
-function startOfDay(date: Date): Date {
-  const next = new Date(date);
-  next.setHours(0, 0, 0, 0);
-  return next;
-}
-
-function endOfDay(date: Date): Date {
-  const next = new Date(date);
-  next.setHours(23, 59, 59, 999);
-  return next;
-}
-
-function startOfWeek(date: Date): Date {
-  const next = startOfDay(date);
-  next.setDate(next.getDate() - next.getDay());
-  return next;
-}
-
-function monthLabel(date: Date): string {
-  return date.toLocaleString(undefined, { month: "long", year: "numeric" });
-}
 
 function slugifyLabel(label: string): string {
   const slug = label
@@ -174,18 +122,6 @@ export default function CreateExperiencePage() {
   const videosInputRef = useRef<HTMLInputElement | null>(null);
   // Step 4: availability
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilityDraftSlot[]>([]);
-  const [slotStartsAt, setSlotStartsAt] = useState(getNextHourLocalInputValue);
-  const [slotEndsAt, setSlotEndsAt] = useState(getTwoHoursFromNowLocalInputValue);
-  const [slotCapacity, setSlotCapacity] = useState("1");
-  const [slotPrice, setSlotPrice] = useState("");
-  const [slotCurrency, setSlotCurrency] = useState("KES");
-  const [slotMeetingPlaceMode, setSlotMeetingPlaceMode] = useState<"existing" | "new">("existing");
-  const [slotMeetingPlace, setSlotMeetingPlace] = useState("");
-  const [newMeetingPlace, setNewMeetingPlace] = useState("");
-  const [knownMeetingPlaces, setKnownMeetingPlaces] = useState<string[]>([]);
-  const [editingLocalSlotId, setEditingLocalSlotId] = useState<string | null>(null);
-  const [calendarView, setCalendarView] = useState<CalendarView>("week");
-  const [calendarCursor, setCalendarCursor] = useState(new Date());
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loadingExistingData, setLoadingExistingData] = useState(false);
@@ -202,115 +138,9 @@ export default function CreateExperiencePage() {
 
   const currentStep = stepMeta[stepIndex];
   const isLast = stepIndex === stepMeta.length - 1;
-  const parseNumericInput = (value: string): number => {
-    const sanitized = value.replace(/[^\d.]/g, "");
-    return Number.parseFloat(sanitized);
-  };
   const durationHoursNumber = Number.parseInt(durationHours, 10);
   const standardPriceNumber = parseNumericInput(hourlyRate);
   const maxGuestsNumber = Number.parseInt(maxGuests.replace(/[^\d]/g, ""), 10);
-  const estimatedHostEarnings =
-    standardPriceNumber > 0 &&
-    Number.isFinite(maxGuestsNumber) &&
-    maxGuestsNumber > 0
-      ? standardPriceNumber * maxGuestsNumber
-      : 0;
-  const activeAvailabilitySlots = useMemo(
-    () => availabilitySlots.filter((slot) => !slot.isCancelled),
-    [availabilitySlots],
-  );
-  const availableMeetingPlaces = useMemo(() => {
-    const draftPlaces = availabilitySlots
-      .map((slot) => slot.meetingPlaceName.trim())
-      .filter((name) => name.length > 0);
-    return Array.from(new Set([...knownMeetingPlaces, ...draftPlaces])).sort((a, b) =>
-      a.localeCompare(b),
-    );
-  }, [availabilitySlots, knownMeetingPlaces]);
-  const activeSlotsForCalendar = useMemo(
-    () =>
-      activeAvailabilitySlots
-        .map((slot) => ({
-          ...slot,
-          startsDate: new Date(slot.startsAt),
-          endsDate: new Date(slot.endsAt),
-        }))
-        .filter((slot) => Number.isFinite(slot.startsDate.getTime()) && Number.isFinite(slot.endsDate.getTime()))
-        .sort((a, b) => a.startsDate.getTime() - b.startsDate.getTime()),
-    [activeAvailabilitySlots],
-  );
-  const selectedDayStart = startOfDay(calendarCursor);
-  const selectedWeekStart = startOfWeek(calendarCursor);
-  const selectedMonthStart = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth(), 1);
-  const selectedMonthGridStart = startOfWeek(selectedMonthStart);
-  const selectedYear = calendarCursor.getFullYear();
-  const weekEnd = new Date(selectedWeekStart);
-  weekEnd.setDate(selectedWeekStart.getDate() + 6);
-  const weekRangeLabel = `${selectedWeekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} - ${weekEnd.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`;
-
-  const daySlots = activeSlotsForCalendar.filter(
-    (slot) => slot.startsDate <= endOfDay(selectedDayStart) && slot.endsDate >= selectedDayStart,
-  );
-  const weekDays = Array.from({ length: 7 }, (_, idx) => {
-    const date = new Date(selectedWeekStart);
-    date.setDate(selectedWeekStart.getDate() + idx);
-    const dayStart = startOfDay(date);
-    const dayEnd = endOfDay(date);
-    const slots = activeSlotsForCalendar.filter(
-      (slot) => slot.startsDate <= dayEnd && slot.endsDate >= dayStart,
-    );
-    return { date, slots };
-  });
-  const weekRowBlocks = Array.from({ length: 12 }, (_, idx) => {
-    const blockStartHour = idx * 2;
-    const endHour = blockStartHour + 2;
-    const formatHour = (hour: number) => {
-      const normalized = hour % 24;
-      const suffix = normalized >= 12 ? "PM" : "AM";
-      const display = normalized % 12 === 0 ? 12 : normalized % 12;
-      return `${display}${suffix}`;
-    };
-    return {
-      index: idx,
-      label: `${formatHour(blockStartHour)} - ${formatHour(endHour)}`,
-      startHour: blockStartHour,
-      endHour,
-    };
-  });
-  const weekGrid = weekRowBlocks.map((row) => {
-    const columns = weekDays.map((day) => {
-      const rowStart = startOfDay(day.date);
-      rowStart.setHours(row.startHour, 0, 0, 0);
-      const rowEnd = startOfDay(day.date);
-      rowEnd.setHours(row.endHour, 0, 0, 0);
-      const slots = day.slots.filter((slot) => slot.startsDate < rowEnd && slot.endsDate > rowStart);
-      return { date: day.date, slots };
-    });
-    return { ...row, columns };
-  });
-
-  const monthGridDays = Array.from({ length: 42 }, (_, idx) => {
-    const date = new Date(selectedMonthGridStart);
-    date.setDate(selectedMonthGridStart.getDate() + idx);
-    const dayStart = startOfDay(date);
-    const dayEnd = endOfDay(date);
-    const slots = activeSlotsForCalendar.filter((slot) => slot.startsDate <= dayEnd && slot.endsDate >= dayStart);
-    return { date, slotsCount: slots.length, slots };
-  });
-  const yearMonths = Array.from({ length: 12 }, (_, monthIndex) => {
-    const monthStart = new Date(selectedYear, monthIndex, 1);
-    const monthEnd = new Date(selectedYear, monthIndex + 1, 0, 23, 59, 59, 999);
-    const slots = activeSlotsForCalendar.filter((slot) => slot.startsDate <= monthEnd && slot.endsDate >= monthStart);
-    const miniGridStart = startOfWeek(monthStart);
-    const miniDays = Array.from({ length: 35 }, (_, idx) => {
-      const date = new Date(miniGridStart);
-      date.setDate(miniGridStart.getDate() + idx);
-      const inMonth = date.getMonth() === monthStart.getMonth();
-      const count = slots.filter((slot) => startOfDay(slot.startsDate).getTime() === startOfDay(date).getTime()).length;
-      return { date, inMonth, count };
-    });
-    return { monthStart, slotsCount: slots.length, slots, miniDays };
-  });
 
   async function persistDraftExperience(options?: { strict?: boolean }): Promise<string> {
     const strict = options?.strict ?? false;
@@ -481,23 +311,6 @@ export default function CreateExperiencePage() {
     setStepIndex((i) => Math.min(stepMeta.length - 1, i + 1));
   }
 
-  function moveCalendarCursor(direction: "prev" | "next") {
-    const delta = direction === "next" ? 1 : -1;
-    setCalendarCursor((prev) => {
-      const next = new Date(prev);
-      if (calendarView === "day") {
-        next.setDate(next.getDate() + delta);
-      } else if (calendarView === "week") {
-        next.setDate(next.getDate() + delta * 7);
-      } else if (calendarView === "month") {
-        next.setMonth(next.getMonth() + delta);
-      } else {
-        next.setFullYear(next.getFullYear() + delta);
-      }
-      return next;
-    });
-  }
-
   function getDescriptorLabel(id: string): string | undefined {
     return allExperienceDescriptors.find((c) => c.id === id)?.label;
   }
@@ -634,140 +447,20 @@ export default function CreateExperiencePage() {
     });
   }
 
-  function resetAvailabilityForm() {
-    setSlotStartsAt(getNextHourLocalInputValue());
-    setSlotEndsAt(getTwoHoursFromNowLocalInputValue());
-    setSlotCapacity("1");
-    setSlotPrice("");
-    setSlotCurrency(currency || "KES");
-    if (availableMeetingPlaces.length > 0) {
-      setSlotMeetingPlaceMode("existing");
-      setSlotMeetingPlace(availableMeetingPlaces[0]);
-      setNewMeetingPlace("");
-    } else {
-      setSlotMeetingPlaceMode("new");
-      setSlotMeetingPlace("");
-      setNewMeetingPlace("");
-    }
-    setEditingLocalSlotId(null);
+  function handleAddAvailabilitySlots(newSlots: AvailabilityDraftSlot[]) {
+    setAvailabilitySlots((prev) => [...prev, ...newSlots]);
   }
 
-  function addOrUpdateAvailabilitySlot() {
-    const starts = new Date(slotStartsAt);
-    const ends = new Date(slotEndsAt);
-    const cap = Number.parseInt(slotCapacity, 10);
-    const price = slotPrice.trim() ? Number.parseFloat(slotPrice) : 0;
-    const meetingPlaceName =
-      slotMeetingPlaceMode === "existing" ? slotMeetingPlace.trim() : newMeetingPlace.trim();
-
-    if (!Number.isFinite(starts.getTime()) || !Number.isFinite(ends.getTime())) {
-      setSubmitError("Please set a valid start and end for availability.");
-      return;
-    }
-    if (ends <= starts) {
-      setSubmitError("Availability end time must be after start time.");
-      return;
-    }
-    if (!Number.isFinite(cap) || cap <= 0) {
-      setSubmitError("Availability capacity must be greater than zero.");
-      return;
-    }
-    if (slotPrice.trim() && (!Number.isFinite(price) || price < 0)) {
-      setSubmitError("Availability price override must be zero or higher.");
-      return;
-    }
-    if (!meetingPlaceName) {
-      setSubmitError("Please select or create a meeting place for this slot.");
-      return;
-    }
-
-    const collides = availabilitySlots.some((slot) => {
-      if (slot.isCancelled) return false;
-      if (editingLocalSlotId && slot.localId === editingLocalSlotId) return false;
-      const existingStart = new Date(slot.startsAt);
-      const existingEnd = new Date(slot.endsAt);
-      if (!Number.isFinite(existingStart.getTime()) || !Number.isFinite(existingEnd.getTime())) {
-        return false;
-      }
-      return starts < existingEnd && ends > existingStart;
-    });
-    if (collides) {
-      setSubmitError("This slot overlaps another slot in your draft schedule.");
-      return;
-    }
-
-    setSubmitError(null);
-    if (editingLocalSlotId) {
-      setAvailabilitySlots((prev) =>
-        prev.map((slot) =>
-          slot.localId === editingLocalSlotId
-            ? {
-              ...slot,
-              startsAt: slotStartsAt,
-              endsAt: slotEndsAt,
-              capacity: String(cap),
-              priceAmount: slotPrice.trim(),
-              currency: slotCurrency,
-              meetingPlaceName,
-            }
-            : slot,
-        ),
-      );
-      if (slotMeetingPlaceMode === "new") {
-        setKnownMeetingPlaces((prev) => Array.from(new Set([...prev, meetingPlaceName])));
-      }
-      resetAvailabilityForm();
-      return;
-    }
-
-    setAvailabilitySlots((prev) => [
-      ...prev,
-      {
-        localId: `draft-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        startsAt: slotStartsAt,
-        endsAt: slotEndsAt,
-        capacity: String(cap),
-        priceAmount: slotPrice.trim(),
-        currency: slotCurrency,
-        meetingPlaceName,
-        isCancelled: false,
-      },
-    ]);
-    if (slotMeetingPlaceMode === "new") {
-      setKnownMeetingPlaces((prev) => Array.from(new Set([...prev, meetingPlaceName])));
-    }
-    resetAvailabilityForm();
-  }
-
-  function beginEditAvailabilitySlot(localId: string) {
-    const slot = availabilitySlots.find((item) => item.localId === localId);
-    if (!slot) return;
-    setEditingLocalSlotId(slot.localId);
-    setSlotStartsAt(slot.startsAt);
-    setSlotEndsAt(slot.endsAt);
-    setSlotCapacity(slot.capacity);
-    setSlotPrice(slot.priceAmount);
-    setSlotCurrency(slot.currency);
-    const exists = availableMeetingPlaces.includes(slot.meetingPlaceName);
-    if (exists) {
-      setSlotMeetingPlaceMode("existing");
-      setSlotMeetingPlace(slot.meetingPlaceName);
-      setNewMeetingPlace("");
-    } else {
-      setSlotMeetingPlaceMode("new");
-      setSlotMeetingPlace("");
-      setNewMeetingPlace(slot.meetingPlaceName);
-    }
-  }
-
-  function removeAvailabilitySlot(localId: string) {
+  function handleUpdateAvailabilitySlot(localId: string, patch: Partial<AvailabilityDraftSlot>) {
     setAvailabilitySlots((prev) =>
-      prev
-        .map((slot) => (slot.localId === localId ? { ...slot, isCancelled: true } : slot)),
+      prev.map((slot) => (slot.localId === localId ? { ...slot, ...patch } : slot)),
     );
-    if (editingLocalSlotId === localId) {
-      resetAvailabilityForm();
-    }
+  }
+
+  function handleRemoveAvailabilitySlot(localId: string) {
+    setAvailabilitySlots((prev) =>
+      prev.map((slot) => (slot.localId === localId ? { ...slot, isCancelled: true } : slot)),
+    );
   }
 
   async function onFinish() {
@@ -803,6 +496,11 @@ export default function CreateExperiencePage() {
 
     if (!expertise.trim() || expertise.trim().length < 10) {
       setSubmitError("Please add at least 10 characters in your expertise section.");
+      return;
+    }
+
+    if (availabilitySlots.filter((slot) => !slot.isCancelled).length === 0) {
+      setSubmitError("Add at least one availability slot before publishing.");
       return;
     }
 
@@ -1128,32 +826,6 @@ export default function CreateExperiencePage() {
           isCancelled: Boolean(slot.is_cancelled),
         })),
       );
-      setKnownMeetingPlaces(
-        Array.from(
-          new Set(
-            (availabilityData ?? [])
-              .map((slot) => String(slot.meeting_place_name ?? "").trim())
-              .filter((name) => name.length > 0),
-          ),
-        ).sort((a, b) => a.localeCompare(b)),
-      );
-      const initialPlaces = Array.from(
-        new Set(
-          (availabilityData ?? [])
-            .map((slot) => String(slot.meeting_place_name ?? "").trim())
-            .filter((name) => name.length > 0),
-        ),
-      ).sort((a, b) => a.localeCompare(b));
-      if (initialPlaces.length > 0) {
-        setSlotMeetingPlaceMode("existing");
-        setSlotMeetingPlace(initialPlaces[0]);
-        setNewMeetingPlace("");
-      } else {
-        setSlotMeetingPlaceMode("new");
-        setSlotMeetingPlace("");
-      }
-      setSlotCurrency(experience.currency ?? "KES");
-
       setStepIndex(1);
       setLoadingExistingData(false);
     };
@@ -1164,58 +836,6 @@ export default function CreateExperiencePage() {
       mounted = false;
     };
   }, [editExperienceId, user]);
-
-  useEffect(() => {
-    if (!user) return;
-    let mounted = true;
-
-    const loadMeetingPlaces = async () => {
-      const { data: hostExperiences, error: hostExperiencesError } = await supabase
-        .from("experiences")
-        .select("id")
-        .eq("host_user_id", user.id);
-      if (!mounted || hostExperiencesError) return;
-
-      const ids = (hostExperiences ?? []).map((row) => row.id as string);
-      if (ids.length === 0) {
-        if (mounted) {
-          setKnownMeetingPlaces([]);
-          setSlotMeetingPlaceMode("new");
-        }
-        return;
-      }
-
-      const slotsWithMeeting = await supabase
-        .from("experience_availability")
-        .select("meeting_place_name")
-        .in("experience_id", ids)
-        .not("meeting_place_name", "is", null);
-      if (!mounted) return;
-
-      const places =
-        slotsWithMeeting.error?.code === "42703"
-          ? []
-          : Array.from(
-              new Set(
-                (slotsWithMeeting.data ?? [])
-                  .map((row) => String(row.meeting_place_name ?? "").trim())
-                  .filter((name) => name.length > 0),
-              ),
-            ).sort((a, b) => a.localeCompare(b));
-      setKnownMeetingPlaces(places);
-      if (places.length > 0) {
-        setSlotMeetingPlaceMode("existing");
-        setSlotMeetingPlace((prev) => prev || places[0]);
-      } else {
-        setSlotMeetingPlaceMode("new");
-      }
-    };
-
-    void loadMeetingPlaces();
-    return () => {
-      mounted = false;
-    };
-  }, [user]);
 
   useEffect(() => {
     const objectUrls = objectUrlsRef.current;
@@ -1604,417 +1224,18 @@ export default function CreateExperiencePage() {
           ) : null}
 
           {stepIndex === 3 ? (
-            <Card className="rounded-2xl border-border bg-card p-6">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-xl font-semibold tracking-tight">Set your availability</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Add premium booking slots. Guests can only request times you publish.
-                  </p>
-                </div>
-                <div className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300">
-                  {activeAvailabilitySlots.length} active slot
-                  {activeAvailabilitySlots.length === 1 ? "" : "s"}
-                </div>
-              </div>
-
-              <div className="mt-6 rounded-2xl border border-border bg-muted/20 p-4">
-                <div className="mb-4 rounded-2xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-500/20 dark:bg-orange-500/5">
-                    <h3 className="text-sm font-semibold text-orange-900 dark:text-orange-200">Standard experience pricing</h3>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Set default duration and price used by slots unless overridden.
-                    </p>
-                    <div className="mt-3 grid gap-3 md:grid-cols-3">
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-muted-foreground">Standard price per guest</label>
-                        <Input
-                          type="number"
-                          min="1"
-                          step="0.01"
-                          className="h-10 rounded-xl bg-background"
-                          value={hourlyRate}
-                          onChange={(e) => setHourlyRate(e.target.value)}
-                          placeholder="120"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-muted-foreground">Default duration (hours)</label>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="24"
-                          step="1"
-                          className="h-10 rounded-xl bg-background"
-                          value={durationHours}
-                          onChange={(e) => setDurationHours(e.target.value)}
-                          placeholder="2"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-muted-foreground">Currency</label>
-                        <div className="flex h-10 w-full items-center rounded-xl border border-input bg-muted/30 px-3 text-sm text-foreground">
-                          {currency}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">
-                          Gozuru currently prices all listings in Kenyan Shillings.
-                        </p>
-                      </div>
-                    </div>
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      Estimated full-group value: {currency}{" "}
-                      {estimatedHostEarnings > 0 ? estimatedHostEarnings.toFixed(2) : "0.00"}
-                    </p>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-muted-foreground">Start date & time</label>
-                      <Input
-                        type="datetime-local"
-                        className="h-10 rounded-xl bg-background"
-                        value={slotStartsAt}
-                        onChange={(e) => setSlotStartsAt(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-muted-foreground">End date & time</label>
-                      <Input
-                        type="datetime-local"
-                        className="h-10 rounded-xl bg-background"
-                        value={slotEndsAt}
-                        onChange={(e) => setSlotEndsAt(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-muted-foreground">Capacity</label>
-                      <Input
-                        type="number"
-                        min="1"
-                        className="h-10 rounded-xl bg-background"
-                        value={slotCapacity}
-                        onChange={(e) => setSlotCapacity(e.target.value)}
-                      />
-                    </div>
-                    <div className="grid grid-cols-[1fr_120px] gap-3">
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-muted-foreground">
-                          Price override (optional)
-                        </label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          className="h-10 rounded-xl bg-background"
-                          value={slotPrice}
-                          onChange={(e) => setSlotPrice(e.target.value)}
-                          placeholder="Uses experience default"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-muted-foreground">Currency</label>
-                        <div className="flex h-10 w-full items-center rounded-xl border border-input bg-muted/30 px-3 text-sm text-foreground">
-                          {slotCurrency}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <div className="flex items-center gap-2">
-                        <label className="text-xs font-semibold text-muted-foreground">Meeting place</label>
-                        <div className="inline-flex rounded-full border border-border bg-muted/40 p-1">
-                          <button
-                            type="button"
-                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${slotMeetingPlaceMode === "existing" ? "bg-background text-foreground" : "text-muted-foreground"}`}
-                            onClick={() => setSlotMeetingPlaceMode("existing")}
-                            disabled={availableMeetingPlaces.length === 0}
-                          >
-                            Choose existing
-                          </button>
-                          <button
-                            type="button"
-                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${slotMeetingPlaceMode === "new" ? "bg-background text-foreground" : "text-muted-foreground"}`}
-                            onClick={() => setSlotMeetingPlaceMode("new")}
-                          >
-                            Add new
-                          </button>
-                        </div>
-                      </div>
-                      {slotMeetingPlaceMode === "existing" && availableMeetingPlaces.length > 0 ? (
-                        <select
-                          value={slotMeetingPlace}
-                          onChange={(e) => setSlotMeetingPlace(e.target.value)}
-                          className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                        >
-                          {availableMeetingPlaces.map((place) => (
-                            <option key={place} value={place}>
-                              {place}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <Input
-                          className="h-10 rounded-xl bg-background"
-                          value={newMeetingPlace}
-                          onChange={(e) => setNewMeetingPlace(e.target.value)}
-                          placeholder="e.g. City Mall main entrance"
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex items-center gap-2">
-                    <Button
-                      type="button"
-                      className="rounded-full bg-orange-500 text-white hover:bg-orange-600"
-                      onClick={addOrUpdateAvailabilitySlot}
-                    >
-                      <Plus className="mr-2 size-4" />
-                      {editingLocalSlotId ? "Update slot" : "Add slot"}
-                    </Button>
-                    {editingLocalSlotId ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="rounded-full"
-                        onClick={resetAvailabilityForm}
-                      >
-                        Cancel edit
-                      </Button>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="mt-6 rounded-3xl border border-border bg-card p-4 shadow-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">
-                        {calendarView === "week"
-                          ? `Week ${weekRangeLabel}`
-                          : calendarView === "month"
-                            ? monthLabel(calendarCursor)
-                            : calendarView === "year"
-                              ? String(selectedYear)
-                              : calendarCursor.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {calendarView === "week"
-                          ? "Scheduled appointments - full day in 2-hour rows."
-                          : calendarView === "month"
-                            ? "Month overview - scheduled appointments."
-                            : calendarView === "year"
-                              ? "Year overview - scheduled appointments."
-                              : "Daily view of scheduled appointments."}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => moveCalendarCursor("prev")}>
-                        <ChevronLeft className="size-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full"
-                        onClick={() => setCalendarCursor(new Date())}
-                      >
-                        Today
-                      </Button>
-                      <div className="inline-flex rounded-full border border-border bg-muted/40 p-1">
-                        {(["day", "week", "month", "year"] as CalendarView[]).map((view) => (
-                          <button
-                            key={view}
-                            type="button"
-                            onClick={() => setCalendarView(view)}
-                            className={`rounded-full px-3 py-1 text-[11px] font-semibold capitalize transition ${
-                              calendarView === view
-                                ? "bg-black text-white shadow-sm"
-                                : "text-muted-foreground hover:bg-background"
-                            }`}
-                          >
-                            {view}
-                          </button>
-                        ))}
-                      </div>
-                      <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => moveCalendarCursor("next")}>
-                        <ChevronRight className="size-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    {calendarView === "day" ? (
-                      <div className="rounded-2xl border">
-                        <div className="flex items-center justify-between border-b bg-muted/20 px-4 py-3">
-                          <p className="text-sm font-semibold">
-                            {calendarCursor.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{daySlots.length} slot(s)</p>
-                        </div>
-                        <div className="max-h-[360px] space-y-2 overflow-y-auto p-4">
-                          {daySlots.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No availability on this day.</p>
-                          ) : (
-                            daySlots.map((slot) => (
-                              <div key={slot.localId} className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
-                                <p className="text-sm font-semibold text-foreground">
-                                  {slot.startsDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} - {slot.endsDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  Capacity {slot.capacity} • {slot.currency}{" "}
-                                  {slot.priceAmount ? Number(slot.priceAmount).toFixed(2) : "Default"}
-                                </p>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {calendarView === "week" ? (
-                      <div className="overflow-auto rounded-2xl border">
-                        <div className="grid min-w-[880px] grid-cols-[120px_repeat(7,minmax(100px,1fr))]">
-                          <div className="border-b border-r bg-muted/20 p-3 text-xs font-semibold text-muted-foreground">
-                            Time
-                          </div>
-                          {weekDays.map((day) => (
-                            <div key={day.date.toISOString()} className="border-b border-r bg-muted/20 p-3 text-center">
-                              <p className="text-[11px] font-semibold uppercase text-muted-foreground">
-                                {day.date.toLocaleDateString(undefined, { weekday: "short" })}
-                              </p>
-                              <p className="text-sm font-semibold">{day.date.getDate()}</p>
-                            </div>
-                          ))}
-                          {weekGrid.map((row) => (
-                            <Fragment key={row.index}>
-                              <div className="border-b border-r bg-muted/10 p-3 text-[11px] text-muted-foreground">
-                                {row.label}
-                              </div>
-                              {row.columns.map((column) => (
-                                <div key={`${column.date.toISOString()}-${row.index}`} className="min-h-16 border-b border-r p-1.5">
-                                  <div className="space-y-1">
-                                    {column.slots.slice(0, 2).map((slot) => (
-                                      <div key={`${slot.localId}-${row.index}`} className="rounded-md bg-emerald-100 px-2 py-1 text-[10px] font-medium text-emerald-900">
-                                        {slot.startsDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              ))}
-                            </Fragment>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {calendarView === "month" ? (
-                      <div className="rounded-2xl border">
-                        <div className="grid grid-cols-7 border-b bg-muted/20">
-                          {WEEK_DAYS.map((label) => (
-                            <p key={label} className="p-2 text-center text-[11px] font-semibold uppercase text-muted-foreground">
-                              {label}
-                            </p>
-                          ))}
-                        </div>
-                        <div className="grid grid-cols-7">
-                          {monthGridDays.map((day) => {
-                            const inMonth = day.date.getMonth() === calendarCursor.getMonth();
-                            return (
-                              <div key={day.date.toISOString()} className={`min-h-[96px] border-b border-r p-2 ${inMonth ? "bg-background" : "bg-muted/25 text-muted-foreground"}`}>
-                                <p className="text-xs font-semibold">{day.date.getDate()}</p>
-                                <div className="mt-1 space-y-1">
-                                  {day.slots.slice(0, 2).map((slot) => (
-                                    <div key={slot.localId} className="rounded-md bg-emerald-100 px-2 py-1 text-[10px] text-emerald-900">
-                                      {slot.startsDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-                                    </div>
-                                  ))}
-                                  {day.slotsCount > 2 ? (
-                                    <p className="text-[10px] text-muted-foreground">+{day.slotsCount - 2} more</p>
-                                  ) : null}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {calendarView === "year" ? (
-                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {yearMonths.map((month) => (
-                          <div key={month.monthStart.toISOString()} className="rounded-xl border p-3">
-                            <div className="mb-2 flex items-center justify-between">
-                              <p className="text-sm font-semibold">
-                                {month.monthStart.toLocaleDateString(undefined, { month: "long" })}
-                              </p>
-                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
-                                {month.slotsCount} slots
-                              </span>
-                            </div>
-                            <div className="grid grid-cols-7 gap-1 text-center">
-                              {month.miniDays.map((day) => (
-                                <div key={day.date.toISOString()} className={`rounded px-1 py-1 text-[10px] ${day.inMonth ? "text-foreground" : "text-muted-foreground/60"}`}>
-                                  <span className={day.count > 0 ? "font-semibold text-emerald-700" : ""}>{day.date.getDate()}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="mt-6 space-y-3">
-                  <h3 className="text-sm font-semibold">Configured slots</h3>
-                  {availabilitySlots.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No slots added yet.</p>
-                  ) : (
-                    <div className="flex gap-3 overflow-x-auto pb-2">
-                      {availabilitySlots.map((slot) => (
-                        <div
-                          key={slot.localId}
-                          className="min-w-[320px] shrink-0 rounded-xl border border-border bg-background p-3"
-                        >
-                          <div>
-                            <p className="text-sm font-semibold text-foreground">
-                              {new Date(slot.startsAt).toLocaleString()} - {new Date(slot.endsAt).toLocaleString()}
-                            </p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              Place: {slot.meetingPlaceName || "N/A"} •{" "}
-                              Capacity {slot.capacity} • {slot.currency}{" "}
-                              {slot.priceAmount ? Number(slot.priceAmount).toFixed(2) : "Default"}{" "}
-                              {slot.isCancelled ? "• Cancelled" : ""}
-                            </p>
-                          </div>
-                          <div className="mt-3 flex items-center gap-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="rounded-full"
-                              onClick={() => beginEditAvailabilitySlot(slot.localId)}
-                              disabled={slot.isCancelled}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="rounded-full"
-                              onClick={() => removeAvailabilitySlot(slot.localId)}
-                              disabled={slot.isCancelled}
-                            >
-                              <X className="mr-1 size-3.5" />
-                              Remove
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-            </Card>
+            <AvailabilityStep
+              hourlyRate={hourlyRate}
+              onHourlyRateChange={setHourlyRate}
+              durationHours={durationHours}
+              onDurationHoursChange={setDurationHours}
+              currency={currency}
+              maxGuestsNumber={maxGuestsNumber}
+              slots={availabilitySlots}
+              onAddSlots={handleAddAvailabilitySlots}
+              onUpdateSlot={handleUpdateAvailabilitySlot}
+              onRemoveSlot={handleRemoveAvailabilitySlot}
+            />
           ) : null}
         </div>
 
