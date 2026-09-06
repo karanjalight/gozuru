@@ -68,6 +68,7 @@ type ReviewRow = {
 };
 
 type HostProfileRow = {
+  slug: string | null;
   headline: string | null;
   expertise: string | null;
   highlight_story: string | null;
@@ -230,7 +231,7 @@ export default function ExperienceDetailPage() {
               .limit(6),
             supabase
               .from("host_profiles")
-              .select("headline,expertise,highlight_story")
+              .select("slug,headline,expertise,highlight_story")
               .eq("user_id", experienceRow.host_user_id)
               .maybeSingle(),
             supabase
@@ -680,7 +681,7 @@ export default function ExperienceDetailPage() {
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                     <Link
-                      href={`/hosts/${experience.host_user_id}`}
+                      href={hostProfile?.slug ? `/experts/${hostProfile.slug}` : "/experts"}
                       className={cn(
                         buttonVariants({ variant: "default" }),
                         "inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-orange-500 px-6 text-sm font-semibold text-background hover:opacity-90 sm:flex-1",

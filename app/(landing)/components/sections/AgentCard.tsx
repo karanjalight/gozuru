@@ -17,7 +17,7 @@ export function AgentCard({
   agent: LocalExpert;
   layout?: "carousel" | "grid";
 }) {
-  const profileHref = agent.profileHref ?? `/hosts/${agent.id}`;
+  const profileHref = agent.profileHref ?? `/experts/${agent.id}`;
 
   return (
     <article
