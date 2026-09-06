@@ -28,10 +28,13 @@ const fadeUp = {
 
 // Hero background carousel images
 const HERO_BACKGROUND_IMAGES = [
-  "https://images.pexels.com/photos/36713426/pexels-photo-36713426.jpeg",
-  "https://images.pexels.com/photos/7148409/pexels-photo-7148409.jpeg",
-  "https://images.pexels.com/photos/1076081/pexels-photo-1076081.jpeg",
-  "https://images.pexels.com/photos/34665171/pexels-photo-34665171.jpeg",
+  "/slidezuru.png",
+  "/slidezuru2.png",
+  "/slidezuru3.png",
+  "/slidezuru4.png",
+  // "https://images.pexels.com/photos/36713426/pexels-photo-36713426.jpeg",
+  // "https://images.pexels.com/photos/7148409/pexels-photo-7148409.jpeg",
+  
 ];
 
 export function LandingHero({
@@ -58,7 +61,7 @@ export function LandingHero({
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentHeroImage(
-        (previous) => (previous + 1) % HERO_BACKGROUND_IMAGES.length
+        (previous) => (previous + 1) % HERO_BACKGROUND_IMAGES.length,
       );
     }, 5000);
 
@@ -74,9 +77,7 @@ export function LandingHero({
     return experiences
       .filter((exp) => {
         const location =
-          locationByExperienceId[exp.id] ||
-          exp.meeting_point_name ||
-          "";
+          locationByExperienceId[exp.id] || exp.meeting_point_name || "";
         const description = exp.description || "";
 
         return `${exp.title} ${location} ${description}`
@@ -127,8 +128,7 @@ export function LandingHero({
 
     document.addEventListener("mousedown", handleOutsideClick);
 
-    return () =>
-      document.removeEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
   function goToExperiences() {
@@ -151,9 +151,7 @@ export function LandingHero({
   return (
     <section
       className={`relative flex min-h-[80dvh] items-center justify-center overflow-hidden transition-colors ${
-        isDark
-          ? "bg-zinc-900 text-white"
-          : "bg-slate-950 text-white"
+        isDark ? "bg-zinc-900 text-white" : "bg-slate-950 text-white"
       }`}
     >
       <Navbar />
@@ -198,10 +196,10 @@ export function LandingHero({
 
         {/* Dark overlay */}
         <div
-          className={`absolute inset-0 bg-gradient-to-b transition-colors ${
+          className={`absolute inset-0 bg-gradient-to-r transition-colors ${
             isDark
-              ? "from-black/90 via-black/65 to-black/90"
-              : "from-black/85 via-slate-950/50 to-black/85"
+              ? "from-black/90 via-black/65 to-black/60"
+              : "from-black/95 via-slate-950/50 to-black/65"
           }`}
         />
       </div>
@@ -222,7 +220,6 @@ export function LandingHero({
           }`}
         >
           <span className="h-2 w-2 rounded-full bg-emerald-400" />
-
           Nairobi · Real people, real conversations
         </motion.div>
 
@@ -296,9 +293,7 @@ export function LandingHero({
 
               <input
                 value={cityValue}
-                onChange={(event) =>
-                  setCityValue(event.target.value)
-                }
+                onChange={(event) => setCityValue(event.target.value)}
                 placeholder="City"
                 aria-label="City"
                 className="w-full rounded-full border-0 bg-white py-2 pl-9 pr-3 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none"
@@ -362,7 +357,7 @@ export function LandingHero({
               <Link
                 key={category.slug}
                 href={`/experiences?category=${encodeURIComponent(
-                  category.slug
+                  category.slug,
                 )}`}
                 className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur transition hover:border-white/40 hover:bg-white/20 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
               >
@@ -415,4 +410,3 @@ export function LandingHero({
     </section>
   );
 }
-

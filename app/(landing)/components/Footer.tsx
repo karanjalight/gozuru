@@ -13,7 +13,7 @@ import { BrandLogo } from "@/components/brand/BrandLogo";
 
 /** Golden-hour mountain vista — warm travel & curiosity mood */
 const FOOTER_BACKGROUND_IMAGE =
-  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1920&h=1080&fit=crop&q=85";
+  "/slidezuru2.png";
 
 const explore = [
   { href: "/experts", label: "Browse experts" },
@@ -54,29 +54,29 @@ export function Footer() {
       {/* Layered overlays — warm orange + deep stone for readability */}
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-br from-stone-950/98 via-orange-950/88 to-stone-900/90"
-      />
-      {/* <div
-        aria-hidden
-        className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/55 to-orange-900/25"
-      /> */}
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(234,88,12,0.18),transparent_55%)]"
+        className="absolute inset-0  bg-gradient-to-t from-stone-950/90 via-black/90 to-black/70"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(15,23,42,0.65),transparent_50%)]"
+        // className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/55 to-orange-500/25"
+      />
+      <div
+        aria-hidden
+        // className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(234,88,12,0.18),transparent_55%)]"
+      />
+      <div
+        aria-hidden
+        // className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(15,23,42,0.65),transparent_50%)]"
       />
 
       {/* Top accent line */}
       <div
         aria-hidden
-        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-400/50 to-transparent"
+        // className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-400/50 to-transparent"
       />
 
-      <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="grid gap-10 border-b border-white/10 pb-12 l g:grid-cols-[1fr_0.9fr] lg:items-end">
+      <div className="relative mx-auto max-w-6xl px-4 py-16 lg:py-24 sm:px-6 lg:px-8">
+        {/* <div className="grid gap-10 border-b border-white/10 pb-12 l g:grid-cols-[1fr_0.9fr] lg:items-end">
           <div>
             <Link
               href="/"
@@ -111,7 +111,7 @@ export function Footer() {
             </div>
           </div>
 
-          {/* <div className="rounded-3xl border border-orange-400/20 bg-gradient-to-br from-orange-950/40 to-stone-950/50 p-6 shadow-xl shadow-black/20 backdrop-blur-md">
+          <div className="rounded-3xl border border-orange-400/20 bg-gradient-to-br from-orange-950/40 to-stone-950/50 p-6 shadow-xl shadow-black/20 backdrop-blur-md">
             <div className="flex items-start gap-4">
               <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-orange-500/20 text-orange-200 ring-1 ring-orange-400/25">
                 <Compass className="size-5" aria-hidden />
@@ -129,12 +129,14 @@ export function Footer() {
                 </p>
               </div>
             </div>
-          </div> */}
-        </div>
+          </div>
+        </div> */}
 
-        <div className="mt-12 grid gap-10 lg:grid-cols-[1.15fr_0.8fr_0.8fr_0.9fr]">
+        <div className="mt-6 grid gap-10 lg:grid-cols-[1.15fr_0.8fr_0.8fr_0.9fr]">
           <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wide text-orange-200/90">
+            <BrandLogo size="2xl" className="mb-4" />
+
+            <h4 className="text-md font-semibold uppercase tracking-wide text-orange-200/90">
               Stay close
             </h4>
             <div className="mt-5 grid gap-3 text-sm text-stone-300">
@@ -150,7 +152,10 @@ export function Footer() {
                 Local experiences, global curiosity
               </span>
               <span className="inline-flex items-center gap-3">
-                <ShieldCheck className="size-4 text-orange-400/80" aria-hidden />
+                <ShieldCheck
+                  className="size-4 text-orange-400/80"
+                  aria-hidden
+                />
                 Verified hosts and secure bookings
               </span>
             </div>
@@ -184,7 +189,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wide text-orange-200/90">
+            <h4 className="text-md font-semibold uppercase tracking-wide text-orange-200/90">
               Explore
             </h4>
             <ul className="mt-5 space-y-3">
@@ -202,7 +207,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wide text-orange-200/90">
+            <h4 className="text-md font-semibold uppercase tracking-wide text-orange-200/90">
               Company
             </h4>
             <ul className="mt-5 space-y-3">
@@ -220,7 +225,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wide text-orange-200/90">
+            <h4 className="text-md font-semibold uppercase tracking-wide text-orange-200/90">
               Support
             </h4>
             <ul className="mt-5 space-y-3">
@@ -247,7 +252,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 text-sm text-stone-400 sm:flex-row">
+        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 text-sm text-white sm:flex-row">
           <p>© {year} Gozuru. All rights reserved.</p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link href="/about" className="transition hover:text-orange-200">

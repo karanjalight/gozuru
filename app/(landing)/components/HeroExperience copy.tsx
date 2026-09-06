@@ -9,7 +9,7 @@ import { Navbar } from "@/app/(landing)/components/Navbar";
 import { type LandingExperiencesResult } from "@/lib/queries/experiences";
 
 const HERO_BACKGROUND_IMAGE =
-  "https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg";
+  "/slidezuru2.png"; 
 
 export function ExperienceHero({ initialData }: { initialData: LandingExperiencesResult }) {
   const [searchValue, setSearchValue] = useState("");
@@ -54,7 +54,7 @@ export function ExperienceHero({ initialData }: { initialData: LandingExperience
 
   return (
     <section
-      className={`relative flex min-h-[55vh] items-center justify-center overflow-hidden transition-colors ${
+      className={`relative flex min-h-[65vh] items-center justify-center overflow-hidden transition-colors ${
         isDark ? "bg-zinc-900 text-white" : "bg-slate-950 text-white"
       }`}
     >

@@ -7,11 +7,8 @@ import { useTheme } from "next-themes";
 import { Navbar } from "@/app/(landing)/components/Navbar";
 
 const HERO_IMAGES = [
-  "https://images.pexels.com/photos/1267320/pexels-photo-1267320.jpeg",
-  "https://images.pexels.com/photos/870711/pexels-photo-870711.jpeg",
-  "https://images.pexels.com/photos/775031/pexels-photo-775031.jpeg",
-  "https://images.pexels.com/photos/2961969/pexels-photo-2961969.jpeg",
-  "https://images.pexels.com/photos/1398688/pexels-photo-1398688.jpeg",
+  "/slidezuru.png",
+  
 ];
 
 export function HostsHero() {
@@ -31,7 +28,7 @@ export function HostsHero() {
 
   return (
     <section
-      className={`relative flex min-h-[45vh] items-center justify-center overflow-hidden transition-colors ${
+      className={`relative flex min-h-[65vh] items-center justify-center overflow-hidden transition-colors ${
         isDark ? "bg-zinc-900 text-white" : "bg-zinc-500 text-zinc-900"
       }`}
     >
