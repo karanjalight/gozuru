@@ -45,7 +45,7 @@ export default function robots(): MetadataRoute.Robots {
 - **Static entries:** `/`, `/experiences`, `/experts`, `/hosts`, `/about`, `/contact`, `/terms`, `/chapatis`, `/sample-experiences`, plus the existing static slugs already enumerated by `SAMPLE_EXPERIENCE_SLUGS` and the sample-events equivalent.
 - **Dynamic entries:**
   - Every `experiences` row where `status = 'published'` → `/experiences/[id]`, `lastModified` from the row's `updated_at` column.
-  - Every host with at least one published experience — same "published host" rule already implemented in `fetchLandingExpertsServer` (`lib/queries/experts-server.ts`, the `publishedHostIds` derivation) — reused, not reimplemented, → `/hosts/[hostId]`.
+  - Every host with at least one published experience — same "published host" rule already implemented in `fetchLandingExpertsServer` (`lib/queries/experts-server.ts`, the `publishedHostIds` derivation) — reused, not reimplemented, → `/experts/[slug]` (see [[2026-09-06-expert-slug-urls-design]] — `/hosts/[hostId]` is now a permanent-redirect stub, not the canonical page).
 - Private/auth-gated routes are excluded entirely (redundant with §3.1's disallow, but sitemaps should never list disallowed URLs).
 - `export const dynamic = "force-dynamic"` on the sitemap route, matching the existing convention used by the experiences/experts list pages rather than introducing a new caching strategy.
 
@@ -74,9 +74,9 @@ Both dynamic pages follow the same "light touch" pattern: the existing client co
   - Renders one `<script type="application/ld+json">` (built by `buildJsonLdExperience(...)`, see §4.3) followed by `<ExperienceDetailClient />`.
   - The client component still does its own full client-side fetch as it does today — this is a duplicate read (metadata query + client query), accepted as the cost of the light-touch approach; both queries are small, indexed lookups.
 
-### 4.2 `/hosts/[hostId]`
+### 4.2 `/experts/[slug]`
 
-- Same split: rename current `page.tsx` to `HostProfileClient.tsx`, add a server `page.tsx` with `generateMetadata` (host name, headline/bio, avatar, `alternates.canonical: /hosts/[id]`) and a JSON-LD `<script>` (built by `buildJsonLdHostProfile(...)`).
+- Same split: rename current `app/(landing)/experts/[slug]/page.tsx` content to `HostProfileClient.tsx`, add a server `page.tsx` with `generateMetadata` (host name, headline/bio, avatar, `alternates.canonical: /experts/[slug]`) and a JSON-LD `<script>` (built by `buildJsonLdHostProfile(...)`). `/hosts/[hostId]` (see [[2026-09-06-expert-slug-urls-design]]) stays a permanent-redirect stub and is excluded from the sitemap.
 
 ### 4.3 New JSON-LD builders in `lib/seo.ts`
 
