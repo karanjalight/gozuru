@@ -59,7 +59,7 @@ export function AvailabilityStep({
       <div className="mt-6 rounded-2xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-500/20 dark:bg-orange-500/5">
         <h3 className="text-sm font-semibold text-orange-900 dark:text-orange-200">Standard pricing</h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Every slot uses this price and length unless you customize it.
+          New slots use this price and length unless you customize them.
         </p>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <div className="space-y-2">
@@ -92,6 +92,9 @@ export function AvailabilityStep({
             <div className="flex h-10 w-full items-center rounded-xl border border-input bg-muted/30 px-3 text-sm text-foreground">
               {currency}
             </div>
+            <p className="text-[11px] text-muted-foreground">
+              Gozuru currently prices all listings in Kenyan Shillings.
+            </p>
           </div>
         </div>
         <p className="mt-3 text-xs text-muted-foreground">

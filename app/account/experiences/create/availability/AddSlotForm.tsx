@@ -82,6 +82,7 @@ export function AddSlotForm({
   const initialMaxGuestsRef = useRef(maxGuestsNumber);
   const capacityTouchedRef = useRef(false);
   const meetingPlaceHydratedRef = useRef(false);
+  const lastSyncedAnchorWeekdayRef = useRef<number | null>(null);
 
   const durationHoursNumber = Number.parseInt(durationHours, 10) || 1;
   const standardPriceNumber = parseNumericInput(hourlyRate);
@@ -177,11 +178,26 @@ export function AddSlotForm({
       ? effectivePricePerPerson * capacityNumber
       : 0;
   const anchorWeekday = new Date(startsAt).getDay();
+  const repeatBlocked = !editingLocalId && repeatEnabled && repeatWeekdays.length === 0;
   const submitLabel = editingLocalId
     ? "Update slot"
-    : repeatEnabled && repeatWeekdays.length > 0
-      ? `Add up to ${repeatWeekdays.length * repeatWeeksCount} slots`
+    : repeatEnabled
+      ? repeatWeekdays.length > 0
+        ? `Add up to ${repeatWeekdays.length * repeatWeeksCount} slots`
+        : "Choose a day to repeat on"
       : "Add slot";
+
+  useEffect(() => {
+    if (!repeatEnabled) {
+      lastSyncedAnchorWeekdayRef.current = anchorWeekday;
+      return;
+    }
+    if (lastSyncedAnchorWeekdayRef.current === anchorWeekday) return;
+    lastSyncedAnchorWeekdayRef.current = anchorWeekday;
+    setRepeatWeekdays((prev) =>
+      prev.includes(anchorWeekday) ? prev : [...prev, anchorWeekday].sort((a, b) => a - b),
+    );
+  }, [anchorWeekday, repeatEnabled]);
 
   function resetForm() {
     const nextStart = getNextHourLocalInputValue();
@@ -199,7 +215,9 @@ export function AddSlotForm({
   }
 
   function toggleWeekday(day: number) {
-    setRepeatWeekdays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort()));
+    setRepeatWeekdays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort((a, b) => a - b),
+    );
   }
 
   function handleRepeatToggle(next: boolean) {
@@ -240,6 +258,10 @@ export function AddSlotForm({
     }
     if (endDate <= startDate) {
       setFormError("End time must be after the start time.");
+      return;
+    }
+    if (!editingLocalId && startDate.getTime() < Date.now()) {
+      setFormError("Start time must be in the future.");
       return;
     }
 
@@ -573,7 +595,12 @@ export function AddSlotForm({
       {formNotice ? <p className="mt-4 text-sm text-emerald-600 dark:text-emerald-400">{formNotice}</p> : null}
 
       <div className="mt-5 flex items-center gap-2">
-        <Button type="button" className="rounded-full bg-orange-500 text-white hover:bg-orange-600" onClick={handleSubmit}>
+        <Button
+          type="button"
+          className="rounded-full bg-orange-500 text-white hover:bg-orange-600"
+          onClick={handleSubmit}
+          disabled={repeatBlocked}
+        >
           <Plus className="mr-2 size-4" />
           {submitLabel}
         </Button>
