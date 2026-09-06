@@ -6,6 +6,7 @@ import {
 
 export type HostProfileRow = {
   user_id: string;
+  slug: string;
   headline: string | null;
   expertise: string | null;
   years_experience: number | null;
@@ -133,7 +134,7 @@ export function mapHostToLocalExpert(
     phone: profile?.phone?.trim() || "",
     email: profile?.email?.trim() || "",
     image: image || PLACEHOLDER_IMAGE,
-    profileHref: `/hosts/${hostId}`,
+    profileHref: `/experts/${host?.slug ?? hostId}`,
     isVerified,
   };
 }
