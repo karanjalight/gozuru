@@ -156,7 +156,7 @@ export function HeroExperts({ experts }: { experts: LocalExpert[] }) {
                   {suggestions.map((expert) => (
                     <li key={expert.id}>
                       <Link
-                        href={expert.profileHref ?? `/experts/${expert.id}`}
+                        href={expert.profileHref ?? `/hosts/${expert.id}`}
                         onClick={() => setShowSuggestions(false)}
                         className="block px-4 py-2.5 transition hover:bg-zinc-100"
                       >
