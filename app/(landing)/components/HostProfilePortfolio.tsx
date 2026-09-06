@@ -88,7 +88,7 @@ function FeatureTile({
   description: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border/80 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-border/80 bg-white p-5 shadow-sm dark:bg-card">
       <div className="flex size-10 items-center justify-center rounded-full bg-orange-50 text-orange-600">
         <Icon className="size-5" aria-hidden />
       </div>
@@ -188,9 +188,6 @@ export function HostProfilePortfolio({
           </div>
 
           <div className="relative mx-auto w-full max-w-[320px] lg:mx-0 lg:max-w-none">
-            <div className="absolute -left-2 top-6 z-10 text-orange-500 sm:left-0">
-              <Sparkles className="size-8" aria-hidden />
-            </div>
             <div className="relative mx-auto aspect-square w-full max-w-[300px] overflow-hidden rounded-full border-[6px] border-white shadow-[0_24px_60px_-20px_rgba(0,0,0,0.35)] sm:max-w-[320px]">
               {avatarUrl ? (
                 <Image
@@ -255,7 +252,7 @@ export function HostProfilePortfolio({
               <h2 className="font-serif text-2xl font-bold sm:text-3xl">
                 {careerHighlight || "Why book with me"}
               </h2>
-              <div className="mt-4 space-y-4 text-sm leading-7 text-foreground sm:text-base">
+              <div className="mt-4 space-y-4 text-sm leading-7 text-zinc-900 sm:text-base">
                 <p>{highlightStory || aboutText}</p>
                 {expertiseText && expertiseText !== aboutText ? <p>{expertiseText}</p> : null}
               </div>

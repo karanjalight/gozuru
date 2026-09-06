@@ -146,7 +146,7 @@ export function HostProfilePortfolioSkeleton() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="rounded-2xl border border-border/80 bg-white p-5 shadow-sm">
+              <div key={i} className="rounded-2xl border border-border/80 bg-white p-5 shadow-sm dark:bg-card">
                 <Skeleton className="size-10 rounded-full" />
                 <Skeleton className="mt-4 h-4 w-2/3" />
                 <div className="mt-2 space-y-2">

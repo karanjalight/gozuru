@@ -259,9 +259,9 @@ export function LandingHero({
               event.preventDefault();
               goToExperiences();
             }}
-            className="flex w-full items-stretch gap-2 rounded-full border border-zinc-200 bg-white px-3 py-2 text-left shadow-lg shadow-black/20 outline-none transition focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-400/40 hover:border-zinc-300"
+            className="flex w-full flex-col gap-2 sm:flex-row sm:items-stretch sm:rounded-full sm:border sm:border-zinc-200 sm:bg-white sm:px-3 sm:py-2 sm:shadow-lg sm:shadow-black/20 sm:outline-none sm:transition sm:focus-within:border-orange-400 sm:focus-within:ring-2 sm:focus-within:ring-orange-400/40 sm:hover:border-zinc-300"
           >
-            <div className="relative min-w-0 flex-[65]">
+            <div className="relative min-w-0 rounded-full border border-zinc-200 bg-white shadow-sm sm:flex-[65] sm:rounded-none sm:border-0 sm:bg-transparent sm:shadow-none">
               <Search
                 className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
                 aria-hidden
@@ -276,16 +276,16 @@ export function LandingHero({
                 onFocus={() => setShowSuggestions(true)}
                 placeholder="What are you curious about?"
                 aria-label="Search experiences"
-                className="w-full rounded-full border-0 bg-white py-2 pl-10 pr-4 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none [&:-webkit-autofill]:[-webkit-text-fill-color:rgb(9_9_11)] [&:-webkit-autofill]:[box-shadow:0_0_0px_1000px_#fff_inset]"
+                className="w-full rounded-full border-0 bg-white py-3 pl-10 pr-4 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none sm:py-2 [&:-webkit-autofill]:[-webkit-text-fill-color:rgb(9_9_11)] [&:-webkit-autofill]:[box-shadow:0_0_0px_1000px_#fff_inset]"
               />
             </div>
 
             <div
-              className="w-px shrink-0 self-stretch bg-zinc-200"
+              className="hidden w-px shrink-0 self-stretch bg-zinc-200 sm:block"
               aria-hidden
             />
 
-            <div className="relative min-w-0 flex-[35]">
+            <div className="relative min-w-0 rounded-full border border-zinc-200 bg-white shadow-sm sm:flex-[35] sm:rounded-none sm:border-0 sm:bg-transparent sm:shadow-none">
               <MapPin
                 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
                 aria-hidden
@@ -296,13 +296,13 @@ export function LandingHero({
                 onChange={(event) => setCityValue(event.target.value)}
                 placeholder="City"
                 aria-label="City"
-                className="w-full rounded-full border-0 bg-white py-2 pl-9 pr-3 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none"
+                className="w-full rounded-full border-0 bg-white py-3 pl-9 pr-3 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none sm:py-2"
               />
             </div>
 
             <button
               type="submit"
-              className="inline-flex shrink-0 items-center justify-center rounded-full border border-orange-500/80 bg-orange-600 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-orange-700 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 sm:text-sm"
+              className="inline-flex w-full shrink-0 items-center justify-center rounded-full border border-orange-500/80 bg-orange-600 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:bg-orange-700 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 sm:w-auto sm:py-2 sm:text-xs"
             >
               Explore
             </button>
