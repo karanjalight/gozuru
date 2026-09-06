@@ -122,6 +122,7 @@ export default function CreateExperiencePage() {
   const videosInputRef = useRef<HTMLInputElement | null>(null);
   // Step 4: availability
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilityDraftSlot[]>([]);
+  const [suggestedMeetingPlaces, setSuggestedMeetingPlaces] = useState<string[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loadingExistingData, setLoadingExistingData] = useState(false);
@@ -838,6 +839,49 @@ export default function CreateExperiencePage() {
   }, [editExperienceId, user]);
 
   useEffect(() => {
+    if (!user) return;
+    let mounted = true;
+
+    const loadSuggestedMeetingPlaces = async () => {
+      const { data: hostExperiences, error: hostExperiencesError } = await supabase
+        .from("experiences")
+        .select("id")
+        .eq("host_user_id", user.id);
+      if (!mounted || hostExperiencesError) return;
+
+      const ids = (hostExperiences ?? []).map((row) => row.id as string);
+      if (ids.length === 0) {
+        if (mounted) setSuggestedMeetingPlaces([]);
+        return;
+      }
+
+      const slotsWithMeeting = await supabase
+        .from("experience_availability")
+        .select("meeting_place_name")
+        .in("experience_id", ids)
+        .not("meeting_place_name", "is", null);
+      if (!mounted) return;
+
+      const places =
+        slotsWithMeeting.error?.code === "42703"
+          ? []
+          : Array.from(
+              new Set(
+                (slotsWithMeeting.data ?? [])
+                  .map((row) => String(row.meeting_place_name ?? "").trim())
+                  .filter((name) => name.length > 0),
+              ),
+            ).sort((a, b) => a.localeCompare(b));
+      setSuggestedMeetingPlaces(places);
+    };
+
+    void loadSuggestedMeetingPlaces();
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
+
+  useEffect(() => {
     const objectUrls = objectUrlsRef.current;
     // Avoid memory leaks when we create object URLs from uploads.
     return () => {
@@ -1232,6 +1276,7 @@ export default function CreateExperiencePage() {
               currency={currency}
               maxGuestsNumber={maxGuestsNumber}
               slots={availabilitySlots}
+              suggestedMeetingPlaces={suggestedMeetingPlaces}
               onAddSlots={handleAddAvailabilitySlots}
               onUpdateSlot={handleUpdateAvailabilitySlot}
               onRemoveSlot={handleRemoveAvailabilitySlot}

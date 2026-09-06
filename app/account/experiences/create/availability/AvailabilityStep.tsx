@@ -16,6 +16,7 @@ type AvailabilityStepProps = {
   currency: string;
   maxGuestsNumber: number;
   slots: AvailabilityDraftSlot[];
+  suggestedMeetingPlaces: string[];
   onAddSlots: (newSlots: AvailabilityDraftSlot[]) => void;
   onUpdateSlot: (localId: string, patch: Partial<AvailabilityDraftSlot>) => void;
   onRemoveSlot: (localId: string) => void;
@@ -29,6 +30,7 @@ export function AvailabilityStep({
   currency,
   maxGuestsNumber,
   slots,
+  suggestedMeetingPlaces,
   onAddSlots,
   onUpdateSlot,
   onRemoveSlot,
@@ -103,6 +105,7 @@ export function AvailabilityStep({
         currency={currency}
         maxGuestsNumber={maxGuestsNumber}
         slots={slots}
+        suggestedMeetingPlaces={suggestedMeetingPlaces}
         editingLocalId={editingLocalId}
         onAddSlots={onAddSlots}
         onUpdateSlot={onUpdateSlot}

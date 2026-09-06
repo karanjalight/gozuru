@@ -23,6 +23,7 @@ type AddSlotFormProps = {
   currency: string;
   maxGuestsNumber: number;
   slots: AvailabilityDraftSlot[];
+  suggestedMeetingPlaces: string[];
   editingLocalId: string | null;
   onAddSlots: (newSlots: AvailabilityDraftSlot[]) => void;
   onUpdateSlot: (localId: string, patch: Partial<AvailabilityDraftSlot>) => void;
@@ -71,6 +72,7 @@ export function AddSlotForm({
   currency,
   maxGuestsNumber,
   slots,
+  suggestedMeetingPlaces,
   editingLocalId,
   onAddSlots,
   onUpdateSlot,
@@ -83,7 +85,13 @@ export function AddSlotForm({
 
   const durationHoursNumber = Number.parseInt(durationHours, 10) || 1;
   const standardPriceNumber = parseNumericInput(hourlyRate);
-  const meetingPlaces = useMemo(() => collectMeetingPlaces(slots), [slots]);
+  const meetingPlaces = useMemo(
+    () =>
+      Array.from(new Set([...suggestedMeetingPlaces, ...collectMeetingPlaces(slots)])).sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [slots, suggestedMeetingPlaces],
+  );
 
   const [startsAt, setStartsAt] = useState(getNextHourLocalInputValue);
   const [endOverrideEnabled, setEndOverrideEnabled] = useState(false);
