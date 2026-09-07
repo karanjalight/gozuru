@@ -64,10 +64,10 @@ export function TestimonialsSection() {
 
   return (
     <div className="relative overflow-hidden border-b border-gray-100 font-[family-name:var(--font-outfit)] lg:p-20 lg:pl-42">
-      <div
+      {/* <div
         className="pointer-events-none absolute -left-2 top-1 size-[min(480px,82%)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500"
         aria-hidden
-      />
+      /> */}
 
       <div className="relative px-8 py-10 sm:px-10 sm:py-12 lg:px-44 lg:py-14">
         <div className="mb-10 lg:mb-12">
@@ -86,7 +86,7 @@ export function TestimonialsSection() {
         </div>
 
         <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-14 xl:gap-20">
-          <div className="relative mx-auto aspect-[3/4] w-full h-120 overflow-hidden rounded-[28px] shadow-lg lg:mx-0">
+          <div className="relative mx-auto aspect-[3/4] w-full lg:h-120 h-80 overflow-hidden rounded-[28px]  lg:mx-0">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeReview.id}
@@ -101,7 +101,7 @@ export function TestimonialsSection() {
                   alt={activeReview.name}
                   fill
                   sizes="(min-width: 1024px) 320px, 80vw"
-                  className="object-cover"
+                  className="object-cover object-top"
                 />
               </motion.div>
             </AnimatePresence>

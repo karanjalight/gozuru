@@ -285,7 +285,7 @@ export function LandingHero({
               aria-hidden
             />
 
-            <div className="relative min-w-0 rounded-full border border-zinc-200 bg-white shadow-sm sm:flex-[35] sm:rounded-none sm:border-0 sm:bg-transparent sm:shadow-none">
+            <div className="hidden min-w-0 rounded-full border border-zinc-200 bg-white shadow-sm sm:relative sm:block sm:flex-[35] sm:rounded-none sm:border-0 sm:bg-transparent sm:shadow-none">
               <MapPin
                 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
                 aria-hidden
