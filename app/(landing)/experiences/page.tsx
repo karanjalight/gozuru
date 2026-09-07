@@ -5,6 +5,7 @@ import {
   listImageTransform,
 } from "@/lib/queries/experiences";
 import { fetchLandingExperiencesServer } from "@/lib/queries/experiences-server";
+import { fetchUpcomingEventsServer } from "@/lib/queries/upcoming-events";
 import { socialPreviewImage } from "@/lib/seo";
 import { ExperienceHero } from "../components/HeroExperience copy";
 import { ExperiencesGrid } from "../components/sections/ExperiencesSection";
@@ -26,9 +27,10 @@ export const metadata: Metadata = {
 };
 
 export default async function ExperiencesPage() {
-  const [experiencesData, featuredData] = await Promise.all([
+  const [experiencesData, featuredData, upcomingEvents] = await Promise.all([
     fetchLandingExperiencesServer(48, listImageTransform),
     fetchLandingExperiencesServer(4, featuredImageTransform),
+    fetchUpcomingEventsServer(3, listImageTransform),
   ]);
 
   return (
@@ -39,7 +41,7 @@ export default async function ExperiencesPage() {
         <ExperiencesGrid initialData={experiencesData} />
       </Suspense>
       <Suspense fallback={null}>
-        <UpcomingEventsSection />
+        <UpcomingEventsSection events={upcomingEvents} />
       </Suspense>
       <Suspense fallback={null}>
         <FeaturedExperiencesShowcase initialData={featuredData} />

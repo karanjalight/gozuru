@@ -47,7 +47,7 @@ export function HowItWorksSection() {
         }}
       >
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-16">
-        <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
+        <h2 className="text-2xl dark:text-black font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
           How Gozuru works
         </h2>
          
@@ -56,18 +56,18 @@ export function HowItWorksSection() {
       <div className="mt-8 grid gap-10 lg:mt-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-12">
         <div className="flex flex-col justify-between gap-8">
           <div className="min-h-[220px]">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600 dark:text-orange-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-500 dark:text-orange-500">
               Step {activeIndex + 1} of {HOW_IT_WORKS_STEPS.length}
             </p>
             <h3
               key={step.id}
-              className="mt-2 text-xl font-bold text-foreground transition-opacity duration-300 sm:text-2xl"
+              className="mt-2 text-xl dark:text-black font-bold text-foreground transition-opacity duration-300 sm:text-2xl"
             >
               {step.title}
             </h3>
             <p
               key={`${step.id}-desc`}
-              className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground transition-opacity duration-300 sm:text-base"
+              className="mt-4 max-w-md text-sm leading-relaxed text-gray-700 transition-opacity duration-300 sm:text-base"
             >
               {step.description}
             </p>
@@ -89,12 +89,12 @@ export function HowItWorksSection() {
                   type="button"
                   aria-current={isActive ? "step" : undefined}
                   onClick={() => goTo(index)}
-                  className="flex w-full items-center gap-4 py-3 text-left first:pt-0"
+                  className="flex w-full items-center gap-4  py-3 text-left first:pt-0"
                 >
                   <span
                     className={cn(
                       "text-sm font-semibold tabular-nums transition-colors",
-                      isActive ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground/50",
+                      isActive ? "text-orange-600 dark:text-orange-400" : "text-gray-700",
                     )}
                   >
                     {String(index + 1).padStart(2, "0")}
@@ -102,7 +102,7 @@ export function HowItWorksSection() {
                   <span
                     className={cn(
                       "text-sm transition-colors sm:text-base",
-                      isActive ? "font-semibold text-foreground" : "font-medium text-muted-foreground",
+                      isActive ? "font-semibold text-orange-500" : "font-medium text-gray-500",
                     )}
                   >
                     {item.navLabel}
