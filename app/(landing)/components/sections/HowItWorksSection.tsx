@@ -33,7 +33,7 @@ export function HowItWorksSection() {
   return (
     <Section
       id="how-it-works"
-      className="border-t border-orange-200/70 bg-orange-100 dark:border-border dark:bg-gradient-to-br dark:from-orange-300 dark:via-background dark:to-orange-300"
+      className="border-t border-orange-200/70 bg-orange-100 dark:border-border dark:bg-gradient-to-br dark:from-orange-100   dark:to-orange-200"
       containerClassName="max-w-7xl"
     >
       <div
@@ -50,10 +50,7 @@ export function HowItWorksSection() {
         <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
           How Gozuru works
         </h2>
-        <p className="text-sm leading-relaxed text-muted-foreground sm:text-base lg:pt-2">
-          From hotel welcome visits to rooftop meetups and travel expos — discover,
-          connect, and experience the world through people who know it best.
-        </p>
+         
       </div>
 
       <div className="mt-8 grid gap-10 lg:mt-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-12">
