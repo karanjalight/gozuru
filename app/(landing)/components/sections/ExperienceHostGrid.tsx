@@ -26,6 +26,7 @@ type ExperienceRow = {
 
 type HostProfileRow = {
   user_id: string;
+  slug: string;
   headline: string | null;
   expertise: string | null;
   years_experience: number | null;
@@ -161,7 +162,7 @@ export function ExperienceHostGrid() {
     const load = async () => {
       const { data: hostRows, error: hostError } = await supabase
         .from("host_profiles")
-        .select("user_id,headline,expertise,years_experience,career_highlight,highlight_story")
+        .select("user_id,slug,headline,expertise,years_experience,career_highlight,highlight_story")
         .order("created_at", { ascending: false })
         .limit(6);
 
@@ -234,7 +235,7 @@ export function ExperienceHostGrid() {
       const headerMediaByHost: Record<string, ExperienceMediaItem> = {};
       const nextExperts: Expert[] = profiles.map((host) => {
         const row = latestExperienceByHost.get(host.user_id);
-        hrefs[host.user_id] = `/hosts/${host.user_id}`;
+        hrefs[host.user_id] = `/experts/${host.slug}`;
         const avatar = avatarByHost[host.user_id];
         const coverItem = row ? coverByExp[row.id] : undefined;
         const image = avatar || coverItem?.url || PLACEHOLDER_IMAGE;

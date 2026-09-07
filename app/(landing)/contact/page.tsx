@@ -59,7 +59,7 @@ export default function ContactPage() {
           className="absolute inset-0 bg-cover bg-center opacity-35"
           style={{
             backgroundImage:
-              "url(https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1800&h=1000&fit=crop)",
+              "url(/slidezuru2.png)",
           }}
         />
         <div className="absolute inset-0 bg-dark/80 gradient-to-br from-slate-600 via-slate-0/90 to-slate-900/65" />

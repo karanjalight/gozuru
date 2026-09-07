@@ -96,7 +96,7 @@ export default function ClientLoginPage() {
               Password
             </label>
             <Link
-              href="/auth/login"
+              href="/auth/client/forgot-password"
               className="text-xs font-medium text-orange-500 transition hover:text-orange-600"
             >
               Forgot password?
@@ -132,6 +132,16 @@ export default function ClientLoginPage() {
         </button>
 
         {error ? <p className="text-center text-sm text-red-500">{error}</p> : null}
+
+        <p className="text-center text-sm text-slate-500">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/auth/client/signup"
+            className="font-semibold text-orange-500 transition hover:text-orange-600"
+          >
+            Sign up
+          </Link>
+        </p>
       </form>
     </>
   );

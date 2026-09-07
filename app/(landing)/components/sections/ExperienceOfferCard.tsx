@@ -63,7 +63,7 @@ export function ExperienceOfferCard({ experience }: { experience: ExperienceOffe
           emptyLabel="No media"
         />
         {experience.category ? (
-          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-foreground backdrop-blur-sm">
+          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-900 backdrop-blur-sm">
             {experience.category}
           </span>
         ) : null}

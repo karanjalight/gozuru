@@ -3,15 +3,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { appendReferralQuery } from "@/lib/affiliate/referral";
 import { cn } from "@/lib/utils";
 
 export const CLIENT_AUTH_SIGNUP_IMAGE =
-  "https://images.pexels.com/photos/7149147/pexels-photo-7149147.jpeg";
+  "/slidezuru3.png";
 
 export const CLIENT_AUTH_LOGIN_IMAGE =
-  "https://images.pexels.com/photos/7551434/pexels-photo-7551434.jpeg";
+  "/slidezuru4.png";
 
 export const clientAuthInputClassName =
   "h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100";
@@ -74,34 +75,17 @@ export function ClientAuthShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-white text-slate-900">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
         <div className="flex flex-col px-6 py-8 sm:px-10 lg:px-14 lg:py-10">
-          <div
-            className="inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 p-1"
-            role="tablist"
-            aria-label="Authentication mode"
-          >
-            {toggleItems.map((item) => {
-              const active = activeMode === item.mode;
-              const href = appendReferralQuery(item.href, referralCode);
-              return (
-                <Link
-                  key={item.mode}
-                  href={href}
-                  role="tab"
-                  aria-selected={active}
-                  className={cn(
-                    "rounded-full px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition",
-                    active
-                      ? "bg-orange-500 text-white shadow-sm"
-                      : "text-slate-500 hover:text-slate-800",
-                  )}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-
+           
           <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-8">
+            <Link
+              href="/"
+              className="inline-flex mb-4  items-center gap-1.5 text-xs font-medium text-slate-500 transition hover:text-slate-800"
+            >
+              <ArrowLeft className="size-3.5" aria-hidden />
+              Back to home
+            </Link>
+
+
             {children}
           </div>
         </div>

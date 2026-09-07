@@ -7,7 +7,7 @@ Status: Approved. Ready for implementation planning.
 Gozuru has some SEO groundwork (`lib/seo.ts` default metadata, an Organization/WebSite JSON-LD block in `app/layout.tsx`, a generated OG image), but it has three gaps that together explain why search results currently look unorganized:
 
 1. **No crawl map at all.** There is no `robots.txt` and no `sitemap.xml` anywhere in the repo (confirmed — no `app/robots.ts`, `app/sitemap.ts`, or static equivalents). Google has no reliable way to discover the real experience/host pages beyond following links.
-2. **A sitewide canonical bug.** `lib/seo.ts`'s `defaultMetadata` sets `alternates.canonical` to the homepage URL. Next.js metadata is inherited from the root layout when a page doesn't declare its own `alternates`, and today almost none of them do — About, Contact, Terms, Chapatis, Experts, Hosts (Become a Host), Experiences (list), Sample Experiences (list), and both `sample-events`/`sample-experiences` dynamic detail pages all currently declare, via inheritance, "the canonical version of this page is the homepage." Worse, the two pages that matter most for organic discovery — `/experiences/[experienceId]` and `/hosts/[hostId]` — are `"use client"` components with **no page-specific metadata at all**, so every single real listing and every single host profile currently renders the exact same `<title>`, `<meta description>`, and canonical URL as the homepage. This is the direct cause of "search doesn't look organized": Google cannot currently tell any two experience or host pages apart.
+2. **A sitewide canonical bug.** `lib/seo.ts`'s `defaultMetadata` sets `alternates.canonical` to the homepage URL. Next.js metadata is inherited from the root layout when a page doesn't declare its own `alternates`, and today almost none of them do — About, Contact, Terms, Chapatis, Experts, Hosts (Become a Host), Experiences (list), Sample Experiences (list), and both `sample-events`/`sample-experiences` dynamic detail pages all currently declare, via inheritance, "the canonical version of this page is the homepage." Worse, the two pages that matter most for organic discovery — `/experiences/[experienceId]` and `/experts/[slug]` — are `"use client"` components with **no page-specific metadata at all**, so every single real listing and every single host profile currently renders the exact same `<title>`, `<meta description>`, and canonical URL as the homepage. This is the direct cause of "search doesn't look organized": Google cannot currently tell any two experience or host pages apart.
 3. **No structured data beyond the sitewide Organization/WebSite block.** Nothing describes an individual experience (price, location, rating) or a host (name, bio, rating) in a way Google can render as a rich result (star rating, price, breadcrumb trail).
 
 Additionally, private/authenticated areas (`/account/**`, `/admin/**`, `/auth/**`) have no crawl or index directives, so nothing currently stops them from being crawled or indexed.
@@ -16,7 +16,7 @@ Additionally, private/authenticated areas (`/account/**`, `/admin/**`, `/auth/**
 
 Full pass, in two phases:
 - **Phase A** — crawlability foundation: `robots.ts`, `sitemap.ts`, the canonical fix, private-route disallow.
-- **Phase B** — rich results: per-page metadata + JSON-LD for the two real dynamic page types (`/experiences/[experienceId]`, `/hosts/[hostId]`).
+- **Phase B** — rich results: per-page metadata + JSON-LD for the two real dynamic page types (`/experiences/[experienceId]`, `/experts/[slug]`).
 
 Non-goals (explicitly out of scope, see §7).
 
@@ -45,7 +45,7 @@ export default function robots(): MetadataRoute.Robots {
 - **Static entries:** `/`, `/experiences`, `/experts`, `/hosts`, `/about`, `/contact`, `/terms`, `/chapatis`, `/sample-experiences`, plus the existing static slugs already enumerated by `SAMPLE_EXPERIENCE_SLUGS` and the sample-events equivalent.
 - **Dynamic entries:**
   - Every `experiences` row where `status = 'published'` → `/experiences/[id]`, `lastModified` from the row's `updated_at` column.
-  - Every host with at least one published experience — same "published host" rule already implemented in `fetchLandingExpertsServer` (`lib/queries/experts-server.ts`, the `publishedHostIds` derivation) — reused, not reimplemented, → `/hosts/[hostId]`.
+  - Every host with at least one published experience — same "published host" rule already implemented in `fetchLandingExpertsServer` (`lib/queries/experts-server.ts`, the `publishedHostIds` derivation) — reused, not reimplemented, → `/experts/[slug]` (see [[2026-09-06-expert-slug-urls-design]] — `/hosts/[hostId]` is now a permanent-redirect stub, not the canonical page).
 - Private/auth-gated routes are excluded entirely (redundant with §3.1's disallow, but sitemaps should never list disallowed URLs).
 - `export const dynamic = "force-dynamic"` on the sitemap route, matching the existing convention used by the experiences/experts list pages rather than introducing a new caching strategy.
 
@@ -74,9 +74,9 @@ Both dynamic pages follow the same "light touch" pattern: the existing client co
   - Renders one `<script type="application/ld+json">` (built by `buildJsonLdExperience(...)`, see §4.3) followed by `<ExperienceDetailClient />`.
   - The client component still does its own full client-side fetch as it does today — this is a duplicate read (metadata query + client query), accepted as the cost of the light-touch approach; both queries are small, indexed lookups.
 
-### 4.2 `/hosts/[hostId]`
+### 4.2 `/experts/[slug]`
 
-- Same split: rename current `page.tsx` to `HostProfileClient.tsx`, add a server `page.tsx` with `generateMetadata` (host name, headline/bio, avatar, `alternates.canonical: /hosts/[id]`) and a JSON-LD `<script>` (built by `buildJsonLdHostProfile(...)`).
+- Same split: rename current `app/(landing)/experts/[slug]/page.tsx` content to `HostProfileClient.tsx`, add a server `page.tsx` with `generateMetadata` (host name, headline/bio, avatar, `alternates.canonical: /experts/[slug]`) and a JSON-LD `<script>` (built by `buildJsonLdHostProfile(...)`). `/hosts/[hostId]` (see [[2026-09-06-expert-slug-urls-design]]) stays a permanent-redirect stub and is excluded from the sitemap.
 
 ### 4.3 New JSON-LD builders in `lib/seo.ts`
 

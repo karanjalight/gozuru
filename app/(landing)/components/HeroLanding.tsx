@@ -28,10 +28,13 @@ const fadeUp = {
 
 // Hero background carousel images
 const HERO_BACKGROUND_IMAGES = [
-  "https://images.pexels.com/photos/36713426/pexels-photo-36713426.jpeg",
-  "https://images.pexels.com/photos/7148409/pexels-photo-7148409.jpeg",
-  "https://images.pexels.com/photos/1076081/pexels-photo-1076081.jpeg",
-  "https://images.pexels.com/photos/34665171/pexels-photo-34665171.jpeg",
+  "/slidezuru.png",
+  "/slidezuru2.png",
+  "/slidezuru3.png",
+  "/slidezuru4.png",
+  // "https://images.pexels.com/photos/36713426/pexels-photo-36713426.jpeg",
+  // "https://images.pexels.com/photos/7148409/pexels-photo-7148409.jpeg",
+  
 ];
 
 export function LandingHero({
@@ -58,7 +61,7 @@ export function LandingHero({
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentHeroImage(
-        (previous) => (previous + 1) % HERO_BACKGROUND_IMAGES.length
+        (previous) => (previous + 1) % HERO_BACKGROUND_IMAGES.length,
       );
     }, 5000);
 
@@ -74,9 +77,7 @@ export function LandingHero({
     return experiences
       .filter((exp) => {
         const location =
-          locationByExperienceId[exp.id] ||
-          exp.meeting_point_name ||
-          "";
+          locationByExperienceId[exp.id] || exp.meeting_point_name || "";
         const description = exp.description || "";
 
         return `${exp.title} ${location} ${description}`
@@ -127,8 +128,7 @@ export function LandingHero({
 
     document.addEventListener("mousedown", handleOutsideClick);
 
-    return () =>
-      document.removeEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
   function goToExperiences() {
@@ -151,9 +151,7 @@ export function LandingHero({
   return (
     <section
       className={`relative flex min-h-[80dvh] items-center justify-center overflow-hidden transition-colors ${
-        isDark
-          ? "bg-zinc-900 text-white"
-          : "bg-slate-950 text-white"
+        isDark ? "bg-zinc-900 text-white" : "bg-slate-950 text-white"
       }`}
     >
       <Navbar />
@@ -198,10 +196,10 @@ export function LandingHero({
 
         {/* Dark overlay */}
         <div
-          className={`absolute inset-0 bg-gradient-to-b transition-colors ${
+          className={`absolute inset-0 bg-gradient-to-r transition-colors ${
             isDark
-              ? "from-black/90 via-black/65 to-black/90"
-              : "from-black/85 via-slate-950/50 to-black/85"
+              ? "from-black/90 via-black/65 to-black/60"
+              : "from-black/95 via-slate-950/50 to-black/65"
           }`}
         />
       </div>
@@ -222,7 +220,6 @@ export function LandingHero({
           }`}
         >
           <span className="h-2 w-2 rounded-full bg-emerald-400" />
-
           Nairobi · Real people, real conversations
         </motion.div>
 
@@ -262,9 +259,9 @@ export function LandingHero({
               event.preventDefault();
               goToExperiences();
             }}
-            className="flex w-full items-stretch gap-2 rounded-full border border-zinc-200 bg-white px-3 py-2 text-left shadow-lg shadow-black/20 outline-none transition focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-400/40 hover:border-zinc-300"
+            className="flex w-full flex-col gap-2 sm:flex-row sm:items-stretch sm:rounded-full sm:border sm:border-zinc-200 sm:bg-white sm:px-3 sm:py-2 sm:shadow-lg sm:shadow-black/20 sm:outline-none sm:transition sm:focus-within:border-orange-400 sm:focus-within:ring-2 sm:focus-within:ring-orange-400/40 sm:hover:border-zinc-300"
           >
-            <div className="relative min-w-0 flex-[65]">
+            <div className="relative min-w-0 rounded-full border border-zinc-200 bg-white shadow-sm sm:flex-[65] sm:rounded-none sm:border-0 sm:bg-transparent sm:shadow-none">
               <Search
                 className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
                 aria-hidden
@@ -279,16 +276,16 @@ export function LandingHero({
                 onFocus={() => setShowSuggestions(true)}
                 placeholder="What are you curious about?"
                 aria-label="Search experiences"
-                className="w-full rounded-full border-0 bg-white py-2 pl-10 pr-4 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none [&:-webkit-autofill]:[-webkit-text-fill-color:rgb(9_9_11)] [&:-webkit-autofill]:[box-shadow:0_0_0px_1000px_#fff_inset]"
+                className="w-full rounded-full border-0 bg-white py-3 pl-10 pr-4 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none sm:py-2 [&:-webkit-autofill]:[-webkit-text-fill-color:rgb(9_9_11)] [&:-webkit-autofill]:[box-shadow:0_0_0px_1000px_#fff_inset]"
               />
             </div>
 
             <div
-              className="w-px shrink-0 self-stretch bg-zinc-200"
+              className="hidden w-px shrink-0 self-stretch bg-zinc-200 sm:block"
               aria-hidden
             />
 
-            <div className="relative min-w-0 flex-[35]">
+            <div className="hidden min-w-0 rounded-full border border-zinc-200 bg-white shadow-sm sm:relative sm:block sm:flex-[35] sm:rounded-none sm:border-0 sm:bg-transparent sm:shadow-none">
               <MapPin
                 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
                 aria-hidden
@@ -296,18 +293,16 @@ export function LandingHero({
 
               <input
                 value={cityValue}
-                onChange={(event) =>
-                  setCityValue(event.target.value)
-                }
+                onChange={(event) => setCityValue(event.target.value)}
                 placeholder="City"
                 aria-label="City"
-                className="w-full rounded-full border-0 bg-white py-2 pl-9 pr-3 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none"
+                className="w-full rounded-full border-0 bg-white py-3 pl-9 pr-3 text-sm font-medium text-zinc-950 caret-orange-600 placeholder:text-zinc-500 outline-none focus-visible:outline-none sm:py-2"
               />
             </div>
 
             <button
               type="submit"
-              className="inline-flex shrink-0 items-center justify-center rounded-full border border-orange-500/80 bg-orange-600 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-orange-700 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 sm:text-sm"
+              className="inline-flex w-full shrink-0 items-center justify-center rounded-full border border-orange-500/80 bg-orange-600 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:bg-orange-700 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 sm:w-auto sm:py-2 sm:text-xs"
             >
               Explore
             </button>
@@ -362,7 +357,7 @@ export function LandingHero({
               <Link
                 key={category.slug}
                 href={`/experiences?category=${encodeURIComponent(
-                  category.slug
+                  category.slug,
                 )}`}
                 className="rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur transition hover:border-white/40 hover:bg-white/20 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
               >
@@ -415,4 +410,3 @@ export function LandingHero({
     </section>
   );
 }
-

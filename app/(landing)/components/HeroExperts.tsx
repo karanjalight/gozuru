@@ -9,11 +9,7 @@ import { Navbar } from "@/app/(landing)/components/Navbar";
 import type { LocalExpert } from "@/app/(landing)/lib/agents";
 
 const HERO_IMAGES = [
-  "https://images.pexels.com/photos/3184292/pexels-photo-3184292.jpeg",
-  "https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg",
-  "https://images.pexels.com/photos/1267696/pexels-photo-1267696.jpeg",
-  "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg",
-  "https://images.pexels.com/photos/1181690/pexels-photo-1181690.jpeg",
+ "/slidezuru4.png",
 ];
 
 export function HeroExperts({ experts }: { experts: LocalExpert[] }) {
@@ -60,7 +56,7 @@ export function HeroExperts({ experts }: { experts: LocalExpert[] }) {
 
   return (
     <section
-      className={`relative flex min-h-[55vh] items-center justify-center overflow-hidden transition-colors ${
+      className={`relative flex min-h-[65vh] items-center justify-center overflow-hidden transition-colors ${
         isDark ? "bg-zinc-900 text-white" : "bg-slate-950 text-white"
       }`}
     >
