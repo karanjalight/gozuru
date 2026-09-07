@@ -256,6 +256,16 @@ export default function ClientSignupPage() {
         {successMessage ? (
           <p className="text-center text-sm text-emerald-600">{successMessage}</p>
         ) : null}
+
+        <p className="text-center text-sm text-slate-500">
+          Already have an account?{" "}
+          <Link
+            href="/auth/client/login"
+            className="font-semibold text-orange-500 transition hover:text-orange-600"
+          >
+            Sign in
+          </Link>
+        </p>
       </form>
     </>
   );

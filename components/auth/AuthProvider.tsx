@@ -52,6 +52,7 @@ type AuthContextValue = {
     },
   ) => Promise<{ needsEmailVerification: boolean }>;
   updateProfile: (profile: AuthUser["metadata"]) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -292,6 +293,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(refreshError.message);
       }
       setUser(mapAuthUser(refreshed.user));
+    },
+    resetPassword: async (email: string) => {
+      const redirectTo =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/auth/client/login`
+          : undefined;
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+        redirectTo,
+      });
+      if (error) throw new Error(error.message);
     },
     logout: () => {
       void supabase.auth.signOut().then(({ error }) => {
