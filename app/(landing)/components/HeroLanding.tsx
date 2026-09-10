@@ -231,7 +231,7 @@ export function LandingHero({
           className="space-y-4"
         >
           <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl text-white">
-            Reward Your Curiosity with Gozuru
+            Meet. Learn. Discover.
           </h1>
 
           <p
@@ -239,7 +239,11 @@ export function LandingHero({
               isDark ? "text-zinc-100/90" : "text-zinc-100"
             }`}
           >
-            Real people, real conversations — not just sightseeing.
+            Connect with interesting people, share experiences, and learn something new, whether you're a local or a traveller.
+            <br />
+            <span className="font-bold text-orange-500 text-lg">
+              Reward your curiosity.
+            </span>
           </p>
         </motion.div>
 
