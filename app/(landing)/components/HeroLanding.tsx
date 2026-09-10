@@ -235,13 +235,13 @@ export function LandingHero({
           </h1>
 
           <p
-            className={`max-w-xl text-balance text-sm sm:text-base leading-relaxed transition-colors ${
+            className={`max-w-xl  text-2xl sm:text-base leading-relaxed transition-colors ${
               isDark ? "text-zinc-100/90" : "text-zinc-100"
             }`}
           >
             Connect with interesting people, share experiences, and learn something new, whether you're a local or a traveller.
             <br />
-            <span className="font-bold text-orange-500 text-lg">
+            <span className="font-bold text-orange-500 text-2xl">
               Reward your curiosity.
             </span>
           </p>
