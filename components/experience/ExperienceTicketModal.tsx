@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
+  CalendarCheck,
   CalendarDays,
   Check,
   ChevronLeft,
@@ -10,7 +11,6 @@ import {
   Clock3,
   Minus,
   Plus,
-  Ticket,
   X,
 } from "lucide-react";
 import type { ExperienceBookingSlot } from "@/components/experience/ExperienceBookingPanel";
@@ -44,7 +44,7 @@ type ExperienceTicketModalProps = {
 
 type WizardStep = 1 | 2 | 3;
 
-const STEP_LABELS = ["Select date", "Select time", "Tickets"] as const;
+const STEP_LABELS = ["Select date", "Select time", "Slots"] as const;
 
 function formatDateCard(iso: string) {
   const date = new Date(iso);
@@ -200,7 +200,7 @@ export function ExperienceTicketModal({
     <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
       <button
         type="button"
-        aria-label="Close ticket booking"
+        aria-label="Close slot booking"
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={() => onOpenChange(false)}
       />
@@ -215,7 +215,7 @@ export function ExperienceTicketModal({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-orange-400">
-                Book tickets
+                Book slots
               </p>
               <h2 id="ticket-modal-title" className="mt-1 truncate text-xl font-bold sm:text-2xl">
                 {title}
@@ -391,7 +391,7 @@ export function ExperienceTicketModal({
               </div>
 
               <div>
-                <h3 className="text-base font-semibold text-foreground">How many tickets?</h3>
+                <h3 className="text-base font-semibold text-foreground">How many slots?</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {selectedRemaining} seat{selectedRemaining === 1 ? "" : "s"} remaining for this showtime.
                 </p>
@@ -402,7 +402,7 @@ export function ExperienceTicketModal({
                     variant="outline"
                     size="icon"
                     className="size-12 rounded-full"
-                    aria-label="Decrease tickets"
+                    aria-label="Decrease slots"
                     onClick={() => setDraftTickets(selectedSlot.id, ticketCount - 1, selectedSlot)}
                     disabled={ticketCount <= 1}
                   >
@@ -410,14 +410,14 @@ export function ExperienceTicketModal({
                   </Button>
                   <div className="text-center">
                     <p className="text-4xl font-bold tabular-nums text-foreground">{ticketCount}</p>
-                    <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Tickets</p>
+                    <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">Slots</p>
                   </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="icon"
                     className="size-12 rounded-full"
-                    aria-label="Increase tickets"
+                    aria-label="Increase slots"
                     onClick={() => setDraftTickets(selectedSlot.id, ticketCount + 1, selectedSlot)}
                     disabled={ticketCount >= selectedRemaining}
                   >
@@ -428,7 +428,7 @@ export function ExperienceTicketModal({
 
               <div className="rounded-2xl border border-border p-4">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Ticket price</span>
+                  <span className="text-muted-foreground">Slot price</span>
                   <span className="font-medium text-foreground">
                     {formatCheckoutMoney(unitPrice, currency)}
                   </span>
@@ -487,7 +487,7 @@ export function ExperienceTicketModal({
                 className="h-12 flex-1 rounded-xl bg-orange-600 text-sm font-semibold text-white hover:bg-orange-700"
                 onClick={handleAddTickets}
               >
-                <Ticket className="mr-2 size-4" />
+                <CalendarCheck className="mr-2 size-4" />
                 Add to cart · {formatCheckoutMoney(lineTotal, currency)}
               </Button>
             ) : null}

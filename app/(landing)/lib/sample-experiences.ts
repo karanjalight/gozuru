@@ -277,7 +277,7 @@ const SAMPLE_EXPERIENCES: SampleExperience[] = [
       "Expo souvenir tote",
     ],
     requirements: ["Comfortable walking shoes", "Government-issued ID for badge pickup"],
-    cancellationPolicy: "Tickets are transferable up to 48 hours before the event.",
+    cancellationPolicy: "Booked slots are transferable up to 48 hours before the event.",
     images: [
       "https://images.pexels.com/photos/2774556/pexels-photo-2774556.jpeg",
       "https://images.pexels.com/photos/2775168/pexels-photo-2775168.jpeg",

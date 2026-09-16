@@ -97,7 +97,7 @@ export function useExperienceCart(
       if (draft > remaining) {
         return {
           ok: false as const,
-          error: `Only ${remaining} ticket${remaining === 1 ? "" : "s"} available for this slot.`,
+          error: `Only ${remaining} slot${remaining === 1 ? "" : "s"} available for this showtime.`,
         };
       }
 
@@ -131,7 +131,7 @@ export function useExperienceCart(
       if (tickets > maxAllowed) {
         return {
           ok: false as const,
-          error: `Only ${maxAllowed} ticket${maxAllowed === 1 ? "" : "s"} available for this slot.`,
+          error: `Only ${maxAllowed} slot${maxAllowed === 1 ? "" : "s"} available for this showtime.`,
         };
       }
 

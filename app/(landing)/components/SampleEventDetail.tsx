@@ -19,7 +19,7 @@ export function SampleEventDetail({ event }: { event: ResolvedSampleEvent }) {
   const durationLabel =
     event.durationHours === 1 ? "1 hour" : `${event.durationHours} hours`;
   const maxAttendeesLabel = `Up to ${event.maxAttendees} attendee${event.maxAttendees === 1 ? "" : "s"}`;
-  const priceLabel = `${formatDisplayMoney(event.priceFrom, event.currency)} / ticket`;
+  const priceLabel = `${formatDisplayMoney(event.priceFrom, event.currency)} / slot`;
   const locationLabel =
     event.city === "Rotating" || event.city === "Global"
       ? event.location
@@ -77,7 +77,7 @@ export function SampleEventDetail({ event }: { event: ResolvedSampleEvent }) {
               <CardContent className="space-y-4 text-sm leading-7 text-muted-foreground">
                 <p>{event.description}</p>
                 <p className="rounded-xl border border-dashed border-orange-200 bg-orange-50/50 px-4 py-3 text-xs text-orange-800 dark:border-orange-500/30 dark:bg-orange-950/20 dark:text-orange-200">
-                  This is a sample event listing for demo purposes. Ticket slots and checkout are simulated.
+                  This is a sample event listing for demo purposes. Slots and checkout are simulated.
                 </p>
               </CardContent>
             </Card>
@@ -226,7 +226,7 @@ export function SampleEventDetail({ event }: { event: ResolvedSampleEvent }) {
                         "inline-flex h-12 items-center justify-center rounded-lg border-border px-6 text-sm font-semibold sm:flex-1",
                       )}
                     >
-                      Buy ticket
+                      Book slot
                     </a>
                   </div>
                 </div>

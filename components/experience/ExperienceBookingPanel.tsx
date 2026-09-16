@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   CalendarDays,
+  CalendarCheck,
   CheckCircle2,
   Clock3,
   Lock,
@@ -20,7 +21,6 @@ import {
   Plus,
   ShoppingBag,
   Star,
-  Ticket,
   Trash2,
   Users,
 } from "lucide-react";
@@ -466,7 +466,7 @@ export function ExperienceBookingRoot({
             <h3 className="mt-4 text-2xl font-semibold text-foreground">Order confirmed</h3>
             <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
               Your payment was successful. {orderSuccess.bookedCount} booking
-              {orderSuccess.bookedCount === 1 ? "" : "s"} for {orderSuccess.ticketCount} ticket
+              {orderSuccess.bookedCount === 1 ? "" : "s"} for {orderSuccess.ticketCount} slot
               {orderSuccess.ticketCount === 1 ? "" : "s"} {orderSuccess.bookedCount === 1 ? "is" : "are"} confirmed.
             </p>
             <p className="mt-1 text-xs text-muted-foreground">Reference: {orderSuccess.reference}</p>
@@ -523,10 +523,10 @@ export function ExperienceBookingSlots() {
           <div>
             <CardTitle className="flex items-center gap-2 text-lg text-foreground">
               <CalendarDays className="size-5 text-orange-500 dark:text-orange-400" />
-              Select tickets
+              Select slots
             </CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
-              Choose one or more time slots, set ticket quantities, and add them to your cart.
+              Choose one or more showtimes, set how many slots you need, and add them to your cart.
             </p>
           </div>
           <Badge variant="outline" className="shrink-0 rounded-full border-border px-3 py-1 text-foreground">
@@ -583,7 +583,7 @@ export function ExperienceBookingSlots() {
                             </p>
                           ) : null}
                           <p className="text-sm font-medium text-orange-600 dark:text-orange-400">
-                            {formatCheckoutMoney(unitPrice, currency)} per ticket
+                            {formatCheckoutMoney(unitPrice, currency)} per slot
                           </p>
                         </div>
                         <Badge
@@ -610,7 +610,7 @@ export function ExperienceBookingSlots() {
                                 variant="ghost"
                                 size="icon-sm"
                                 className="rounded-full"
-                                aria-label="Decrease tickets"
+                                aria-label="Decrease slots"
                                 onClick={() => setDraftTickets(slot.id, draft - 1, slot)}
                                 disabled={draft <= 1}
                               >
@@ -624,7 +624,7 @@ export function ExperienceBookingSlots() {
                                 variant="ghost"
                                 size="icon-sm"
                                 className="rounded-full"
-                                aria-label="Increase tickets"
+                                aria-label="Increase slots"
                                 onClick={() => setDraftTickets(slot.id, draft + 1, slot)}
                                 disabled={draft >= remaining}
                               >
@@ -644,7 +644,7 @@ export function ExperienceBookingSlots() {
 
                       {inCart > 0 ? (
                         <p className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-orange-600 dark:text-orange-400">
-                          <Ticket className="size-3.5" />
+                          <CalendarCheck className="size-3.5" />
                           {inCart} in cart · {formatCheckoutMoney(unitPrice * inCart, currency)}
                         </p>
                       ) : null}
@@ -698,7 +698,7 @@ export function ExperienceBookingOrderSummary({ className }: { className?: strin
             </span>
             {cart.length > 0 ? (
               <Badge className="rounded-full border border-orange-200/70 bg-orange-500 px-2.5 py-0.5 text-white hover:bg-orange-500">
-                {cartTicketCount} ticket{cartTicketCount === 1 ? "" : "s"}
+                {cartTicketCount} slot{cartTicketCount === 1 ? "" : "s"}
               </Badge>
             ) : null}
           </CardTitle>
@@ -710,7 +710,7 @@ export function ExperienceBookingOrderSummary({ className }: { className?: strin
               <ShoppingBag className="mx-auto size-7 text-muted-foreground/70" />
               <p className="mt-3 text-sm font-medium text-foreground">Your cart is empty</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Add tickets from multiple slots, then checkout once.
+                Add slots from multiple showtimes, then checkout once.
               </p>
             </div>
           ) : (
@@ -752,7 +752,7 @@ export function ExperienceBookingOrderSummary({ className }: { className?: strin
                             variant="ghost"
                             size="icon-sm"
                             className="rounded-full"
-                            aria-label="Remove one ticket"
+                            aria-label="Remove one slot"
                             onClick={() => {
                               const result = updateCartLineTickets(line.slotId, line.tickets - 1);
                               if (!result.ok) setBookingError(result.error);
@@ -768,7 +768,7 @@ export function ExperienceBookingOrderSummary({ className }: { className?: strin
                             variant="ghost"
                             size="icon-sm"
                             className="rounded-full"
-                            aria-label="Add one ticket"
+                            aria-label="Add one slot"
                             onClick={() => {
                               const result = updateCartLineTickets(line.slotId, line.tickets + 1);
                               if (!result.ok) setBookingError(result.error);
@@ -797,7 +797,7 @@ export function ExperienceBookingOrderSummary({ className }: { className?: strin
 
               <div className="space-y-2 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm dark:bg-muted/10">
                 <div className="flex items-center justify-between text-muted-foreground">
-                  <span>Subtotal ({cartTicketCount} ticket{cartTicketCount === 1 ? "" : "s"})</span>
+                  <span>Subtotal ({cartTicketCount} slot{cartTicketCount === 1 ? "" : "s"})</span>
                   <span className="font-medium text-foreground">
                     {formatCheckoutMoney(cartTotal, cartCurrency)}
                   </span>
@@ -878,7 +878,7 @@ function ExperienceBookingOverlays({
           <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-foreground">
-                {cartTicketCount} ticket{cartTicketCount === 1 ? "" : "s"} · {cartLines.length} slot
+                {cartTicketCount} slot{cartTicketCount === 1 ? "" : "s"} · {cartLines.length} showtime
                 {cartLines.length === 1 ? "" : "s"}
               </p>
               <p className="text-lg font-bold tabular-nums text-orange-700 dark:text-orange-300">
@@ -907,7 +907,7 @@ function ExperienceBookingOverlays({
                 </p>
               </div>
               <Badge variant="outline" className="rounded-full">
-                {cartTicketCount} ticket{cartTicketCount === 1 ? "" : "s"}
+                {cartTicketCount} slot{cartTicketCount === 1 ? "" : "s"}
               </Badge>
             </div>
 
@@ -920,7 +920,7 @@ function ExperienceBookingOverlays({
                   <div>
                     <p className="font-medium text-foreground">{formatSlotDate(line.slot.starts_at)}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatSlotTime(line.slot.starts_at)} · {line.tickets} ticket
+                      {formatSlotTime(line.slot.starts_at)} · {line.tickets} slot
                       {line.tickets === 1 ? "" : "s"}
                     </p>
                   </div>
@@ -975,7 +975,7 @@ function ExperienceBookingOverlays({
   );
 }
 
-/** E-commerce-style purchase column: slot picker + Buy Ticket + cart */
+/** E-commerce-style purchase column: slot picker + Book slot + cart */
 export function ExperienceBookingPurchasePanel({
   title,
   subtitle,
@@ -1027,7 +1027,7 @@ export function ExperienceBookingPurchasePanel({
   const upcomingCount = availability.length;
   const nextSlot = availability[0] ?? null;
 
-  function handleBuyTicketClick() {
+  function handleBookSlotClick() {
     setBookingError(null);
     if (upcomingCount === 0) {
       setBookingError("No upcoming slots available right now.");
@@ -1107,11 +1107,11 @@ export function ExperienceBookingPurchasePanel({
           <Button
             type="button"
             className="mt-5 h-12 w-full rounded-xl bg-foreground text-sm font-semibold text-background hover:opacity-90"
-            onClick={handleBuyTicketClick}
+            onClick={handleBookSlotClick}
             disabled={upcomingCount === 0}
           >
-            <Ticket className="mr-2 size-4" />
-            Buy ticket
+            <CalendarCheck className="mr-2 size-4" />
+            Book slot
           </Button>
         </div>
       </div>
@@ -1142,14 +1142,14 @@ export function ExperienceBookingPurchasePanel({
           </p>
           {cartTicketCount > 0 ? (
             <Badge variant="outline" className="rounded-full">
-              {cartTicketCount} ticket{cartTicketCount === 1 ? "" : "s"}
+              {cartTicketCount} slot{cartTicketCount === 1 ? "" : "s"}
             </Badge>
           ) : null}
         </div>
 
         {cartLines.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">
-            No tickets yet. Click Buy ticket to choose a date and showtime.
+            No slots yet. Click Book slot to choose a date and showtime.
           </p>
         ) : (
           <div className="mt-4 space-y-3">
@@ -1161,7 +1161,7 @@ export function ExperienceBookingPurchasePanel({
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground">{formatSlotDate(line.slot.starts_at)}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatSlotTime(line.slot.starts_at)} · {line.tickets} ticket{line.tickets === 1 ? "" : "s"}
+                    {formatSlotTime(line.slot.starts_at)} · {line.tickets} slot{line.tickets === 1 ? "" : "s"}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

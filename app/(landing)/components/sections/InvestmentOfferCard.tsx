@@ -59,7 +59,7 @@ export function InvestmentOfferCard({ offer }: { offer: FeaturedEvent }) {
             href={ticketHref}
             className="inline-flex items-center justify-center rounded-lg bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
           >
-            Buy ticket
+            Book slot
           </Link>
           <Link
             href={detailHref}
