@@ -13,18 +13,16 @@ import {
 } from "@/lib/queries/experiences";
 import { fetchLandingExperiencesServer } from "@/lib/queries/experiences-server";
 import { fetchLandingExpertsServer } from "@/lib/queries/experts-server";
-import { socialPreviewImage } from "@/lib/seo";
+import { siteDescription, siteTitle, socialPreviewImage } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Gozuru – Reward Your Curiosity",
-  description:
-    "Book hotel partner visits, expert-led experiences, community meetups, social events, and travel expos. Connect with local experts and reward your curiosity on Gozuru.",
+  title: { absolute: siteTitle },
+  description: siteDescription,
   openGraph: {
-    title: "Gozuru – Reward Your Curiosity",
-    description:
-      "Hotel visits, featured experiences, meetups, expos, and verified local experts — all on Gozuru.",
+    title: siteTitle,
+    description: siteDescription,
     images: [socialPreviewImage],
   },
 };
