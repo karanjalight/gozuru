@@ -3,10 +3,10 @@ import type { Metadata } from "next";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gozuru.com";
 
 export const socialPreviewImage = {
-  url: "/opengraph-image",
+  url: "/og-image.jpg",
   width: 1200,
   height: 630,
-  alt: "Gozuru preview showing curated local experiences for curious travelers",
+  alt: "Visitors talking at an African contemporary art gallery on Gozuru",
 };
 
 export const defaultMetadata: Metadata = {
